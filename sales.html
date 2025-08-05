@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rana Chicken Shop Dashboard</title>
+
+    <!-- Font Awesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .header-bg {
+        background: linear-gradient(90deg, #1d71d8 0%, #3b82f6 100%);
+      }
+    </style>
+  </head>
+  <body class="bg-slate-100 text-gray-900">
+    <!-- Header -->
+    <header
+      class="header-bg fixed top-0 left-0 w-full z-50 text-white shadow-lg rounded-b-3xl"
+    >
+      <div
+        class="mx-auto px-4 sm:px-6 lg:px-10 py-6 flex flex-col md:flex-row items-center justify-between gap-4"
+      >
+        <!-- Logo + Title -->
+        <div class="flex items-center gap-3">
+          <i class="fas fa-drumstick-bite text-2xl md:text-3xl"></i>
+          <h1 class="text-2xl md:text-3xl font-extrabold whitespace-nowrap">
+            Rana Chicken Shop
+          </h1>
+        </div>
+
+        <!-- Contact Button -->
+        <button
+          class="bg-white text-blue-600 px-5 py-2 rounded-full font-semibold text-sm hover:bg-slate-200 hover:scale-105 transition-all shadow-md flex items-center gap-2"
+        >
+          <i class="fas fa-envelope"></i> Contact Us
+        </button>
+      </div>
+    </header>
+
+    <!-- Truck Arrivals Dashboard -->
+    <section class="p-6 md:px-10 mt-10 space-y-8 mt-40 md:mt-20">
+      <div class="flex justify-between items-center flex-wrap gap-4 mb-4 my-10">
+        <div class="pb-4">
+          <h2 class="text-3xl font-bold text-gray-800">Sales Management</h2>
+          <p class="text-gray-500 text-sm">
+            Track truck sales and direct shop sales
+          </p>
+        </div>
+        <div class="flex gap-3 flex-wrap">
+          <a
+            href="index.html"
+            class="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 border border-blue-600 px-4 py-2 rounded-md transition-all"
+          >
+            <i class="fas fa-arrow-left"></i> Back to Home
+          </a>
+          <button
+            onclick="document.getElementById('arrivalModal').classList.remove('hidden')"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium shadow-md flex items-center gap-2 transition-transform hover:scale-105"
+          >
+            <i class="fas fa-plus"></i> Record Sale
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+        <!-- Trucks Today -->
+        <div
+          class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 flex items-center gap-4"
+        >
+          <div class="bg-white text-blue-600 p-3 rounded-full shadow">
+            <i class="fas fa-truck text-xl"></i>
+          </div>
+          <div>
+            <p class="text-3xl font-bold text-white">0</p>
+            <p class="text-white text-sm">Trucks Sales</p>
+          </div>
+        </div>
+
+        <!-- Total Quantity -->
+        <div
+          class="bg-gradient-to-r from-green-500 to-green-600 rounded-xl shadow-lg p-6 flex items-center gap-4"
+        >
+          <div class="bg-white text-green-600 p-3 rounded-full shadow">
+            <i class="fas fa-weight-hanging text-xl"></i>
+          </div>
+          <div>
+            <p class="text-3xl font-bold text-white">0 kg</p>
+            <p class="text-white text-sm">Shop Sales</p>
+          </div>
+        </div>
+
+        <!-- Total Cost -->
+        <div
+          class="bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 flex items-center gap-4"
+        >
+          <div class="bg-white text-orange-600 p-3 rounded-full shadow">
+            <i class="fas fa-dollar-sign text-xl"></i>
+          </div>
+          <div>
+            <p class="text-3xl font-bold text-white">$0</p>
+            <p class="text-white text-sm">Truck Revenue</p>
+          </div>
+        </div>
+        <div
+          class="bg-purple-700 rounded-xl shadow-lg p-6 flex items-center gap-4"
+        >
+          <div class="bg-white text-purple-700 p-3 rounded-full shadow">
+            <i class="fas fa-dollar-sign text-xl"></i>
+          </div>
+          <div>
+            <p class="text-3xl font-bold text-white">$0</p>
+            <p class="text-white text-sm">Shop Revenue</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Arrivals -->
+      <div>
+        <p class="text-lg pt-10 pb-5 font-bold">Recent Sales</p>
+        <div
+          class="bg-white rounded-xl shadow-lg p-10 text-center text-gray-400"
+        >
+          <i class="fas fa-truck text-4xl mb-4"></i>
+          <p class="text-lg font-medium">No sales recorded yet</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modal Form -->
+    <div
+      id="arrivalModal"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden"
+    >
+      <div
+        class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-6xl relative animate__animated animate__fadeInDown"
+      >
+        <button
+          onclick="document.getElementById('arrivalModal').classList.add('hidden')"
+          class="absolute top-2 right-3 text-gray-400 hover:text-red-500 text-2xl"
+        >
+          &times;
+        </button>
+        <h3 class="text-2xl font-bold mb-6 text-gray-800">Add Truck Arrival</h3>
+        <form class="space-y-4">
+          <!-- Date -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Date</label>
+            <input
+              type="date"
+              value="2025-08-05"
+              class="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          <!-- Truck Number -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 pb-1"
+              >Sale Type</label
+            >
+            <select
+              class="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
+            >
+              <option value="" disabled selected>Select sale type</option>
+              <option value="direct">Direct shop sale</option>
+              <option value="truck">Truck sale</option>
+            </select>
+          </div>
+
+          <!-- Quantity (kg) -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700"
+              >Quantity (kg)</label
+            >
+            <input
+              type="number"
+              step="0.1"
+              placeholder="0.0"
+              class="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+
+          <!-- Price per Kg ($) -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700"
+              >Price per Kg ($)</label
+            >
+            <input
+              type="number"
+              step="0.01"
+              placeholder="0.00"
+              class="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
+          </div>
+
+          <!-- Supplier -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 pb-1"
+              >Customer (Optional)</label
+            >
+            <select
+              class="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
+            >
+              <option value="" disabled selected>
+                Select Customer (optional)
+              </option>
+            </select>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex justify-end gap-4 pt-4">
+            <button
+              type="button"
+              onclick="document.getElementById('arrivalModal').classList.add('hidden')"
+              class="px-4 py-2 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="px-6 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 font-semibold transition"
+            >
+              Add Arrival
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>
