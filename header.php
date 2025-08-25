@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -41,6 +40,44 @@
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         table th, table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         table th { background-color: #f2f2f2; }
+
+        /* 📱 Responsive Design */
+        @media (max-width: 992px) {
+            .stats {
+                flex-wrap: wrap;
+            }
+            .stat-box {
+                flex: 1 1 45%; /* Tablet par 2 box ek row me */
+                margin-bottom: 15px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            .header img {
+                margin: 0 auto 10px auto;
+            }
+            .stats {
+                flex-direction: column; /* Mobile par ek ke neeche ek */
+            }
+            .stat-box {
+                flex: 1 1 100%;
+            }
+            .stat-icon {
+                width: 30px;
+                height: 30px;
+                right: 10px;
+            }
+            .stat-value {
+                font-size: 20px;
+            }
+            .stat-label {
+                font-size: 12px;
+            }
+        }
     </style>
 
 </head>
