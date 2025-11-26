@@ -1,0 +1,38 @@
+:root {
+  --primary-color: #3f4add;
+  /* Main Blue */
+  --secondary-color: color-mix(in srgb, var(--primary-color), white 35%);
+  /* Lighter Blue */
+  --secondary-bg-color: color-mix(in srgb, var(--primary-color), white 35%);
+  /* Lighter Blue */
+}
+
+.bg-theme {
+  background: linear-gradient(228deg,
+      var(--secondary-bg-color) 0%,
+      var(--primary-color) 50%,
+      #00cfff 100%);
+  box-shadow: 0 0 30px rgba(63, 74, 221, 0.8);
+}
+
+.bg-theme-primary {
+  background: var(--primary-color);
+}
+
+.btn-theme-primary {
+  background: linear-gradient(228deg,
+      var(--secondary-bg-color) 0%,
+      var(--primary-color) 50%,
+      #00cfff 100%);
+  background-size: 200% 200%;
+  transition: background-position 0.5s ease, background-color 0.5s ease;
+  color: #fff;
+}
+
+.btn-theme-primary:hover {
+  background-position: 0 100%;
+}
+
+.theme-text-primary {
+  color: var(--primary-color);
+}

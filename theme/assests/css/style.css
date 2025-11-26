@@ -1,0 +1,70 @@
+
+        /* Fade-in animation */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .fade-in.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Sidebar buttons */
+        .sidebar-btn {
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 5px;
+            border-radius: 0.375rem;
+            font-weight: 600;
+        }
+
+        .sidebar-btn:hover {
+            transform: translateX(4px) scale(1.05);
+            background-color: #2563eb;
+        }
+
+        .sidebar-btn.active {
+            background-color: #1e40af;
+            border-left: 4px solid white;
+            transform: translateX(6px) scale(1.05);
+        }
+
+        /* Navbar */
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        .bell-badge {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .bell-badge span {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: red;
+            color: white;
+            font-size: 10px;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-weight: bold;
+        }
+
+        /* Responsive fixes */
+        @media (max-width: 768px) {
+            .content-area {
+                margin-left: 0;
+            }
+        }
+    
