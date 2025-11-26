@@ -1,5 +1,5 @@
 :root {
-  --primary-color: #3f4add;
+  --primary-color: #EF681A;
   /* Main Blue */
   --secondary-color: color-mix(in srgb, var(--primary-color), white 35%);
   /* Lighter Blue */
@@ -11,8 +11,8 @@
   background: linear-gradient(228deg,
       var(--secondary-bg-color) 0%,
       var(--primary-color) 50%,
-      #00cfff 100%);
-  box-shadow: 0 0 30px rgba(63, 74, 221, 0.8);
+      #ffae00 100%);
+  box-shadow: 0 0 30px rgba(255, 150, 30, 0.8);
 }
 
 .bg-theme-primary {
@@ -23,7 +23,7 @@
   background: linear-gradient(228deg,
       var(--secondary-bg-color) 0%,
       var(--primary-color) 50%,
-      #00cfff 100%);
+      #ffbb00 100%);
   background-size: 200% 200%;
   transition: background-position 0.5s ease, background-color 0.5s ease;
   color: #fff;
