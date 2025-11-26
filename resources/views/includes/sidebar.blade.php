@@ -109,7 +109,7 @@
     </button>
 
     <div class="bg-gradient-to-br from-orange-400 to-orange-600 text-white p-4 md:p-6 rounded-b-2xl shadow-inner">
-      <h2 class="text-xl md:text-2xl font-bold tracking-wide">Urban Media</h2>
+      <h2 class="text-xl md:text-2xl font-bold tracking-wide">Rana Chicken</h2>
     </div>
 
     <nav class="mt-6 md:mt-8 px-2 md:px-4 space-y-1 md:space-y-2">
@@ -125,6 +125,14 @@
         <span class="text-sm md:text-base">Clubs</span>
       </a>
       @endif
+
+      @if(view_permission('sell'))
+      <a href="{{ route('admin.users.index') }}" class="sidebar-link flex items-center w-full px-3 py-2 md:px-4 md:py-3 rounded-lg text-gray-700 hover:bg-orange-100 hover:text-orange-600 transition-all duration-200 group {{ request()->routeIs('clubs.*') ? 'active' : '' }}">
+        <i class="fas fa-users mr-2 md:mr-3 text-orange-500 group-hover:text-orange-600 text-sm md:text-base"></i>
+        <span class="text-sm md:text-base">Sell</span>
+      </a>
+      @endif
+
     </nav>
   </aside>
 </div>

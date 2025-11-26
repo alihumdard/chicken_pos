@@ -69,6 +69,7 @@ function view_permission($page_name)
             switch ($page_name) {
                 case 'index':
                 case 'users':
+                case 'sell':
                     return true;
                 default:
                     return false;
@@ -77,6 +78,7 @@ function view_permission($page_name)
         case 'User':
             switch ($page_name) {
                 case 'index':
+                case 'sell':
                     return true;
                 default:
                     return false;
