@@ -2,92 +2,225 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Professional Login</title>
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-      <script src="https://cdn.tailwindcss.com"></script>
-      <link rel="stylesheet" href="/assets/css/auth-style.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RANA POS - Secure Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- 1. CONFIG: GLOBAL COLOR VARIABLES (Updated to your provided values) --- */
+        :root {
+            --primary-color: #2C394A; /* Main Blue */
+            --secondary-color: color-mix(in srgb, var(--primary-color), white 35%); /* Lighter Blue */
+            --secondary-bg-color: color-mix(in srgb, var(--primary-color), white 35%); /* Lighter Blue */
+        }
+
+        body { font-family: 'Poppins', sans-serif; }
+
+        /* --- 2. BACKGROUND THEME (Using provided gradient) --- */
+        .bg-theme {
+            background: linear-gradient(228deg,
+                    var(--secondary-bg-color) 0%,
+                    var(--primary-color) 50%,
+                    #2C394A 100%);
+            /* Using hardcoded value from your global CSS where variable was missing */
+            box-shadow: 0 0 30px #2C394A; 
+        }
+        
+        /* --- 3. BUTTON STYLES (Using provided classes) --- */
+        .btn-theme-primary {
+            background: linear-gradient(228deg,
+                    var(--secondary-bg-color) 0%,
+                    var(--primary-color) 50%,
+                    #2C394A 100%);
+            background-size: 200% 200%;
+            transition: background-position 0.5s ease, background-color 0.5s ease;
+            color: #fff;
+        }
+
+        .btn-theme-primary:hover {
+            background-position: 0 100%;
+            transform: translateY(-2px);
+            /* 🟢 Adjusted box-shadow to use primary color variable */
+            box-shadow: 0 10px 20px -10px color-mix(in srgb, var(--primary-color), transparent 60%);
+        }
+
+        /* 🟢 Added hover class for links/icons */
+        .hover-theme-primary:hover {
+            color: var(--primary-color) !important;
+        }
+
+        .theme-text-primary { color: var(--primary-color); }
+
+        /* --- 4. INPUT FOCUS STATES --- */
+        .focus-theme:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            /* 🟢 Adjusted box-shadow to use primary color variable */
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color), transparent 80%);
+        }
+
+        /* Role Selection Active State */
+        .role-active {
+            /* 🟢 Using primary color variable */
+            background-color: var(--primary-color) !important;
+            color: white !important;
+            border-color: var(--primary-color) !important;
+            transform: scale(1.05);
+            /* 🟢 Adjusted box-shadow to use primary color variable */
+            box-shadow: 0 10px 25px -5px color-mix(in srgb, var(--primary-color), transparent 60%);
+        }
+        
+        /* Role Selection Inactive State */
+        .role-inactive {
+            background-color: white;
+            color: #9CA3AF; /* gray-400 */
+            border-color: #F3F4F6; /* gray-100 */
+        }
+    </style>
 </head>
 
-<body class="bg-theme min-h-screen flex items-center justify-center font-sans">
-  <div class="w-full max-w-md p-8 bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-200">
-    <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">Login</h2>
-    <form id="loginForm" method="POST" action="{{ route('login') }}">
-      @csrf
-      <div class="mb-5">
-        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-        <input
-          type="email"
-          id="email"
-          name="email"
-          placeholder="you@example.com"
-          class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          required
-          value="{{ old('email') }}" />
-        @error('email')
-        <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-        @enderror
-      </div>
+<body class="bg-theme min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
 
-      <div class="mb-5">
-        <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-        <input
-          type="password"
-          id="password"
-          name="password"
-          placeholder="••••••••"
-          class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          required />
-        @error('password')
-        <p class="mt-1 text-sm text-red-500">{{ $message }}</p>
-        @enderror
-      </div>
+    <div class="w-full max-w-[450px] bg-white rounded-3xl shadow-2xl px-8 py-10 z-10 relative">
+        
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold text-slate-800 tracking-tight">
+                <span class="theme-text-primary">RANA</span> POS
+            </h1>
+            <p class="text-xs text-gray-500 font-semibold uppercase tracking-widest mt-2">Chicken Management System</p>
+        </div>
 
-      <div class="flex items-center justify-between mb-6">
-        <label class="flex items-center text-sm text-gray-600">
-          <input type="checkbox" name="remember" class="mr-2 rounded border-gray-300" />
-          Remember me
-        </label>
-        <a href="{{ route('password.request') }}" class="text-sm theme-text-primary hover:underline">Forgot Password?</a>
-      </div>
+        <form method="POST" action="{{ route('login') }}" id="loginForm">
+            @csrf
 
-      @if(session('error'))
-      <p class="my-2 text-sm text-center text-red-500">{{ session('error') }}</p>
-      @endif
-      @if(session('success'))
-      <p class="my-2 text-sm text-center text-green-500">{{ session('success') }}</p>
-      @endif
+            <input type="hidden" name="role" id="roleInput" value="admin">
 
-      <button type="submit" class="w-full btn-theme-primary  text-white font-semibold py-3 rounded-lg transition duration-200">
-        Sign In
-      </button>
+            <div class="mb-8">
+                <h2 class="text-center text-xs font-bold text-gray-400 uppercase mb-4">Select Login Type</h2>
+                <div class="flex gap-4">
+                    
+                    <div id="btn-admin" onclick="selectRole('admin')" 
+                          class="cursor-pointer flex-1 rounded-2xl p-4 flex flex-col items-center justify-center border-2 transition-all duration-300 role-active">
+                        <i class="fas fa-crown text-2xl mb-2"></i>
+                        <span class="font-bold text-sm">Owner</span>
+                        <span class="text-[10px] opacity-80 mt-1">Full Access</span>
+                    </div>
 
-      <p class="text-center text-sm text-gray-600 mt-6">
-        Don't have an account?
-        <a href="{{ route('register') }}" class="theme-text-primary hover:underline font-medium">Register</a>
-      </p>
-    </form>
-  </div>
+                    <div id="btn-manager" onclick="selectRole('manager')" 
+                          class="cursor-pointer flex-1 rounded-2xl p-4 flex flex-col items-center justify-center border-2 transition-all duration-300 role-inactive hover-theme-primary">
+                        {{-- 🟢 Removed hardcoded hover style --}}
+                        <i class="fas fa-user-tag text-2xl mb-2"></i>
+                        <span class="font-bold text-sm">Manager</span>
+                        <span class="text-[10px] opacity-80 mt-1">Sales Only</span>
+                    </div>
 
-  <!-- Floating WhatsApp Button-->
-  <style>
-    @keyframes pulsing {
-      to {
-        box-shadow: 0 0 0 30px rgba(66, 219, 135, 0);
-      }
-    }
-  </style>
-  <div style="position: fixed; bottom: 30px; right: 30px; width: 100px; height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000;">
-    <a target="_blank" href="https://wa.me/917845667204" style="text-decoration: none;">
-      <div style=" background-color: #42db87; color: #fff; width: 60px; height: 60px; font-size: 30px; border-radius: 50%; text-align: center; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 0 #42db87; animation: pulsing 1.25s infinite cubic-bezier(0.66, 0, 0, 1); transition: all 300ms ease-in-out;">
-        <i class="fab fa-whatsapp"></i>
-      </div>
-    </a>
-    <p style="margin-top: 8px; color: #ffff; font-size: 13px;">Talk to us?</p>
-  </div>
+                </div>
+            </div>
 
+            @if(session('status'))
+                <div class="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm text-center">
+                    {{ session('status') }}
+                </div>
+            @endif
 
+            <div class="mb-5 relative">
+                <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Username / Email</label>
+                <div class="relative">
+                    <span class="absolute left-4 top-3.5 text-gray-400"><i class="fas fa-envelope"></i></span>
+                    <input type="text" 
+                            id="email" 
+                            name="email" 
+                            value="{{ old('email') }}"
+                            placeholder="Enter your ID" 
+                            class="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-100 bg-gray-50 text-gray-700 font-medium focus-theme transition-all placeholder-gray-300" 
+                            required />
+                </div>
+                @error('email')
+                    <p class="mt-1 text-xs text-red-500 font-medium ml-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="mb-8 relative">
+                <label class="block text-xs font-bold text-gray-500 mb-1 ml-1">Password</label>
+                <div class="relative">
+                    <span class="absolute left-4 top-3.5 text-gray-400"><i class="fas fa-lock"></i></span>
+                    <input type="password" 
+                            id="password" 
+                            name="password" 
+                            placeholder="••••••••" 
+                            class="w-full pl-12 pr-12 py-3 rounded-xl border-2 border-gray-100 bg-gray-50 text-gray-700 font-medium focus-theme transition-all placeholder-gray-300" 
+                            required />
+                    {{-- 🟢 Applied new hover class --}}
+                    <span onclick="togglePassword()" class="absolute right-4 top-3.5 text-gray-300 cursor-pointer hover-theme-primary transition-colors">
+                        <i class="fas fa-eye" id="eyeIcon"></i>
+                    </span>
+                </div>
+                @error('password')
+                    <p class="mt-1 text-xs text-red-500 font-medium ml-1">{{ $message }}</p>
+                @enderror
+                
+                <div class="flex justify-end mt-2">
+                    {{-- 🟢 Applied new hover class --}}
+                    <a href="{{ route('password.request') }}" class="text-xs text-gray-400 hover-theme-primary transition-colors">Forgot Password?</a>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full btn-theme-primary font-bold py-4 rounded-xl shadow-xl text-lg tracking-wide uppercase">
+                Login System
+            </button>
+
+        </form>
+    </div>
+
+    <div class="absolute bottom-3 text-center text-white/60 text-xs">
+        &copy; {{ date('Y') }} Rana Chicken Shop POS. All rights reserved.
+    </div>
+
+    <script>
+        // 1. Role Selection Logic
+        function selectRole(role) {
+            // Update Hidden Input Value (For Backend)
+            document.getElementById('roleInput').value = role;
+
+            const btnAdmin = document.getElementById('btn-admin');
+            const btnManager = document.getElementById('btn-manager');
+
+            // Toggle Classes
+            if (role === 'admin') {
+                // Activate Admin
+                btnAdmin.classList.add('role-active');
+                btnAdmin.classList.remove('role-inactive');
+                // Deactivate Manager
+                btnManager.classList.add('role-inactive');
+                btnManager.classList.remove('role-active');
+            } else {
+                // Activate Manager
+                btnManager.classList.add('role-active');
+                btnManager.classList.remove('role-inactive');
+                // Deactivate Admin
+                btnAdmin.classList.add('role-inactive');
+                btnAdmin.classList.remove('role-active');
+            }
+        }
+
+        // 2. Toggle Password Visibility
+        function togglePassword() {
+            const passwordField = document.getElementById('password');
+            const eyeIcon = document.getElementById('eyeIcon');
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordField.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
+    </script>
 </body>
-
 </html>
