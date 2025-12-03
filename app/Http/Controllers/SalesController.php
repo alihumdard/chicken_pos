@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\Sale; // Import the Sale Model
 use App\Models\SaleItem; // Import the SaleItem Model
+use App\Models\DailyRate; // Import the DailyRate Model
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB; // For database transaction
 
@@ -15,11 +16,32 @@ class SalesController extends Controller
      */
     public function index()
     {
-        // Fetch all customers, ordered by name, for the customer selection list.
+        // 1. Fetch all customers
         $customers = Customer::orderBy('name')->get();
 
-        // Pass the fetched customers to the view
-        return view('pages.sales.index', compact('customers'));
+        // 2. Fetch the latest active daily rates
+        $dailyRates = DailyRate::latest()->first();
+
+        // Prepare the rates data structure for JavaScript
+        $rates = [
+            'wholesale' => [
+                'wholesale_rate' => $dailyRates->wholesale_rate ?? 0.00, // Wholesale (Truck)
+                'live_chicken_rate' => $dailyRates->live_chicken_rate ?? 0.00, // Live Chicken
+                'wholesale_hotel_mix_rate' => $dailyRates->wholesale_hotel_mix_rate ?? 0.00, // Hotel Mix
+                'wholesale_hotel_chest_rate' => $dailyRates->wholesale_hotel_chest_rate ?? 0.00, // Hotel Chest
+                'wholesale_hotel_thigh_rate' => $dailyRates->wholesale_hotel_thigh_rate ?? 0.00, // Hotel Thigh
+                'wholesale_customer_piece_rate' => $dailyRates->wholesale_customer_piece_rate ?? 0.00, // Customer Piece
+            ],
+            'retail' => [
+                'retail_mix_rate' => $dailyRates->retail_mix_rate ?? 0.00,
+                'retail_chest_rate' => $dailyRates->retail_chest_rate ?? 0.00,
+                'retail_thigh_rate' => $dailyRates->retail_thigh_rate ?? 0.00,
+                'retail_piece_rate' => $dailyRates->retail_piece_rate ?? 0.00,
+            ]
+        ];
+
+        // Pass customers and rates to the view
+        return view('pages.sales.index', compact('customers', 'rates'));
     }
 
     /**

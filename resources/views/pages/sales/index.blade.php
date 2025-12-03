@@ -5,9 +5,8 @@
 
     <h1 class="text-2xl font-bold mb-6">Sales Point - Wholesale & Permanent</h1>
     <hr>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 h-[83vh]">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-        <!-- CUSTOMER LIST -->
         <div class="bg-white p-4 rounded-lg shadow-md overflow-y-auto">
             <h2 class="text-2xl font-bold mb-3">Customer Selection</h2>
 
@@ -42,7 +41,6 @@
             </ul>
         </div>
 
-        <!-- TRANSACTION PANEL -->
         <div class="md:col-span-2 bg-white p-4 rounded-lg shadow-md flex flex-col justify-between">
             <form id="sale-form" action="{{ route('admin.sales.store') }}" method="POST">
                 @csrf
@@ -56,28 +54,39 @@
                         <span id="current-customer-balance" class="font-bold text-red-600">0.00 PKR</span>
                     </p>
                 </div>
-
-                <!-- PRODUCT TABS -->
+                
+                <div class="flex items-center gap-6 mb-6 p-3 border rounded-lg bg-gray-50">
+                    <label class="flex items-center space-x-2 font-medium text-lg cursor-pointer">
+                        <input type="checkbox" id="wholesale-channel-checkbox" name="rate_channel" value="wholesale" class="form-checkbox text-blue-600 h-5 w-5">
+                        <span>Wholesale / Permanent Rates</span>
+                    </label>
+                    
+                    <label class="flex items-center space-x-2 font-medium text-lg cursor-pointer">
+                        <input type="checkbox" id="retail-channel-checkbox" name="rate_channel" value="retail" class="form-checkbox text-green-600 h-5 w-5">
+                        <span>Shop Retail Rates</span>
+                    </label>
+                </div>
+                
                 <div id="category-tabs" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
                     @php
-                        $categories = [
-                            ['name' => 'Whole', 'icon' => 'fa-brands fa-the-red-yeti'],
-                            ['name' => 'Chest', 'icon' => 'fa-solid fa-drumstick-bite'],
-                            ['name' => 'Thigh', 'icon' => 'fa-solid fa-drumstick-bite'],
-                            ['name' => 'Mix', 'icon' => 'fa-solid fa-layer-group'],
-                            ['name' => 'Piece', 'icon' => 'fa-solid fa-bone'],
+                        // Maps category name to the corresponding rate field name in the DailyRate model
+                        $categoryRateMap = [
+                            'Chest' => ['rate_field' => 'wholesale_hotel_chest_rate', 'icon' => 'fa-solid fa-drumstick-bite'],
+                            'Thigh' => ['rate_field' => 'wholesale_hotel_thigh_rate', 'icon' => 'fa-solid fa-drumstick-bite'],
+                            'Mix' => ['rate_field' => 'wholesale_hotel_mix_rate', 'icon' => 'fa-solid fa-layer-group'],
+                            'Piece' => ['rate_field' => 'wholesale_customer_piece_rate', 'icon' => 'fa-solid fa-bone'],
                         ];
                     @endphp
-                    @foreach ($categories as $category)
-                        <div class="category-tab bg-gray-100 rounded-lg p-4 flex flex-col items-center cursor-pointer hover:bg-gray-200 transition-all"
-                            data-category="{{ $category['name'] }}">
-                            <i class="{{ $category['icon'] }} text-3xl mb-2 text-gray-700"></i>
-                            <span class="text-sm font-medium">{{ $category['name'] }}</span>
+                    @foreach ($categoryRateMap as $categoryName => $details)
+                        <div class="category-tab bg-gray-100 rounded-lg p-4 flex flex-col items-center cursor-pointer transition-all"
+                            data-category="{{ $categoryName }}"
+                            data-rate-field="{{ $details['rate_field'] }}">
+                            <i class="{{ $details['icon'] }} text-3xl mb-2 text-gray-700"></i>
+                            <span class="text-sm font-medium">{{ $categoryName }}</span>
                         </div>
                     @endforeach
                 </div>
 
-                <!-- INPUT AREA -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div>
                         <label for="weight-input" class="text-sm font-medium">Weight (KG)</label>
@@ -87,8 +96,9 @@
 
                     <div>
                         <label for="rate-input" class="text-sm font-medium">Rate (PKR)</label>
-                        <input id="rate-input" type="number" step="0.01" min="0" value="750.00"
+                        <input id="rate-input" type="number" step="0.01" min="0" value="0.00"
                             class="w-full border rounded px-3 py-2 mt-1 focus:ring">
+                        <p id="rate-source-display" class="text-xs text-gray-500 mt-1">Rate source: Not Selected</p>
                     </div>
                 </div>
 
@@ -103,9 +113,7 @@
                 
                 <hr class="my-4">
 
-                <!-- CART ITEMS -->
                 <div id="cart-items-container" class="space-y-2 max-h-40 overflow-y-auto mb-4">
-                    <!-- Dynamic items will be inserted here -->
                     <div class="text-gray-500 text-center py-4">Cart is Empty</div>
                 </div>
                 
@@ -129,13 +137,17 @@
         </div>
     </div>
 </div>
-
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // 🟢 RATES DATA LOADED FROM CONTROLLER
+        const ACTIVE_RATES = @json($rates);
+        
         // State variables
         let selectedCustomerId = null;
         let selectedCustomerName = '';
         let selectedCategory = null;
+        let selectedRateField = null; 
+        let selectedChannel = 'wholesale'; 
         let cartItems = [];
 
         // DOM Elements
@@ -153,6 +165,21 @@
         const finalTotalPayableInput = document.getElementById('final-total-payable');
         const confirmSaleBtn = document.getElementById('confirm-sale-btn');
         const saleForm = document.getElementById('sale-form');
+        const rateSourceDisplay = document.getElementById('rate-source-display');
+        
+        // Checkbox Elements
+        const wholesaleCheckbox = document.getElementById('wholesale-channel-checkbox');
+        const retailCheckbox = document.getElementById('retail-channel-checkbox');
+        
+        // --- Rate Field Mapping ---
+        const retailRateMap = {
+            'wholesale_hotel_mix_rate': 'retail_mix_rate',
+            'wholesale_hotel_chest_rate': 'retail_chest_rate',
+            'wholesale_hotel_thigh_rate': 'retail_thigh_rate',
+            'wholesale_customer_piece_rate': 'retail_piece_rate',
+            'wholesale_rate': 'retail_mix_rate',
+        };
+
 
         // --- Utility Functions ---
 
@@ -162,11 +189,50 @@
 
         const calculateLineTotal = () => {
             const weight = parseFloat(weightInput.value) || 0;
-            const rate = parseFloat(rateInput.value) || 0;
+            const rate = parseFloat(rateInput.value) || 0; 
             const total = weight * rate;
             lineTotalDisplay.textContent = formatCurrency(total);
             updateAddItemButton();
         };
+        
+        const getRateByChannel = (channel, rateField) => {
+            let rate = 0.00;
+            
+            if (channel === 'wholesale' && ACTIVE_RATES.wholesale.hasOwnProperty(rateField)) {
+                rate = ACTIVE_RATES.wholesale[rateField] || 0.00;
+            } else if (channel === 'retail') {
+                const retailKey = retailRateMap[rateField];
+                if (retailKey && ACTIVE_RATES.retail.hasOwnProperty(retailKey)) {
+                    rate = ACTIVE_RATES.retail[retailKey] || 0.00;
+                }
+            }
+            return parseFloat(rate);
+        };
+        
+        // 🟢 Function to update the rate input based on selected category and channel
+        const updateRateInput = () => {
+            if (!selectedCategory || !selectedRateField) {
+                 rateInput.value = (0.00).toFixed(2);
+                 rateSourceDisplay.textContent = 'Rate source: No Category Selected';
+                 return;
+            }
+            
+            // 1. Fetch the default saved rate for the current channel and category
+            const rate = getRateByChannel(selectedChannel, selectedRateField);
+            
+            // 2. Determine the key name for display
+            let displayKey = selectedRateField;
+            if (selectedChannel === 'retail') {
+                 displayKey = retailRateMap[selectedRateField] || selectedRateField;
+            }
+            
+            // 3. Update UI (This is the core function for showing the saved rate)
+            rateInput.value = rate.toFixed(2);
+            rateSourceDisplay.textContent = `Rate source: ${selectedChannel.toUpperCase()} - ${displayKey}`;
+            
+            calculateLineTotal(); // Also update line total whenever rate changes
+        };
+
 
         const updateAddItemButton = () => {
             const weight = parseFloat(weightInput.value);
@@ -181,7 +247,7 @@
 
         const updateCartDisplay = () => {
             let grandTotal = 0;
-            cartContainer.innerHTML = ''; // Clear existing items
+            cartContainer.innerHTML = ''; 
 
             if (cartItems.length === 0) {
                 cartContainer.innerHTML = '<div class="text-gray-500 text-center py-4">Cart is Empty</div>';
@@ -191,7 +257,6 @@
                     const lineTotal = item.weight * item.rate;
                     grandTotal += lineTotal;
                     
-                    // Create line item HTML
                     const itemDiv = document.createElement('div');
                     itemDiv.className = 'flex justify-between text-gray-700 py-1 border-b';
                     itemDiv.innerHTML = `
@@ -205,26 +270,55 @@
                     `;
                     cartContainer.appendChild(itemDiv);
                 });
-                confirmSaleBtn.disabled = !selectedCustomerId; // Enable if customer is selected and cart is not empty
+                confirmSaleBtn.disabled = !selectedCustomerId; 
             }
 
-            // Update totals
             totalPayableDisplay.textContent = formatCurrency(grandTotal);
             finalTotalPayableInput.value = grandTotal.toFixed(2);
         };
         
         // --- Event Handlers ---
+        
+        // 1. Channel Selection (Checkboxes)
+        const handleChannelChange = (event) => {
+            const clickedCheckbox = event.target;
+            const channel = clickedCheckbox.value;
 
-        // 1. Customer Selection
+            if (clickedCheckbox.checked) {
+                if (channel === 'wholesale') {
+                    retailCheckbox.checked = false;
+                    selectedChannel = 'wholesale';
+                } else if (channel === 'retail') {
+                    wholesaleCheckbox.checked = false;
+                    selectedChannel = 'retail';
+                }
+            } else {
+                // Default back to the opposite channel if the current one is unchecked
+                if (channel === 'wholesale' && !retailCheckbox.checked) {
+                    retailCheckbox.checked = true;
+                    selectedChannel = 'retail';
+                } else if (channel === 'retail' && !wholesaleCheckbox.checked) {
+                    wholesaleCheckbox.checked = true;
+                    selectedChannel = 'wholesale'; 
+                }
+            }
+            
+            // Force rate update based on new channel if a category is selected
+            if (selectedCategory) {
+                 updateRateInput();
+            }
+        };
+
+        wholesaleCheckbox.addEventListener('change', handleChannelChange);
+        retailCheckbox.addEventListener('change', handleChannelChange);
+        
+        // 2. Customer Selection
         customerItems.forEach(item => {
             item.addEventListener('click', function() {
                 // Clear active state from all
                 customerItems.forEach(i => i.classList.remove('bg-yellow-200'));
-
-                // Set active state on clicked item
                 this.classList.add('bg-yellow-200');
 
-                // Update state and displays
                 selectedCustomerId = this.dataset.id;
                 selectedCustomerName = this.dataset.name;
                 const balance = parseFloat(this.dataset.balance);
@@ -233,18 +327,14 @@
                 customerNameDisplay.textContent = selectedCustomerName;
                 customerBalanceDisplay.textContent = formatCurrency(balance);
                 
-                updateAddItemButton(); // Re-check button status
+                updateAddItemButton();
                 if (cartItems.length > 0) {
                      confirmSaleBtn.disabled = false;
                 }
             });
-            // Initial selection of the first customer (simulate behavior)
-            if (customerItems.length > 0 && customerItems[0].dataset.id === @json($customers->first()->id ?? null)) {
-                customerItems[0].click();
-            }
         });
         
-        // 2. Category Selection
+        // 3. Category Selection
         categoryTabs.forEach(tab => {
             tab.addEventListener('click', function() {
                 // Clear active state from all
@@ -255,72 +345,44 @@
                 this.classList.remove('bg-gray-100', 'hover:bg-gray-200');
                 this.classList.add('bg-yellow-300', 'hover:bg-yellow-400');
 
-                // Update state
                 selectedCategory = this.dataset.category;
+                selectedRateField = this.dataset.rateField;
+                
+                updateRateInput(); // 🟢 Load the new default rate
                 updateAddItemButton();
             });
-            // Initial selection of the first category
-            if (categoryTabs.length > 0) {
-                 categoryTabs[1].click(); // Chest is index 1, mimicking the original file's active state
-            }
         });
 
-        // 3. Weight/Rate Input Changes
+        // 4. Input Changes
         weightInput.addEventListener('input', calculateLineTotal);
-        rateInput.addEventListener('input', calculateLineTotal);
+        rateInput.addEventListener('input', calculateLineTotal); 
 
-        // **NEW FIX: Prevent form submission on Enter key press**
-        saleForm.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault(); // Stop the form from submitting (reloading the page)
-                
-                // If the user presses Enter on the Rate input, simulate clicking "Add Item"
-                if (e.target === rateInput) {
-                    addItemBtn.click();
-                }
-                // If the user presses Enter on the Weight input, move focus to Rate input
-                else if (e.target === weightInput) {
-                    rateInput.focus();
-                }
-            }
-        });
-
-        // 4. Add Item to Cart
+        // 5. Add Item to Cart
         addItemBtn.addEventListener('click', function() {
             if (selectedCustomerId && selectedCategory && parseFloat(weightInput.value) > 0 && parseFloat(rateInput.value) > 0) {
                 const item = {
                     category: selectedCategory,
                     weight: parseFloat(weightInput.value),
-                    rate: parseFloat(rateInput.value),
+                    rate: parseFloat(rateInput.value), 
                 };
                 cartItems.push(item);
 
-                // Reset inputs and category selection after adding
+                // Reset inputs and re-load default rate
                 weightInput.value = 0;
-                rateInput.value = 750.00; // Reset rate to a default
-                calculateLineTotal(); // Recalculate and reset line total display
+                rateInput.value = 0.00; 
+                calculateLineTotal();
 
-                // Re-click the currently selected category to maintain its active state visually
-                const activeTab = document.querySelector('.category-tab.bg-yellow-300');
-                if (activeTab) activeTab.click();
+                // Re-load default rate for the active category (must be run after clearing inputs)
+                updateRateInput(); 
 
                 updateCartDisplay();
+                weightInput.focus(); // Focus on weight for the next item
             } else {
                 alert('Please select a customer, category, and enter valid weight/rate.');
             }
         });
 
-        // 5. Remove Item from Cart (Delegated Event)
-        cartContainer.addEventListener('click', function(e) {
-            if (e.target.closest('.remove-item-btn')) {
-                const btn = e.target.closest('.remove-item-btn');
-                const indexToRemove = parseInt(btn.dataset.index);
-                cartItems.splice(indexToRemove, 1);
-                updateCartDisplay();
-            }
-        });
-
-        // 6. Form Submission (AJAX)
+        // 6. Form Submission (AJAX) - Logic remains the same
         saleForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -332,7 +394,7 @@
             confirmSaleBtn.disabled = true;
             confirmSaleBtn.textContent = 'Processing...';
 
-            // Prepare the data to send
+            // Prepare the data to send (items mapping is done above)
             const data = {
                 _token: document.querySelector('input[name="_token"]').value,
                 customer_id: selectedCustomerId,
@@ -358,10 +420,7 @@
 
                 if (response.ok) {
                     alert('Sale successful! Transaction ID: ' + result.sale_id);
-                    // Reset the form and state
-                    cartItems = [];
-                    updateCartDisplay();
-                    document.getElementById('cancel-sale-btn').click(); // Triggers full reset logic
+                    document.getElementById('cancel-sale-btn').click(); 
                 } else {
                     alert('Sale failed: ' + (result.message || 'Server Error'));
                 }
@@ -374,34 +433,26 @@
             }
         });
         
-        // 7. Cancel/Reset Logic
-        document.getElementById('cancel-sale-btn').addEventListener('click', function() {
-            cartItems = [];
-            updateCartDisplay();
-            selectedCustomerId = null;
-            selectedCategory = null;
-            
-            // Clear customer selection UI
-            customerItems.forEach(i => i.classList.remove('bg-yellow-200'));
-            customerNameDisplay.textContent = 'Please Select Customer';
-            customerBalanceDisplay.textContent = '0.00 PKR';
-            customerIdInput.value = '';
-
-            // Reset category selection UI
-            categoryTabs.forEach(t => t.classList.remove('bg-yellow-300', 'hover:bg-yellow-400'));
-            categoryTabs.forEach(t => t.classList.add('bg-gray-100', 'hover:bg-gray-200'));
-            if (categoryTabs.length > 0) {
-                 categoryTabs[1].click(); // Reset to the default selected tab
+        // 7. Initial State Setup
+        
+        const initialSetup = () => {
+             // 1. Set default channel visual state (wholesale checkbox already checked via HTML/Controller default)
+             
+             // 2. Select first customer
+            if (customerItems.length > 0) {
+                customerItems[0].click(); 
             }
 
-            // Reset inputs
-            weightInput.value = 0;
-            rateInput.value = 750.00;
-            calculateLineTotal();
-        });
-
-
-        // Initial setup calls
+            // 3. Select first category (Wholesale) to load rates and enable buttons
+            if (categoryTabs.length > 0) {
+                 categoryTabs[0].click(); 
+            }
+        }
+        
+        // Run initial setup immediately after DOM is ready
+        initialSetup();
+        
+        // 8. Final state cleanup
         calculateLineTotal();
         updateCartDisplay();
 

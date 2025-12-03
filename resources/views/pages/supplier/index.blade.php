@@ -22,7 +22,6 @@
 
             <div id="supplierList" class="space-y-2 px-2 pb-2">
                 @forelse($suppliers as $supplier)
-                {{-- 🟢 ADD ID FOR JS DELETION --}}
                 <div id="supplier-{{ $supplier->id }}" class="group bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex justify-between items-center hover:shadow-md transition-shadow">
                     <div>
                         <h3 class="font-medium text-gray-800">{{ $supplier->name }}</h3>
@@ -35,9 +34,9 @@
                         <div class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-10">
                             <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
                                 <a href="#" 
-                                   onclick="confirmDelete('{{ $supplier->id }}', 'supplier')"
-                                   class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">
-                                     <i class="fas fa-trash-alt mr-2"></i> Delete
+                                    onclick="confirmDelete('{{ $supplier->id }}', 'supplier')"
+                                    class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">
+                                        <i class="fas fa-trash-alt mr-2"></i> Delete
                                 </a>
                             </div>
                         </div>
@@ -62,7 +61,6 @@
 
             <div id="customerList" class="space-y-2 px-2 pb-2">
                 @forelse($customers as $customer)
-                {{-- 🟢 ADD ID FOR JS DELETION --}}
                 <div id="customer-{{ $customer->id }}" class="group bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex justify-between items-center hover:shadow-md transition-shadow">
                     <div>
                         <h3 class="font-medium text-gray-800">
@@ -78,16 +76,16 @@
                         <div class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-10">
                             <div class="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
                                 <a href="#" 
-                                   onclick="confirmDelete('{{ $customer->id }}', 'customer')"
-                                   class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">
-                                     <i class="fas fa-trash-alt mr-2"></i> Delete
+                                    onclick="confirmDelete('{{ $customer->id }}', 'customer')"
+                                    class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">
+                                        <i class="fas fa-trash-alt mr-2"></i> Delete
                                 </a>
                             </div>
                         </div>
                     </div>
                     </div>
                 @empty
-                   <div id="noCustomersPlaceholder" class="bg-white p-8 rounded-lg border border-dashed border-gray-300 text-center">
+                    <div id="noCustomersPlaceholder" class="bg-white p-8 rounded-lg border border-dashed border-gray-300 text-center">
                     <p class="text-gray-400 text-sm">No customers added yet.</p>
                 </div>
                 @endforelse
@@ -117,17 +115,17 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
                         <input type="text" name="name" id="contactName" required 
-                               class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 focus:border-slate-400 outline-none transition-all placeholder-gray-300"
-                               placeholder="e.g. Ali Poultry">
+                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 focus:border-slate-400 outline-none transition-all placeholder-gray-300"
+                                placeholder="e.g. Ali Poultry">
                         <p id="nameError" class="text-xs text-red-500 mt-1 hidden"></p>
                     </div>
 
-                    <div>
+                    <div id="typeFieldContainer">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
                         <div class="relative">
                             <select name="type" id="typeSelect" required
                                     class="w-full appearance-none px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 focus:border-slate-400 outline-none transition-all bg-white text-gray-700">
-                                <option value="" selected>Select Type</option> {{-- 👈 UPDATED: Default option added --}}
+                                <option value="" selected>Select Type</option>
                                 <option value="supplier">Supplier (Truck)</option>
                                 <option value="customer">Permanent Customer (Hotel/Shop)</option>
                             </select>
@@ -141,7 +139,7 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Opening Balance</label>
                         <input type="number" name="opening_balance" id="openingBalance" value="0"
-                               class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 focus:border-slate-400 outline-none transition-all placeholder-gray-300">
+                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 focus:border-slate-400 outline-none transition-all placeholder-gray-300">
                         <p class="text-xs text-gray-400 mt-1">Positive = They owe us. Negative = We owe them.</p>
                     </div>
 
@@ -171,6 +169,7 @@
         const title = document.getElementById('modalTitle');
         const select = document.getElementById('typeSelect');
         const form = document.getElementById('contactForm');
+        const typeContainer = document.getElementById('typeFieldContainer'); 
         
         form.reset();
         document.getElementById('statusMessage').classList.add('hidden');
@@ -179,16 +178,18 @@
 
         modal.classList.remove('hidden');
         
-        // 🚨 UPDATED: Set the select value after showing the modal.
         if(type === 'supplier') {
             title.textContent = 'Add New Supplier';
             select.value = 'supplier';
+            typeContainer.classList.add('hidden'); 
         } else if (type === 'customer') {
             title.textContent = 'Add New Customer';
             select.value = 'customer';
+            typeContainer.classList.add('hidden'); 
         } else {
              title.textContent = 'Add New Contact';
-             select.value = ''; // Ensure the default 'Select Type' is active if opened generally
+             select.value = ''; 
+             typeContainer.classList.remove('hidden'); 
         }
     }
 
@@ -196,16 +197,13 @@
         document.getElementById('contactModal').classList.add('hidden');
     }
     
-    /** 🟢 DROPDOWN TOGGLE FUNCTION */
     function toggleDropdown(button) {
         const dropdown = button.nextElementSibling;
-        // Hide all other open dropdowns
         document.querySelectorAll('.relative > div').forEach(d => {
             if (d !== dropdown) {
                 d.classList.add('hidden');
             }
         });
-        // Toggle the clicked dropdown
         dropdown.classList.toggle('hidden');
     }
 
@@ -213,6 +211,7 @@
 
     // 1. CREATE (AJAX Submit)
     document.getElementById('contactForm').addEventListener('submit', async function(e) {
+        // 🛑 CRITICAL: Prevents the default browser submission (which causes the reload)
         e.preventDefault(); 
 
         const form = e.target;
@@ -222,21 +221,16 @@
         const nameError = document.getElementById('nameError');
         const typeError = document.getElementById('typeError');
 
-        // Clear all errors initially
         nameError.classList.add('hidden');
         typeError.classList.add('hidden'); 
         statusMessage.classList.add('hidden');
 
-        // --- CLIENT-SIDE VALIDATION CHECK ---
         const typeValue = document.getElementById('typeSelect').value;
-        // 🚨 UPDATED CHECK: If value is empty string OR not 'supplier'/'customer' 🚨
         if (!typeValue || (typeValue !== 'supplier' && typeValue !== 'customer')) {
              typeError.textContent = 'Contact type must be selected.';
              typeError.classList.remove('hidden');
-             return; // Stop submission
+             return; 
         }
-        // --- END VALIDATION CHECK ---
-
 
         submitBtn.disabled = true;
         submitBtn.textContent = 'Saving...';
@@ -245,62 +239,67 @@
             const response = await fetch(STORE_URL, {
                 method: 'POST',
                 headers: {
+                    // Tell Laravel to treat this as an AJAX request
                     'X-Requested-With': 'XMLHttpRequest', 
                 },
                 body: formData
             });
 
-            // Check response status (4xx, 5xx)
+            // If the server returns anything other than 2xx, handle it as an error
             if (!response.ok) {
-                const errorData = await response.json();
+                const contentType = response.headers.get("content-type");
+                let errorData = { message: `Server error (${response.status}).` };
                 
-                if (response.status === 422) {
-                    // Validation Error Handling (422) - Server-side
-                    if (errorData.errors) {
-                         // Check and display Name error
-                        if (errorData.errors.name) {
-                            nameError.textContent = errorData.errors.name[0];
-                            nameError.classList.remove('hidden');
-                        }
-                        // Check and display Type error (if the server also validates it)
-                        if (errorData.errors.type) {
-                            typeError.textContent = errorData.errors.type[0];
-                            typeError.classList.remove('hidden');
-                        }
-                    }
-
-                    statusMessage.textContent = 'Validation failed. Check the form.';
-                    statusMessage.className = 'mb-4 p-3 rounded-lg text-sm font-medium bg-red-100 text-red-700';
-
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    errorData = await response.json();
                 } else {
-                    // Other Server-side Errors (500, etc.)
-                    statusMessage.textContent = errorData.message || 'An unexpected server error occurred.';
-                    statusMessage.className = 'mb-4 p-3 rounded-lg text-sm font-medium bg-red-100 text-red-700';
+                    // If the server returns HTML (like a redirect), this block is crucial.
+                    // It alerts you that the server is not sending JSON.
+                    errorData.message = `Unexpected server response. Check the Network tab (F12) for the actual response.`;
                 }
+
+                
+                if (response.status === 422 && errorData.errors) {
+                    if (errorData.errors.name) {
+                        nameError.textContent = errorData.errors.name[0];
+                        nameError.classList.remove('hidden');
+                    }
+                    if (errorData.errors.type) {
+                        typeError.textContent = errorData.errors.type[0];
+                        typeError.classList.remove('hidden');
+                    }
+                    statusMessage.textContent = 'Validation failed. Check the form.';
+                } else {
+                    statusMessage.textContent = errorData.message || 'An unexpected server error occurred.';
+                }
+                
+                statusMessage.className = 'mb-4 p-3 rounded-lg text-sm font-medium bg-red-100 text-red-700';
                 statusMessage.classList.remove('hidden');
-                return; // Stop execution here if response is not OK
+                return; 
             }
 
-            // Response is OK (200-299)
+            // 🟢 SUCCESS: Response is OK (200-299)
             const data = await response.json(); 
             
+            // 1. Append new contact to the list
             appendContactToList(data.contact); 
 
+            // 2. Show success message
             statusMessage.textContent = data.message || 'Contact added successfully!';
             statusMessage.className = 'mb-4 p-3 rounded-lg text-sm font-medium bg-green-100 text-green-700';
             statusMessage.classList.remove('hidden');
-
+            
+            // 3. Close the modal and reset the form immediately
             closeModal(); 
-            form.reset();
+            form.reset(); 
 
         } catch (error) {
-            // Catch block handles network errors (fetch failure) OR errors during response.json() parsing
+            // Network errors or errors during response.json() parsing
             console.error('Error:', error);
             statusMessage.textContent = 'Network error occurred. Please try again.';
             statusMessage.className = 'mb-4 p-3 rounded-lg text-sm font-medium bg-red-100 text-red-700';
             statusMessage.classList.remove('hidden');
         } finally {
-            // Finally runs regardless of success or failure
             submitBtn.disabled = false;
             submitBtn.textContent = 'Save Contact';
         }
@@ -313,8 +312,10 @@
             return;
         }
 
-        // Close dropdown menu
-        document.querySelector('.relative > div:not(.hidden)').classList.add('hidden');
+        const openDropdown = document.querySelector('.relative > div:not(.hidden)');
+        if(openDropdown) {
+             openDropdown.classList.add('hidden');
+        }
         
         deleteContact(id, type);
     }
@@ -322,19 +323,17 @@
     async function deleteContact(id, type) {
         const statusMessage = document.getElementById('statusMessage');
         statusMessage.classList.add('hidden');
-        // Assuming your backend route handles both supplier and customer deletion via ID and the 'type' parameter
         const DELETE_URL = `/admin/contacts/${id}`; 
 
         try {
             const response = await fetch(DELETE_URL, {
-                method: 'POST', // Use POST to tunnel the DELETE request
+                method: 'POST', 
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value, 
                     'X-Requested-With': 'XMLHttpRequest',
-                    'X-HTTP-Method-Override': 'DELETE' // Signal Laravel to use the DELETE verb
+                    'X-HTTP-Method-Override': 'DELETE' 
                 },
-                // Send the type in the body so the controller knows which model to use
                 body: JSON.stringify({ type: type, _method: 'DELETE' }) 
             });
 
@@ -350,9 +349,11 @@
                 // 2. Check if the list is now empty and show the placeholder
                 const listId = type === 'supplier' ? 'supplierList' : 'customerList';
                 const listContainer = document.getElementById(listId);
+                
                 if (listContainer.children.length === 0) {
                     const placeholderId = type === 'supplier' ? 'noSuppliersPlaceholder' : 'noCustomersPlaceholder';
-                    const placeholderHtml = `<div id="${placeholderId}" class="bg-white p-8 rounded-lg border border-dashed border-gray-300 text-center"><p class="text-gray-400 text-sm">No ${type}s added yet.</p></div>`;
+                    const listName = type === 'supplier' ? 'suppliers' : 'customers';
+                    const placeholderHtml = `<div id="${placeholderId}" class="bg-white p-8 rounded-lg border border-dashed border-gray-300 text-center"><p class="text-gray-400 text-sm">No ${listName} added yet.</p></div>`;
                     listContainer.insertAdjacentHTML('afterbegin', placeholderHtml);
                 }
 
@@ -380,10 +381,8 @@
 
     /** 3. HELPER FUNCTION: Appends new contact to the correct list */
     function appendContactToList(contact) {
-        // Guard against missing 'type' in AJAX response
         const contactType = (contact && contact.type) ? contact.type.trim().toLowerCase() : null;
 
-        // Note: We don't need the error handling here as the calling function handles success/failure
         if (!contactType) {
             console.error('Cannot append contact: Type is missing in the server response.', contact);
             return; 
@@ -402,7 +401,6 @@
         // 2. Create the HTML structure for the new contact
         let balanceHtml = '';
         if (contactType === 'customer') {
-            // Note: If contact.current_balance is undefined/null, it defaults to '0'
             const balance = contact.current_balance ? parseFloat(contact.current_balance).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",") : '0';
             balanceHtml = `<span class="text-gray-500 font-normal text-sm ml-1">(Bal: ${balance})</span>`;
         }
@@ -424,7 +422,7 @@
                             <a href="#" 
                                onclick="confirmDelete('${contact.id}', '${contactType}')"
                                class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">
-                                 <i class="fas fa-trash-alt mr-2"></i> Delete
+                                  <i class="fas fa-trash-alt mr-2"></i> Delete
                             </a>
                         </div>
                     </div>
@@ -434,6 +432,13 @@
         
         // 3. Insert the new contact at the top of the correct list
         listContainer.insertAdjacentHTML('afterbegin', newContactHtml);
+        
+        // VISUAL FIX: Force browser redraw/reflow for immediate visibility
+        listContainer.style.display = 'none';
+        // A minimal timeout of 1ms is enough to trigger a reflow
+        setTimeout(() => {
+            listContainer.style.display = 'block'; 
+        }, 1); 
     }
 </script>
 @endsection
