@@ -5,7 +5,14 @@
         <div class="flex-1 p-4 sm:p-6 lg:p-10 bg-gray-50">
 
             <div class="max-w-7xl mx-auto">
-
+                
+                {{-- Display error message if the Controller caught an exception --}}
+                @if (session('error'))
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-5 py-4 rounded-xl mb-6 shadow">
+                        {{ session('error') }}
+                    </div>
+                @endif
+                
                 <h1 class="text-3xl font-extrabold text-gray-800 mb-8 tracking-tight">
                     Daily Rates & Pricing
                 </h1>
@@ -84,14 +91,14 @@
                                     </span>
                                 </div>
                             </div>
-                            {{-- 🟢 NOTE: This button MUST be type="button" to prevent form submission --}}
+                            {{-- Button type is 'button' to trigger custom JavaScript fetch --}}
                             <button type="button" id="apply-rate-override"
                                     class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg shadow transition-colors h-[50px] flex-shrink-0">
-                                Apply Override
+                                Apply & Save Override
                             </button>
                         </div>
                         <p class="text-yellow-700 text-xs mt-2">
-                            Enter a value and click 'Apply Override'. All rates below will instantly adjust based on this value.
+                            Enter a value and click 'Apply & Save Override'. All rates below will instantly adjust and save to the database.
                         </p>
                     </div>
                     {{-- 🟢 END NEW MANUAL OVERRIDE --}}
@@ -111,7 +118,8 @@
                                         @if($defaultData['is_historical'] ?? false) disabled @endif required>
                                     <span class="ml-2 text-gray-500">PKR</span>
                                 </div>
-                                <p class="text-green-600 text-xs mt-1" data-margin="10.00">+10 PKR Margin</p>
+                                {{-- Margin display text matches RateController.php --}}
+                                <p class="text-green-600 text-xs mt-1" data-margin="10.00">+20 PKR Margin</p>
                             </div>
 
                             {{-- 2. Live Chicken (Updated) --}}
@@ -126,6 +134,20 @@
                                 </div>
                                 <p class="text-green-600 text-xs mt-1" data-margin="20.00">+20 PKR Margin</p>
                             </div>
+                            
+                            {{-- 🟢 FIX: Add missing permanent_rate field here --}}
+                            <div id="permanent_rate_container" class="hidden">
+                                <label class="font-semibold text-gray-700 block mb-1">Permanent Rate</label>
+                                <div class="flex items-center border border-gray-500 rounded-xl p-3 shadow-sm">
+                                    <input type="number" name="permanent_rate" id="permanent_rate_input"
+                                        value="{{ number_format($defaultData['permanent_rate'] ?? 0.00, 2, '.', '') }}"
+                                        step="0.01" class="w-full outline-none text-gray-800"
+                                        @if($defaultData['is_historical'] ?? false) disabled @endif required>
+                                    <span class="ml-2 text-gray-500">PKR</span>
+                                </div>
+                                <p class="text-gray-600 text-xs mt-1">Manual fixed rate (Required by validation).</p> 
+                            </div>
+                            {{-- 🟢 END FIX --}}
 
                         </div>
                     </div>
@@ -137,10 +159,10 @@
 
                             @php
                                 $wholesales = [
-                                    ['label' => 'Hotel Mix', 'name' => 'wholesale_hotel_mix_rate', 'default' => 625, 'margin' => '+25 PKR Margin', 'color' => 'orange', 'data_margin' => '25.00'],
-                                    ['label' => 'Hotel Chest', 'name' => 'wholesale_hotel_chest_rate', 'default' => 725, 'margin' => '+125 PKR Margin', 'color' => 'orange', 'data_margin' => '125.00'],
-                                    ['label' => 'Hotel Thigh', 'name' => 'wholesale_hotel_thigh_rate', 'default' => 675, 'margin' => '+75 PKR Margin', 'color' => 'orange', 'data_margin' => '75.00'],
-                                    ['label' => 'Customer Piece', 'name' => 'wholesale_customer_piece_rate', 'default' => 600, 'margin' => 'No Margin', 'color' => 'blue', 'data_margin' => '0.00'],
+                                    ['label' => 'Hotel Mix', 'name' => 'wholesale_hotel_mix_rate', 'margin' => '+25 PKR Margin', 'color' => 'orange', 'data_margin' => '25.00'],
+                                    ['label' => 'Hotel Chest', 'name' => 'wholesale_hotel_chest_rate', 'margin' => '+125 PKR Margin', 'color' => 'orange', 'data_margin' => '125.00'],
+                                    ['label' => 'Hotel Thigh', 'name' => 'wholesale_hotel_thigh_rate', 'margin' => '+75 PKR Margin', 'color' => 'orange', 'data_margin' => '75.00'],
+                                    ['label' => 'Customer Piece', 'name' => 'wholesale_customer_piece_rate', 'margin' => 'No Margin', 'color' => 'blue', 'data_margin' => '0.00'],
                                 ];
                             @endphp
 
@@ -150,7 +172,7 @@
                                     <div
                                         class="flex items-center border border-{{ $item['color'] }}-500 rounded-xl p-3 shadow-sm">
                                         <input type="number" name="{{ $item['name'] }}" id="{{ $item['name'] }}_input"
-                                            value="{{ number_format($defaultData[$item['name']] ?? $item['default'], 2, '.', '') }}"
+                                            value="{{ number_format($defaultData[$item['name']] ?? 0.00, 2, '.', '') }}"
                                             step="0.01" class="w-full outline-none text-gray-800"
                                             @if($defaultData['is_historical'] ?? false) disabled @endif required>
                                         <span class="ml-2 text-gray-500">PKR</span>
@@ -170,10 +192,10 @@
 
                             @php
                                 $retails = [
-                                    ['label' => 'Mix', 'name' => 'retail_mix_rate', 'default' => 650, 'margin' => '+50 PKR Margin', 'color' => 'green', 'data_margin' => '50.00'],
-                                    ['label' => 'Chest', 'name' => 'retail_chest_rate', 'default' => 750, 'margin' => '+150 PKR Margin', 'color' => 'green', 'data_margin' => '150.00'],
-                                    ['label' => 'Thigh', 'name' => 'retail_thigh_rate', 'default' => 700, 'margin' => '+100 PKR Margin', 'color' => 'green', 'data_margin' => '100.00'],
-                                    ['label' => 'Piece', 'name' => 'retail_piece_rate', 'default' => 590, 'margin' => '-10 PKR Loss', 'color' => 'red', 'data_margin' => '-10.00'],
+                                    ['label' => 'Mix', 'name' => 'retail_mix_rate', 'margin' => '+50 PKR Margin', 'color' => 'green', 'data_margin' => '50.00'],
+                                    ['label' => 'Chest', 'name' => 'retail_chest_rate', 'margin' => '+150 PKR Margin', 'color' => 'green', 'data_margin' => '150.00'],
+                                    ['label' => 'Thigh', 'name' => 'retail_thigh_rate', 'margin' => '+100 PKR Margin', 'color' => 'green', 'data_margin' => '100.00'],
+                                    ['label' => 'Piece', 'name' => 'retail_piece_rate', 'margin' => '-10 PKR Loss', 'color' => 'red', 'data_margin' => '-10.00'],
                                 ];
                             @endphp
 
@@ -183,7 +205,7 @@
                                     <div
                                         class="flex items-center border border-{{ $item['color'] }}-500 rounded-xl p-3 shadow-sm">
                                         <input type="number" name="{{ $item['name'] }}" id="{{ $item['name'] }}_input"
-                                            value="{{ number_format($defaultData[$item['name']] ?? $item['default'], 2, '.', '') }}"
+                                            value="{{ number_format($defaultData[$item['name']] ?? 0.00, 2, '.', '') }}"
                                             step="0.01" class="w-full outline-none text-gray-800"
                                             @if($defaultData['is_historical'] ?? false) disabled @endif required>
                                         <span class="ml-2 text-gray-500">PKR</span>
@@ -213,150 +235,177 @@
 
  <script>
         document.addEventListener('DOMContentLoaded', function () {
+            try { // Start of try block for client-side logic
 
-            // Define reliable colors
-            const colors = {
-                yellowDark: '#EAB308', 
-                bluePrimary: '#2563EB', 
-                yellowLight: '#FFFBEB'  
-            };
-            
-            const isHistorical = {{ json_encode($defaultData['is_historical'] ?? false) }};
-            if (isHistorical) return; 
-
-            // Form elements
-            const form = document.getElementById('daily-rates-form');
-            const hiddenBaseCost = document.getElementById('hidden-base-cost');
-            const baseCostDisplay = document.getElementById('base-cost-display');
-            const baseCostBox = document.getElementById('base-cost-box');
-            const manualBaseCostInput = document.getElementById('manual_base_cost');
-            const applyOverrideButton = document.getElementById('apply-rate-override');
-            
-            const rateInputs = document.querySelectorAll('input[type="number"][name$="_rate"]:not(#manual_base_cost)');
-            const margins = {};
-            const userEditedInputs = {};
-
-            // 1. Gather all margins and attach input listeners
-            rateInputs.forEach(inputElement => {
-                const inputName = inputElement.name;
+                // Define reliable colors
+                const colors = {
+                    yellowDark: '#EAB308', 
+                    bluePrimary: '#2563EB', 
+                    yellowLight: '#FFFBEB'  
+                };
                 
-                // Find margin from the sibling p tag
-                const pTag = inputElement.closest('div').nextElementSibling;
-                if (pTag && pTag.tagName === 'P' && pTag.dataset.margin) {
-                    margins[inputName] = parseFloat(pTag.dataset.margin);
-                } else {
-                    margins[inputName] = 0;
+                const isHistorical = {{ json_encode($defaultData['is_historical'] ?? false) }};
+                if (isHistorical) return; 
+
+                // Form elements
+                const form = document.getElementById('daily-rates-form');
+                const hiddenBaseCost = document.getElementById('hidden-base-cost');
+                const baseCostDisplay = document.getElementById('base-cost-display');
+                const baseCostBox = document.getElementById('base-cost-box');
+                const manualBaseCostInput = document.getElementById('manual_base_cost');
+                const applyOverrideButton = document.getElementById('apply-rate-override');
+
+                // Helper function to format numbers for display
+                function formatNumber(number) {
+                    return new Intl.NumberFormat('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }).format(number);
                 }
                 
-                inputElement.addEventListener('input', () => {
-                    userEditedInputs[inputName] = true;
-                    inputElement.style.backgroundColor = colors.yellowLight;
-                });
-            });
-            
-            function formatNumber(number) {
-                return new Intl.NumberFormat('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                }).format(number);
-            }
-            
-            function calculateAndApplyRates(event) {
-                // Get the calculated/default base cost from the hidden field (set by controller)
-                // Note: hiddenBaseCost.value might already be the overridden value if loaded from session/DB
-                const initialBaseCost = parseFloat(hiddenBaseCost.value) || 0.00;
+                // Get all rate inputs, including permanent_rate_input (if present)
+                const rateInputs = document.querySelectorAll('input[type="number"][name$="_rate"]:not(#manual_base_cost)');
                 
-                // Get the value currently in the manual override input box
-                const manualBaseOverride = parseFloat(manualBaseCostInput.value) || 0.00;
-                
-                let activeBaseCost;
-                let isOverrideActive = manualBaseOverride > 0;
+                // Maps input name to DOM element for easy access
+                const rateInputElements = {};
+                const margins = {};
+                const userEditedInputs = {}; // 🟢 Tracks which fields the user has manually changed
 
-                if (isOverrideActive) {
-                    activeBaseCost = manualBaseOverride;
+                // 1. Gather all margins and attach input listeners
+                rateInputs.forEach(inputElement => {
+                    const inputName = inputElement.name;
+                    rateInputElements[inputName] = inputElement;
+
+                    // Find margin from the sibling p tag
+                    const pTag = inputElement.closest('div').nextElementSibling;
+                    if (pTag && pTag.tagName === 'P' && pTag.dataset.margin) {
+                        margins[inputName] = parseFloat(pTag.dataset.margin);
+                    } else {
+                        margins[inputName] = 0;
+                    }
+
+                    // Listener to mark a field as manually edited
+                    inputElement.addEventListener('input', () => {
+                        userEditedInputs[inputName] = true; // Mark as edited
+                        inputElement.style.backgroundColor = colors.yellowLight;
+                    });
+                });
+
+                /**
+                 * Client-side calculation function (for input/blur events).
+                 */
+                function calculateAndApplyRatesClient(event) {
+                    // This function is for dynamic visual update (not AJAX)
+                    const initialBaseCost = parseFloat(hiddenBaseCost.value) || 0.00;
+                    const manualBaseOverride = parseFloat(manualBaseCostInput.value) || 0.00;
                     
-                    // Visual updates for override status
-                    baseCostBox.style.backgroundColor = colors.yellowDark;
-                    baseCostBox.style.color = 'black';
+                    let activeBaseCost;
+                    let isOverrideActive = manualBaseOverride > 0;
+
+                    if (isOverrideActive) {
+                        activeBaseCost = manualBaseOverride;
+                        baseCostBox.style.backgroundColor = colors.yellowDark;
+                        baseCostBox.style.color = 'black';
+                    } else {
+                        activeBaseCost = initialBaseCost;
+                        baseCostBox.style.backgroundColor = colors.bluePrimary;
+                        baseCostBox.style.color = 'white';
+                    }
+
+                    // Update base cost display immediately
+                    baseCostDisplay.textContent = formatNumber(activeBaseCost) + ' PKR/kg';
+                }
+                
+                // Input listener on the manual override field (only for visual update)
+                manualBaseCostInput.addEventListener('input', calculateAndApplyRatesClient);
+
+                // Clear override on blur if the value is zero/blank after input
+                manualBaseCostInput.addEventListener('blur', () => {
+                    const currentValue = manualBaseCostInput.value.trim();
+                    if (currentValue === '0.00' || currentValue === '0' || currentValue === '') {
+                        manualBaseCostInput.value = '';
+                    }
+                    calculateAndApplyRatesClient({}); 
+                });
+
+
+                /**
+                 * Fetches and saves the rates via AJAX, then updates the DOM.
+                 */
+                applyOverrideButton.addEventListener('click', async function(e) {
+                    e.preventDefault(); // Stop default form submission
+
+                    const overrideValue = parseFloat(manualBaseCostInput.value) || 0.00;
                     
-                    // When global override is applied via button/input, UNLOCK/RESET all individual rate fields
-                    if (event && (event.target === applyOverrideButton || event.target === manualBaseCostInput)) {
-                        rateInputs.forEach(input => {
-                            userEditedInputs[input.name] = false;
-                            input.style.backgroundColor = ''; 
+                    // Client-side calculation to set the correct hidden value for submission
+                    const activeBaseCostForSubmit = overrideValue > 0 ? overrideValue : (parseFloat(hiddenBaseCost.value) || 0.00);
+                    hiddenBaseCost.value = activeBaseCostForSubmit.toFixed(2);
+                    
+                    // Create FormData object to submit all necessary form fields
+                    const formData = new FormData(form);
+                    
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            headers: {
+                                // CSRF Token is needed for security
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'), 
+                                'Accept': 'application/json', // Requesting JSON response
+                                'X-Requested-With': 'XMLHttpRequest' // Standard AJAX header
+                            },
+                            body: formData
                         });
-                    }
+                        
+                        const result = await response.json();
 
-                } else {
-                    // If override is cleared, revert to the initial calculated value loaded by the controller
-                    // NOTE: You may need a separate hidden input for the ORIGINAL calculated cost if initialBaseCost 
-                    // is being overridden on load. For now, we trust the server loaded the correct starting value.
-                    activeBaseCost = initialBaseCost;
-                    baseCostBox.style.backgroundColor = colors.bluePrimary;
-                    baseCostBox.style.color = 'white';
-                }
+                        if (response.ok && result.success) {
+                            // 1. Update Base Cost Display
+                            baseCostDisplay.textContent = formatNumber(result.base_effective_cost) + ' PKR/kg';
+                            hiddenBaseCost.value = result.base_effective_cost; // Update hidden field with the new base cost
+                            manualBaseCostInput.value = overrideValue > 0 ? result.base_effective_cost : ''; // Re-set input value from saved base
+                            baseCostBox.style.backgroundColor = colors.yellowDark;
+                            baseCostBox.style.color = 'black';
+                            
+                            // 2. Update all rate inputs with the freshly calculated/saved rates from the backend
+                            for (const [name, value] of Object.entries(result.rates)) {
+                                if (rateInputElements[name]) {
+                                    // 🟢 FIX APPLIED HERE: ONLY update if the field was NOT manually edited by the user.
+                                    if (!userEditedInputs[name]) {
+                                        rateInputElements[name].value = value;
+                                        rateInputElements[name].style.backgroundColor = ''; // Clear color for auto-updated field
+                                    } 
+                                    // If manually edited, its value remains untouched, and the 'userEditedInputs' flag remains true.
+                                }
+                            }
+                            
+                            // 3. Display success message
+                            alert(result.message); 
 
-                // 🚨 CRUCIAL STEP: Update the hidden input that gets SAVED (base_effective_cost)
-                hiddenBaseCost.value = activeBaseCost.toFixed(2);
-                
-                baseCostDisplay.textContent = formatNumber(activeBaseCost) + ' PKR/kg';
+                        } else {
+                            // Handle backend errors or failure message
+                            alert("Error saving rates: " + (result.message || "An unknown error occurred on the server."));
+                        }
 
-                // Update all rate fields based on the active base cost
-                rateInputs.forEach(input => {
-                    const inputName = input.name;
-                    
-                    // Skip if the user has manually entered a value into this field
-                    if (userEditedInputs[inputName]) {
-                        return;
-                    }
-                    
-                    const margin = margins[inputName] || 0;
-                    
-                    if (!input.disabled) {
-                        const newRate = activeBaseCost + margin;
-                        input.value = newRate.toFixed(2);
+                    } catch (fetchError) {
+                        console.error('Fetch Error:', fetchError);
+                        alert("Network or Server error during save. Please check console.");
                     }
                 });
+
+
+                // 🛑 CRITICAL: Add a final listener to the FORM SUBMISSION (Activate Today's Rates)
+                form.addEventListener('submit', function() {
+                    const overrideValue = parseFloat(manualBaseCostInput.value) || 0.00;
+                    const initialBaseCost = parseFloat(hiddenBaseCost.value) || 0.00;
+                    // Ensure the final base cost reflects the manual override if present
+                    hiddenBaseCost.value = (overrideValue > 0 ? overrideValue : initialBaseCost).toFixed(2);
+                });
+
+            } catch (error) { // Catch block for client-side logic
+                console.error("A critical JavaScript error occurred:", error);
+                // Inform the user about the client-side error.
+                alert("A critical error occurred while loading the pricing page calculations. Please refresh the page or contact support.");
             }
-
-            // 🟢 INITIALIZATION LOGIC: Check if the server loaded a persistent manual override
-            const savedManualOverride = parseFloat(manualBaseCostInput.value);
-
-            if (savedManualOverride > 0) {
-                 // If the server loaded a manual value, run calculation immediately based on that value
-                 calculateAndApplyRates({target: manualBaseCostInput});
-            } else {
-                 // Otherwise, run calculation based on the calculated live cost
-                 calculateAndApplyRates({}); 
-            }
-
-            // Event listeners
-            // 🟢 Button listener (Guaranteed to fire logic)
-            applyOverrideButton.addEventListener('click', function(e) {
-                e.preventDefault(); 
-                calculateAndApplyRates(e); 
-            });
-            
-            // Input listener on the manual override field
-            manualBaseCostInput.addEventListener('input', calculateAndApplyRates);
-            
-            // Clear override on blur if the value is zero/blank after input
-            manualBaseCostInput.addEventListener('blur', () => {
-                const currentValue = manualBaseCostInput.value.trim();
-                if (currentValue === '0.00' || currentValue === '0' || currentValue === '') {
-                    manualBaseCostInput.value = '';
-                    calculateAndApplyRates();
-                } else {
-                    calculateAndApplyRates(); 
-                }
-            });
-            
-            // 🛑 CRITICAL: Add a final listener to the FORM SUBMISSION itself 
-            // to guarantee the calculation is run one last time before data is sent.
-            form.addEventListener('submit', function() {
-                // Ensure the final active base cost is correctly set in the hidden field right before submission
-                calculateAndApplyRates({}); 
-            });
         });
     </script>
 

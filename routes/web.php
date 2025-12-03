@@ -68,11 +68,14 @@ Route::middleware('auth')->group(function () {
         // NEW AJAX ROUTE FOR DYNAMIC SUPPLIER DATA
         Route::post('rates/supplier-data', [RateController::class, 'getSupplierData'])->name('rates.supplier.data');
 
+        // SALES ROUTES
         Route::get('sales', [SalesController::class, 'index'])->name('sales.index');
         Route::get('sales/create', [SalesController::class, 'create'])->name('sales.create');
         Route::post('sales', [SalesController::class, 'store'])->name('sales.store');
-        // 🚨 CORRECTED: Changed {rate} parameter to {sale} 
         Route::delete('sales/{sale}', [SalesController::class, 'destroy'])->name('sales.destroy'); 
+        
+        // 🟢 FIX: NEW ROUTE FOR SYNCHRONIZATION
+        Route::get('sales/fetch-rates', [SalesController::class, 'getLatestRates'])->name('sales.fetch-rates');
 
         // 5. Reports
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');

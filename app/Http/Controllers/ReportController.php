@@ -13,101 +13,10 @@ use Carbon\Carbon; // Keeping the use statement for convention, but using FQCN b
 
 class ReportController extends Controller
 {
-    // Placeholder methods for existing routespublic function index(Request $request)
-    public function index(Request $request)
-    {
-        // Get the requested date, default to today
-        $targetDate = $request->input('target_date', now()->toDateString());
-
-        // 1. Fetch all suppliers for the dropdown
-        $suppliers = Supplier::orderBy('name')->get(['id', 'name']);
-
-        // Default rates structure (Ensure all new fields are initialized)
-        $defaultData = [
-            'base_effective_cost' => 0.00,
-            'net_stock_available' => 0.00,
-            'wholesale_rate' => 0.00,
-            'permanent_rate' => 0.00,
-            'retail_mix_rate' => 0.00,
-            'retail_chest_rate' => 0.00,
-            'retail_thigh_rate' => 0.00,
-            'retail_piece_rate' => 0.00,
-            
-            // New fields for rates.index, initialized to 0.00
-            'live_chicken_rate' => 0.00,
-            'wholesale_hotel_mix_rate' => 0.00,
-            'wholesale_hotel_chest_rate' => 0.00,
-            'wholesale_hotel_thigh_rate' => 0.00,
-            'wholesale_customer_piece_rate' => 0.00,
-
-            'is_historical' => false,
-        ];
-
-        // 2. Try to fetch an existing rate for the target date
-        $historicalRate = DailyRate::whereDate('created_at', $targetDate)
-            ->latest() // Get the most recently activated rate for that day
-            ->first();
-
-        if ($historicalRate) {
-            // Found a rate for the specific day (historical or today's activated rate)
-            $defaultData = [
-                'base_effective_cost' => $historicalRate->base_effective_cost,
-                'wholesale_rate' => $historicalRate->wholesale_rate,
-                'permanent_rate' => $historicalRate->permanent_rate,
-                'retail_mix_rate' => $historicalRate->retail_mix_rate,
-                'retail_chest_rate' => $historicalRate->retail_chest_rate,
-                'retail_thigh_rate' => $historicalRate->retail_thigh_rate,
-                'retail_piece_rate' => $historicalRate->retail_piece_rate,
-                // Assuming these new fields are added to DailyRate model, otherwise they default to 0.00
-                'live_chicken_rate' => $historicalRate->live_chicken_rate ?? 0.00,
-                'wholesale_hotel_mix_rate' => $historicalRate->wholesale_hotel_mix_rate ?? 0.00,
-                'wholesale_hotel_chest_rate' => $historicalRate->wholesale_hotel_chest_rate ?? 0.00,
-                'wholesale_hotel_thigh_rate' => $historicalRate->wholesale_hotel_thigh_rate ?? 0.00,
-                'wholesale_customer_piece_rate' => $historicalRate->wholesale_customer_piece_rate ?? 0.00,
-
-                'is_historical' => true,
-            ];
-            
-            // Fetch Net Stock available using the supplier linked to the historical rate
-            if ($historicalRate->supplier_id) {
-                 $data = $this->calculateSupplierData($historicalRate->supplier_id);
-                 $defaultData['net_stock_available'] = $data['net_stock'] ?? 0.00;
-            } else {
-                 $defaultData['net_stock_available'] = 0.00;
-            }
-
-        } elseif ($suppliers->isNotEmpty() && now()->toDateString() == $targetDate) {
-            // 3. Fallback to live calculation for the current day if no rate is set yet
-            $defaultSupplierId = $suppliers->first()->id;
-            $data = $this->calculateSupplierData($defaultSupplierId);
-            
-            $baseCost = $data['effective_cost'] ?? 0.00;
-
-            $defaultData['base_effective_cost'] = $baseCost;
-            $defaultData['net_stock_available'] = $data['net_stock'] ?? 0.00;
-
-            // --- START: NEW DYNAMIC DEFAULT RATE CALCULATION (Base Cost + Margin) ---
-            
-            // Wholesale & Credit Rates
-            $defaultData['wholesale_rate'] = $baseCost + 10.00; // Wholesale (Truck) +10 PKR Margin
-            $defaultData['live_chicken_rate'] = $baseCost + 20.00; // Live Chicken +20 PKR Margin
-            
-            // New Wholesale Rates (Hotels & Customers)
-            $defaultData['wholesale_hotel_mix_rate'] = $baseCost + 25.00; // Hotel Mix +25 PKR Margin
-            $defaultData['wholesale_hotel_chest_rate'] = $baseCost + 125.00; // Hotel Chest +125 PKR Margin
-            $defaultData['wholesale_hotel_thigh_rate'] = $baseCost + 75.00; // Hotel Thigh +75 PKR Margin
-            $defaultData['wholesale_customer_piece_rate'] = $baseCost; // Customer Piece No Margin
-            
-            // Retail Rates (Shop Purchun)
-            $defaultData['retail_mix_rate'] = $baseCost + 50.00; // Mix +50 PKR Margin
-            $defaultData['retail_chest_rate'] = $baseCost + 150.00; // Chest +150 PKR Margin
-            $defaultData['retail_thigh_rate'] = $baseCost + 100.00; // Thigh +100 PKR Margin
-            $defaultData['retail_piece_rate'] = $baseCost - 10.00; // Piece -10 PKR Loss (Can be negative)
-            // --- END: NEW DYNAMIC DEFAULT RATE CALCULATION ---
-
-        }
-
-        return view('pages.rates.index', compact('suppliers', 'defaultData', 'targetDate'));
+    // Placeholder methods for existing routes
+    public function index() { 
+        // Implement logic to display a reports index page, or redirect to a main report
+        return redirect()->route('admin.reports.pnl'); 
     }
     
     /**
@@ -291,7 +200,7 @@ class ReportController extends Controller
 
     // --- SELL SUMMARY REPORT METHOD ---
 
-    public function sellSummaryReport(Request $request)
+  public function sellSummaryReport(Request $request)
     {
         $date = $request->input('date', \Carbon\Carbon::now()->toDateString());
         $startDate = \Carbon\Carbon::parse($date)->startOfDay();
@@ -317,6 +226,9 @@ class ReportController extends Controller
 
         foreach ($sales as $sale) {
             $customerName = $sale->customer->name ?? 'Retail/Walk-in'; 
+            
+            // 🚩 NEW: Use the saved sale_channel. Default to 'permanent' for older records.
+            $saleChannel = strtolower($sale->sale_channel ?? 'permanent'); 
 
             foreach ($sale->items as $item) {
                 $category = $item->product_category;
@@ -326,7 +238,17 @@ class ReportController extends Controller
                 $grandTotalWeight += $weight;
                 $grandTotalRevenue += $lineTotal;
 
-                if (str_contains(strtolower($customerName), 'wholesale') || str_contains(strtolower($customerName), 'truck')) {
+                // 1. Check for Retail Sales (Explicitly selected on the form)
+                if ($saleChannel === 'retail') {
+                    if (isset($retailSalesAggregation[$category])) {
+                        $retailSalesAggregation[$category]['weight'] += $weight;
+                        $retailSalesAggregation[$category]['revenue'] += $lineTotal;
+                        $retailSalesAggregation[$category]['total_rate'] += $item->rate_pkr;
+                        $retailSalesAggregation[$category]['count'] += 1;
+                    }
+                } 
+                // 2. Check for Wholesale Sales (Explicitly selected on the form OR customer name contains 'truck/wholesale')
+                elseif ($saleChannel === 'wholesale' || str_contains(strtolower($customerName), 'truck')) {
                     $wholesaleSales[] = [
                         'customer_name' => $customerName,
                         'weight' => $weight,
@@ -334,18 +256,20 @@ class ReportController extends Controller
                         'total' => $lineTotal,
                         'category' => $category,
                     ];
-                } elseif ($sale->customer_id) {
-                    $permanentSales[$sale->id]['customer_name'] = $customerName;
-                    $permanentSales[$sale->id]['sale_date'] = $sale->created_at->format('H:i');
-                    $permanentSales[$sale->id]['items'][] = $item;
-                    $permanentSales[$sale->id]['total_sale_amount'] = $sale->total_amount;
-                } else {
-                    if (isset($retailSalesAggregation[$category])) {
-                        $retailSalesAggregation[$category]['weight'] += $weight;
-                        $retailSalesAggregation[$category]['revenue'] += $lineTotal;
-                        $retailSalesAggregation[$category]['total_rate'] += $item->rate_pkr;
-                        $retailSalesAggregation[$category]['count'] += 1;
+                } 
+                // 3. Permanent/Hotel Sales (Any other sale with a customer ID that wasn't retail/wholesale)
+                elseif ($sale->customer_id) {
+                    if (!isset($permanentSales[$sale->id])) {
+                        $permanentSales[$sale->id] = [
+                            'customer_name' => $customerName,
+                            'sale_date' => $sale->created_at->format('H:i'),
+                            'items' => [],
+                            'total_sale_amount' => 0,
+                        ];
                     }
+                    $permanentSales[$sale->id]['items'][] = $item;
+                    // Aggregate line totals to ensure accurate sale amount
+                    $permanentSales[$sale->id]['total_sale_amount'] += $lineTotal; 
                 }
             }
         }
@@ -356,6 +280,8 @@ class ReportController extends Controller
         $totalWholesaleRevenue = array_sum(array_column($wholesaleSales, 'total'));
         $totalWholesaleWeight = array_sum(array_column($wholesaleSales, 'weight'));
         
+        // ... (Rest of the code remains the same as it correctly builds the reportData array) ...
+
         $reportData = [
             'wholesaleSales' => $wholesaleSales,
             'permanentSales' => $permanentSales,
@@ -373,7 +299,6 @@ class ReportController extends Controller
 
         return view('pages.report.selll_summary_report', $reportData);
     }
-
 
     // --- PROFIT & LOSS REPORT METHOD (Now redirected) ---
 

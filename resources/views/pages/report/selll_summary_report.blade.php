@@ -3,9 +3,7 @@
 @section('content')
  <div class="flex">
 
-        <!-- MAIN PAGE -->
         <main id="mainContent" class="flex-1 p-4 sm:p-6 lg:p-10 bg-gray-50">
-            <!-- PAGE CONTENT -->
             <div class="p-4 space-y-6">
 
                 <h1 class="text-3xl font-extrabold text-gray-800 mb-6 tracking-tight">
@@ -33,7 +31,6 @@
                     $totalPermanentRevenue = 0;
                 @endphp
 
-                <!-- 1. WHOLESALE SALES -->
                 <div class="bg-white rounded-xl shadow p-4">
                     <h2 class="font-semibold mb-3 text-lg">1. Wholesale Sales (Truck-to-Truck)</h2>
 
@@ -74,7 +71,6 @@
                     </table>
                 </div>
 
-                <!-- 2. HOTEL/PERMANENT SALES -->
                 <div class="bg-white rounded-xl shadow p-4">
                     <h2 class="font-semibold mb-3 text-lg">2. Hotel/Permanent Sales</h2>
 
@@ -129,7 +125,6 @@
                     </table>
                 </div>
 
-                <!-- 3. RETAIL SALES (Aggregated) -->
                 <div class="bg-white rounded-xl shadow p-4">
                     <h2 class="font-semibold mb-3 text-lg">3. Shop/Retail Sales (Aggregated)</h2>
 
@@ -176,7 +171,6 @@
                     </table>
                 </div>
 
-                <!-- FOOTER TOTALS -->
                 <div class="bg-indigo-600 text-white rounded-xl shadow p-6 font-semibold">
                     <div class="flex flex-col md:flex-row justify-between space-y-3 md:space-y-0 text-lg">
                         <div class="font-bold">Grand Total for {{ Carbon\Carbon::parse($date)->format('F d, Y') }}</div>
@@ -192,6 +186,4 @@
             </div>
         </main>
     </div>
-
-
 @endsection
