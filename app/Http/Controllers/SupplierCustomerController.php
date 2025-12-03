@@ -5,18 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
-// We will assume you have these models. If not, the index will just show empty lists.
-// use App\Models\Supplier; 
-// use App\Models\Customer;
+use Illuminate\Validation\ValidationException; // 🟢 IMPORTED for explicit exception handling
 
 class SupplierCustomerController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-public function index()
+    public function index()
     {
-        // 🟢 FIX 1: RETRIEVE REAL DATA
         $suppliers = Supplier::all(); 
         $customers = Customer::all(); 
 
@@ -28,14 +25,18 @@ public function index()
      */
     public function create()
     {
+        // This method usually shows the form. Since you are using a modal on the index page, 
+        // this might not be needed, but we keep it returning the index view for consistency.
         return view('pages.supplier.index');
     }
 
     /**
      * Store a newly created resource in storage.
      */
-public function store(Request $request)
+    public function store(Request $request)
     {
+        // 🛑 FIX: The client-side relies on a JSON response. 
+        // We ensure we only try/catch and return JSON here.
         try {
             // 1. Validation
             $validatedData = $request->validate([
@@ -59,15 +60,19 @@ public function store(Request $request)
                 ]);
             }
 
-            // 3. 🟢 RETURN JSON: Return the created contact object for JavaScript
+            // 🟢 CRITICAL STEP: Add the 'type' field to the contact object 
+            // for the JavaScript appendContactToList function to use.
+            $contact->type = $validatedData['type']; 
+
+            // 3. RETURN JSON: Return the created contact object for JavaScript
             return response()->json([
                 'success' => true,
                 'message' => ucfirst($validatedData['type']) . ' added successfully!',
                 'contact' => $contact, 
-            ], 201); // 201 Created status
+            ], 201); // 201 Created status - prevents browser reload
 
         } catch (ValidationException $e) {
-            // Handle validation errors by returning status 422
+            // Handle validation errors (422)
             return response()->json([
                 'success' => false,
                 'message' => 'The given data was invalid.',
@@ -75,10 +80,10 @@ public function store(Request $request)
             ], 422);
 
         } catch (\Exception $e) {
-            // Handle other errors by returning status 500
-             return response()->json([
+            // Handle other errors (500)
+            return response()->json([
                 'success' => false,
-                'message' => 'Could not save the contact.',
+                'message' => 'Could not save the contact. Error: ' . $e->getMessage(), // Added error message for debugging
             ], 500);
         }
     }
@@ -110,7 +115,7 @@ public function store(Request $request)
     /**
      * Remove the specified resource from storage.
      */
-  public function destroy(Request $request, string $id)
+    public function destroy(Request $request, string $id)
     {
         // Get the type from the request body sent by AJAX
         $type = $request->input('type');

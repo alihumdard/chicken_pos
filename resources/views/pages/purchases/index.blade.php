@@ -1,4 +1,4 @@
-@extends('layouts.main') {{-- Assume you have a layout file --}}
+@extends('layouts.main') 
 
 @section('content')
     <style>
@@ -66,22 +66,18 @@
         <form method="POST" action="{{ route('admin.purchases.store') }}" id="purchaseForm" class="flex flex-col h-full">
             @csrf
 
-            <!-- HEADER -->
             <div class="h-[80px] px-6 flex flex-col justify-center">
                 <h2 class="text-2xl font-bold text-[var(--text-dark)] leading-tight">Purchase Entry</h2>
                 <p class="text-[var(--text-gray)] text-sm mt-0.5">Today: {{ now()->format('d M Y') }}</p>
             </div>
 
-            <!-- MAIN CONTENT -->
             <div class="flex-1 px-6 pb-4 flex flex-col gap-4 overflow-y-auto">
 
-                <!-- 1. TRUCK DETAILS -->
                 <div class="bg-[var(--card-bg)] p-3 rounded-xl shadow-sm border border-[var(--border-light)] flex flex-col">
                     <h3 class="font-bold text-[var(--text-dark)] text-xl mb-3">1. Truck Details</h3>
 
                     <div class="flex items-start space-x-6">
 
-                        <!-- Supplier -->
                         <div class="flex flex-col">
                             <label for="supplier_id" class="text-[var(--text-gray)] text-sm mb-1">Select Supplier</label>
                             <select name="supplier_id" id="supplier_id" required
@@ -96,7 +92,6 @@
                             </select>
                         </div>
 
-                        <!-- Driver -->
                         <div class="flex flex-col">
                             <label for="driver_no" class="text-[var(--text-gray)] text-sm mb-1">Driver No</label>
                             <input type="text" name="driver_no" id="driver_no"
@@ -107,10 +102,8 @@
                     </div>
                 </div>
 
-                <!-- 2. WEIGHT CALCULATION -->
                 <div class="bg-[var(--card-bg)] p-4 rounded-xl shadow-sm border border-[var(--border-light)] flex flex-col">
 
-                    <!-- Title row -->
                     <div class="flex items-center gap-2 h-[30px] mb-2">
                         <h3 class="font-bold text-[var(--text-dark)] text-xl">2. Weight Calculation</h3>
                         <span class="text-xs bg-[var(--blue-primary)] text-white px-2 py-1 rounded-full">
@@ -118,10 +111,8 @@
                         </span>
                     </div>
 
-                    <!-- Input Grid -->
                     <div class="grid grid-cols-3 gap-4 flex-1 items-stretch">
 
-                        <!-- Gross Weight (Column 1) -->
                         <div class="flex flex-col justify-end">
 
                             <label for="gross_weight" class="text-[var(--text-gray)] text-md mb-2">Gross Weight</label>
@@ -138,7 +129,6 @@
                                     </span>
                                 </div>
 
-                                <!-- Minus Circle on RIGHT side -->
                                 <div
                                     class="w-[40px] h-[40px] rounded-full bg-[var(--text-gray)] flex items-center justify-center flex-shrink-0">
                                     <i class="fa-solid fa-minus text-white text-lg"></i>
@@ -149,13 +139,11 @@
                         </div>
 
 
-                        <!-- Deductions (Column 2) -->
                         <div class="p-3 rounded-xl border flex flex-col justify-end h-full">
                             <h4 class="font-semibold text-[var(--red-primary)] text-sm mb-1">Deductions (Loss)</h4>
 
                             <div class="flex gap-2">
 
-                                <!-- Dead Qty -->
                                 <div class="flex-1">
                                     <label for="dead_qty" class="text-xs text-[var(--red-primary)] mb-1 block">Dead
                                         Qty</label>
@@ -171,7 +159,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Dead Weight -->
                                 <div class="flex-1">
                                     <label for="dead_weight" class="text-xs text-[var(--red-primary)] mb-1 block">Dead
                                         Wgt</label>
@@ -187,7 +174,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Shrink Loss -->
                                 <div class="flex-1">
                                     <label for="shrink_loss" class="text-xs text-[var(--red-primary)] mb-1 block">Shrink
                                         Loss</label>
@@ -208,17 +194,14 @@
                         </div>
 
 
-                        <!-- Net Live Weight (Column 3) -->
                         <div class="flex items-end gap-4 h-full">
 
-                            <!-- Equals Circle -->
                             <div
                                 class="w-[40px] h-[40px] rounded-full bg-[var(--text-gray)] flex items-center justify-center flex-shrink-0">
                                 <i class="fa-solid fa-equals text-white text-lg"></i>
                             </div>
 
 
-                            <!-- Input Box -->
                             <div class="flex flex-col gap-1 w-full">
                                 <label class="text-[var(--green-primary)] font-semibold text-sm">
                                     Net Live Weight
@@ -238,20 +221,16 @@
                     </div>
                 </div>
 
-                <!-- 3. FINANCIAL BLOCK -->
                 <div class="bg-gray-800 p-4 rounded-2xl shadow flex flex-col">
 
-                    <!-- HEADER -->
                     <div class="flex items-center justify-between mb-2">
                         <h2 class="text-white text-lg font-semibold">
                             Weight & Rates
                         </h2>
                     </div>
 
-                    <!-- CHILD GRID -->
                     <div class="grid grid-cols-3 gap-4 flex-1">
 
-                        <!-- Buying Rate -->
                         <div class=" text-white p-3 flex flex-col bg-gray-700 rounded-xl">
                             <label for="buying_rate" class="text-gray-300 text-xs mb-1">Buying Rate (Per Kg)</label>
 
@@ -259,7 +238,6 @@
                                 <input type="number" name="buying_rate" id="buying_rate" value="0" min="0" required
                                     class="w-full p-2.5 pr-10 text-black rounded-lg focus:outline-none text-sm focus:ring-2 focus:ring-yellow-400">
 
-                                <!-- Rs inside the input -->
                                 <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-700 text-xs font-semibold">
                                     Rs
                                 </span>
@@ -268,7 +246,6 @@
 
 
 
-                        <!-- Total Payable -->
                         <div class="bg-gray-900 text-white p-3 rounded-xl shadow flex flex-col justify-center">
                             <label class="text-gray-300 text-xs mb-1">Total Payable Amount</label>
                             {{-- NOTE: This value is read-only, calculated, and sent to the backend --}}
@@ -277,7 +254,6 @@
                             <input type="hidden" name="total_payable" id="total_payable" value="0">
                         </div>
 
-                        <!-- Effective Cost -->
                         <div
                             class="bg-[var(--blue-primary)] p-3 rounded-xl text-center shadow flex flex-col justify-center">
                             <p class="text-blue-100 text-xs">Effective Cost (x 1.2)</p>
@@ -290,10 +266,22 @@
 
                     </div>
                 </div>
+            
+              
+                {{-- 🟢 END NEW: BASE COST OVERRIDE INPUT --}}
+
+                <div class="h-[70px] flex items-center justify-end px-6 border-t border-[var(--border-light)]">
+                    <button type="submit" id="savePurchaseBtn"
+                        class="bg-[var(--yellow-primary)] hover:bg-[var(--yellow-dark)] text-black font-bold w-[200px] py-3 rounded-xl shadow transition-colors">
+                        Save Purchase
+                    </button>
+                </div>
+
+
                 
-                {{-- 🟢 NEW SECTION: PURCHASE HISTORY TABLE --}}
+                {{-- 🟢 PURCHASE HISTORY TABLE --}}
                 <div class="bg-[var(--card-bg)] p-4 rounded-xl shadow-sm border border-[var(--border-light)] flex flex-col mt-4">
-                    <h3 class="font-bold text-[var(--text-dark)] text-xl mb-3">4. Recent Purchase History</h3>
+                    <h3 class="font-bold text-[var(--text-dark)] text-xl mb-3">5. Recent Purchase History</h3>
                     
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
@@ -353,17 +341,6 @@
                 </div>
                 {{-- 🟢 END NEW SECTION --}}
             </div>
-
-            <!-- FOOTER -->
-            <div
-                class="h-[70px] flex items-center justify-end px-6 border-t border-[var(--border-light)]">
-                <button type="submit" id="savePurchaseBtn"
-                    class="bg-[var(--yellow-primary)] hover:bg-[var(--yellow-dark)] text-black font-bold w-[200px] py-3 rounded-xl shadow transition-colors">
-                    Save Purchase
-                </button>
-            </div>
-
-
         </form>
 
 
@@ -379,6 +356,7 @@
             const saveBtn = document.getElementById('savePurchaseBtn');
             const statusMessage = document.getElementById('statusMessage');
             const purchaseTableBody = document.getElementById('purchase-table-body');
+            const applyOverrideBtn = document.getElementById('applyOverrideBtn'); // 🟢 NEW
             
             // Utility functions/objects defined earlier
             const inputs = {
@@ -389,6 +367,8 @@
                 buying_rate: document.getElementById('buying_rate'),
                 supplier_id: document.getElementById('supplier_id'),
                 driver_no: document.getElementById('driver_no'),
+                // 🟢 NEW INPUT
+                override_effective_cost: document.getElementById('override_effective_cost'), 
             };
 
             const outputs = {
@@ -417,28 +397,47 @@
                 return 'just now'; 
             }
             
-            // --- CORE CALCULATIONS (Unchanged) ---
+            // --- CORE CALCULATIONS (UPDATED for override) ---
             function calculateTotals() {
                 const grossWeight = parseInput(inputs.gross_weight);
                 const deadWeight = parseInput(inputs.dead_weight);
                 const shrinkLoss = parseInput(inputs.shrink_loss);
                 const buyingRate = parseInput(inputs.buying_rate);
+                
+                // 🟢 Check for manual override value
+                let manualOverride = parseInput(inputs.override_effective_cost);
+                let useManualCost = manualOverride > 0;
 
                 let netLiveWeight = grossWeight - deadWeight - shrinkLoss;
                 if (netLiveWeight < 0) netLiveWeight = 0; 
 
                 const totalPayable = netLiveWeight * buyingRate;
 
-                let effectiveCost = 0;
+                let calculatedEffectiveCost = 0;
                 if (netLiveWeight > 0) {
-                    effectiveCost = (totalPayable / netLiveWeight) * EFFECTIVE_COST_FACTOR;
+                    calculatedEffectiveCost = (totalPayable / netLiveWeight) * EFFECTIVE_COST_FACTOR;
                 }
+                
+                // Determine the final cost to use
+                let finalEffectiveCost = useManualCost ? manualOverride : calculatedEffectiveCost;
+
 
                 outputs.net_live_weight.value = netLiveWeight.toFixed(2);
                 outputs.total_payable.value = totalPayable.toFixed(2);
                 outputs.total_payable_display.value = `Rs ${formatCurrency(totalPayable)}`;
-                outputs.effective_cost.value = effectiveCost.toFixed(2);
-                outputs.effective_cost_display.textContent = effectiveCost.toFixed(0);
+                outputs.effective_cost.value = finalEffectiveCost.toFixed(2);
+                outputs.effective_cost_display.textContent = finalEffectiveCost.toFixed(0);
+                
+                // Highlight if override is active
+                const costBox = outputs.effective_cost_display.closest('div');
+                if(useManualCost) {
+                    // Update color using CSS variables if available, otherwise fallback
+                    outputs.effective_cost_display.closest('div').style.backgroundColor = 'var(--yellow-dark)'; 
+                    outputs.effective_cost_display.closest('div').style.color = 'black'; 
+                } else {
+                    outputs.effective_cost_display.closest('div').style.backgroundColor = 'var(--blue-primary)'; 
+                    outputs.effective_cost_display.closest('div').style.color = 'white'; 
+                }
             }
 
             // --- RENDER TABLE ROW (Unchanged) ---
@@ -555,7 +554,7 @@
             }
 
 
-            // --- AJAX FORM SUBMISSION (Unchanged except for cleanup) ---
+            // --- AJAX FORM SUBMISSION (Updated for override) ---
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
@@ -566,9 +565,16 @@
                      statusMessage.classList.remove('hidden');
                      return;
                 }
-
+                
+                // 🟢 Recalculate one final time to ensure the effective_cost hidden field is updated
+                calculateTotals(); 
+                
                 const formData = new FormData(form);
                 
+                // IMPORTANT: Remove the temporary override field from form data before sending to backend, 
+                // as the final value is already in the 'effective_cost' hidden field.
+                formData.delete('override_effective_cost'); 
+
                 saveBtn.disabled = true;
                 saveBtn.textContent = 'Saving...';
                 statusMessage.classList.add('hidden');
@@ -600,8 +606,12 @@
                             inputs.dead_qty.value = 0;
                             inputs.shrink_loss.value = 0;
                             inputs.buying_rate.value = 0;
-                            calculateTotals();
                             inputs.driver_no.value = '';
+                            
+                            // 🟢 Reset override field
+                            inputs.override_effective_cost.value = '';
+                            
+                            calculateTotals(); // Recalculate and reset display
 
                         } else if (response.status === 422) {
                             let errorMsg = 'Validation Failed: ';
@@ -624,19 +634,13 @@
                     }
 
 
-                } catch (error) {
-                    console.error('AJAX Error:', error);
-                    statusMessage.className = 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4';
-                    statusMessage.querySelector('span').textContent = 'Network error occurred. Check server connection.';
-                    statusMessage.classList.remove('hidden');
-
-                } finally {
+                }  finally {
                     saveBtn.disabled = false;
                     saveBtn.textContent = 'Save Purchase';
                 }
             });
             
-            // --- Event Listeners (Unchanged) ---
+            // --- Event Listeners (Updated for override field) ---
             const calculationInputs = [
                 inputs.gross_weight, inputs.dead_weight, inputs.shrink_loss, inputs.buying_rate, inputs.dead_qty
             ];
@@ -648,6 +652,15 @@
                     input.addEventListener('blur', () => input.classList.remove('input-focus'));
                 }
             });
+            
+            // 🟢 New event listeners for the override field
+            if (inputs.override_effective_cost) {
+                // Clicking 'Apply' or changing the input triggers calculation immediately
+                applyOverrideBtn.addEventListener('click', calculateTotals);
+                inputs.override_effective_cost.addEventListener('input', calculateTotals);
+                inputs.override_effective_cost.addEventListener('focus', () => inputs.override_effective_cost.classList.add('input-focus'));
+                inputs.override_effective_cost.addEventListener('blur', () => inputs.override_effective_cost.classList.remove('input-focus'));
+            }
 
             calculateTotals();
         });

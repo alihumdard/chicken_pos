@@ -19,6 +19,16 @@ class DailyRate extends Model
         'retail_thigh_rate',
         'retail_piece_rate',
         'is_active', // Flag to mark this as the currently active rate
+
+
+        'manual_base_cost', 
+        
+        'live_chicken_rate',
+        'wholesale_hotel_mix_rate',
+        'wholesale_hotel_chest_rate',
+        'wholesale_hotel_thigh_rate',
+        'wholesale_customer_piece_rate',
+        'is_active',
     ];
 
     protected $casts = [
