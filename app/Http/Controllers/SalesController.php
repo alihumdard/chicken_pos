@@ -47,11 +47,11 @@ class SalesController extends Controller
     /**
      * Handle the sale confirmation and save the transaction.
      */
-    public function store(Request $request)
+   public function store(Request $request)
     {
-        // 1. Validation (Basic Example)
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
+            'rate_channel' => 'required|in:wholesale,retail', // 🚩 ADDED VALIDATION
             'cart_items' => 'required|array|min:1',
             'cart_items.*.category' => 'required|string|max:50',
             'cart_items.*.weight' => 'required|numeric|min:0.001',
@@ -59,20 +59,18 @@ class SalesController extends Controller
             'total_payable' => 'required|numeric|min:0',
         ]);
 
-        // Use a database transaction to ensure data consistency
         DB::beginTransaction();
 
         try {
             $customer = Customer::findOrFail($validated['customer_id']);
 
-            // 2. Create the Sale record
             $sale = Sale::create([
                 'customer_id' => $customer->id,
                 'total_amount' => $validated['total_payable'],
-                'payment_status' => 'credit', // Assuming all POS sales start as Credit/Unpaid
+                'payment_status' => 'credit', 
+                'sale_channel' => $validated['rate_channel'], // 🚩 SAVING THE SELECTED CHANNEL
             ]);
 
-            // 3. Add Sale Items and calculate total for double-check
             $total_check = 0;
             $saleItemsData = [];
 
@@ -88,16 +86,13 @@ class SalesController extends Controller
                 ]);
             }
 
-            // Save all items at once
             $sale->items()->saveMany($saleItemsData);
 
-            // 4. Update Customer Balance (Since this is a Credit Sale)
             $customer->current_balance += $sale->total_amount;
             $customer->save();
 
             DB::commit();
 
-            // Return a success message (you might redirect in a real app)
             return response()->json([
                 'message' => 'Sale confirmed and saved successfully.',
                 'sale_id' => $sale->id,
@@ -105,7 +100,6 @@ class SalesController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            // Log the error and return a detailed message
             \Log::error('Sales Transaction Failed: ' . $e->getMessage());
             return response()->json(['message' => 'Transaction failed. Please try again.'], 500);
         }

@@ -22,12 +22,13 @@
 
             <ul id="customer-list" class="space-y-2">
                 @forelse ($customers as $customer)
-                    <li class="customer-item p-3 hover:bg-gray-100 rounded cursor-pointer text-lg font-bold transition-colors"
+                    <li class="customer-item px-3 hover:bg-gray-100 rounded cursor-pointer text-lg font-bold transition-colors"
                         data-id="{{ $customer->id }}"
                         data-name="{{ $customer->name }}"
                         data-balance="{{ number_format($customer->current_balance, 2, '.', '') }}"
                     >
                         {{ $customer->name }}
+                        <br>
                         <span class="text-sm text-gray-700">
                             (Bal: {{ number_format($customer->current_balance, 0) }} PKR)
                         </span>
@@ -57,7 +58,8 @@
                 
                 <div class="flex items-center gap-6 mb-6 p-3 border rounded-lg bg-gray-50">
                     <label class="flex items-center space-x-2 font-medium text-lg cursor-pointer">
-                        <input type="checkbox" id="wholesale-channel-checkbox" name="rate_channel" value="wholesale" class="form-checkbox text-blue-600 h-5 w-5">
+                        {{-- Set Wholesale as default checked --}}
+                        <input type="checkbox" id="wholesale-channel-checkbox" name="rate_channel" value="wholesale" class="form-checkbox text-blue-600 h-5 w-5" checked>
                         <span>Wholesale / Permanent Rates</span>
                     </label>
                     
@@ -69,16 +71,17 @@
                 
                 <div id="category-tabs" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
                     @php
-                        // Maps category name to the corresponding rate field name in the DailyRate model
+                        // Maps category name to the corresponding WHOLESALE rate field name in the DailyRate model
                         $categoryRateMap = [
                             'Chest' => ['rate_field' => 'wholesale_hotel_chest_rate', 'icon' => 'fa-solid fa-drumstick-bite'],
                             'Thigh' => ['rate_field' => 'wholesale_hotel_thigh_rate', 'icon' => 'fa-solid fa-drumstick-bite'],
                             'Mix' => ['rate_field' => 'wholesale_hotel_mix_rate', 'icon' => 'fa-solid fa-layer-group'],
                             'Piece' => ['rate_field' => 'wholesale_customer_piece_rate', 'icon' => 'fa-solid fa-bone'],
+                            'Live' => ['rate_field' => 'live_chicken_rate', 'icon' => 'fa-solid fa-feather-alt'],
                         ];
                     @endphp
                     @foreach ($categoryRateMap as $categoryName => $details)
-                        <div class="category-tab bg-gray-100 rounded-lg p-4 flex flex-col items-center cursor-pointer transition-all"
+                        <div class="category-tab bg-gray-100 rounded-lg p-4 flex flex-col items-center cursor-pointer transition-all hover:bg-gray-200"
                             data-category="{{ $categoryName }}"
                             data-rate-field="{{ $details['rate_field'] }}">
                             <i class="{{ $details['icon'] }} text-3xl mb-2 text-gray-700"></i>
@@ -140,14 +143,13 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // 🟢 RATES DATA LOADED FROM CONTROLLER
-        const ACTIVE_RATES = @json($rates);
+        let ACTIVE_RATES = @json($rates);
         
         // State variables
         let selectedCustomerId = null;
-        let selectedCustomerName = '';
         let selectedCategory = null;
         let selectedRateField = null; 
-        let selectedChannel = 'wholesale'; 
+        let selectedChannel = 'wholesale'; // Default to Wholesale
         let cartItems = [];
 
         // DOM Elements
@@ -171,20 +173,24 @@
         const wholesaleCheckbox = document.getElementById('wholesale-channel-checkbox');
         const retailCheckbox = document.getElementById('retail-channel-checkbox');
         
-        // --- Rate Field Mapping ---
+        // 🟢 Define the AJAX route using the Blade Helper
+        const FETCH_RATES_ROUTE = "{{ route('admin.sales.fetch-rates') }}"; 
+
+        // --- Rate Field Mapping (Maps Wholesale keys to their Retail equivalent) ---
         const retailRateMap = {
             'wholesale_hotel_mix_rate': 'retail_mix_rate',
             'wholesale_hotel_chest_rate': 'retail_chest_rate',
             'wholesale_hotel_thigh_rate': 'retail_thigh_rate',
             'wholesale_customer_piece_rate': 'retail_piece_rate',
-            'wholesale_rate': 'retail_mix_rate',
+            'live_chicken_rate': 'retail_mix_rate', // Map live chicken to general retail mix
+            'wholesale_rate': 'retail_mix_rate', // Map general wholesale rate to general retail mix
         };
 
 
         // --- Utility Functions ---
 
         const formatCurrency = (value) => {
-            return parseFloat(value).toLocaleString('en-PK', { minimumFractionDigits: 2 }) + ' PKR';
+            return parseFloat(value).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' PKR';
         };
 
         const calculateLineTotal = () => {
@@ -195,40 +201,46 @@
             updateAddItemButton();
         };
         
-        const getRateByChannel = (channel, rateField) => {
+        /**
+         * Fetches the correct rate value based on the selected channel and category key.
+         */
+        const getRateByChannel = (channel, wholesaleKey) => {
             let rate = 0.00;
+            let displayKey = '';
             
-            if (channel === 'wholesale' && ACTIVE_RATES.wholesale.hasOwnProperty(rateField)) {
-                rate = ACTIVE_RATES.wholesale[rateField] || 0.00;
+            if (channel === 'wholesale' && ACTIVE_RATES.wholesale.hasOwnProperty(wholesaleKey)) {
+                rate = ACTIVE_RATES.wholesale[wholesaleKey];
+                displayKey = wholesaleKey;
             } else if (channel === 'retail') {
-                const retailKey = retailRateMap[rateField];
+                const retailKey = retailRateMap[wholesaleKey];
                 if (retailKey && ACTIVE_RATES.retail.hasOwnProperty(retailKey)) {
-                    rate = ACTIVE_RATES.retail[retailKey] || 0.00;
+                    rate = ACTIVE_RATES.retail[retailKey];
+                    displayKey = retailKey;
                 }
             }
-            return parseFloat(rate);
+            // Ensure rate is a number
+            rate = parseFloat(rate) || 0.00;
+            
+            return { rate: rate, displayKey: displayKey.replace(/_/g, ' ') };
         };
         
         // 🟢 Function to update the rate input based on selected category and channel
         const updateRateInput = () => {
-            if (!selectedCategory || !selectedRateField) {
+            const currentSelectedRateField = selectedRateField; // Use current state variable
+            const currentSelectedChannel = wholesaleCheckbox.checked ? 'wholesale' : 'retail';
+
+            if (!selectedCategory || !currentSelectedRateField) {
                  rateInput.value = (0.00).toFixed(2);
                  rateSourceDisplay.textContent = 'Rate source: No Category Selected';
                  return;
             }
             
             // 1. Fetch the default saved rate for the current channel and category
-            const rate = getRateByChannel(selectedChannel, selectedRateField);
+            const rateData = getRateByChannel(currentSelectedChannel, currentSelectedRateField);
             
-            // 2. Determine the key name for display
-            let displayKey = selectedRateField;
-            if (selectedChannel === 'retail') {
-                 displayKey = retailRateMap[selectedRateField] || selectedRateField;
-            }
-            
-            // 3. Update UI (This is the core function for showing the saved rate)
-            rateInput.value = rate.toFixed(2);
-            rateSourceDisplay.textContent = `Rate source: ${selectedChannel.toUpperCase()} - ${displayKey}`;
+            // 2. Update UI (This is the core function for showing the saved rate)
+            rateInput.value = rateData.rate.toFixed(2);
+            rateSourceDisplay.textContent = `Rate source: ${currentSelectedChannel.toUpperCase()} - ${rateData.displayKey}`;
             
             calculateLineTotal(); // Also update line total whenever rate changes
         };
@@ -244,9 +256,13 @@
                 addItemBtn.disabled = true;
             }
         };
-
+        
         const updateCartDisplay = () => {
             let grandTotal = 0;
+            const cartContainer = document.getElementById('cart-items-container');
+            const totalPayableDisplay = document.getElementById('total-payable-display');
+            const finalTotalPayableInput = document.getElementById('final-total-payable');
+            
             cartContainer.innerHTML = ''; 
 
             if (cartItems.length === 0) {
@@ -276,34 +292,59 @@
             totalPayableDisplay.textContent = formatCurrency(grandTotal);
             finalTotalPayableInput.value = grandTotal.toFixed(2);
         };
+
+        const fetchLatestRates = async () => {
+            try {
+                const response = await fetch(FETCH_RATES_ROUTE, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        ACTIVE_RATES = data.rates;
+                        updateRateInput(); 
+                        console.log('Rates successfully synchronized from backend.');
+                        return true;
+                    }
+                }
+                return false;
+
+            } catch (error) {
+                console.error("Failed to fetch latest rates:", error);
+                return false;
+            }
+        };
+
         
         // --- Event Handlers ---
         
         // 1. Channel Selection (Checkboxes)
         const handleChannelChange = (event) => {
             const clickedCheckbox = event.target;
-            const channel = clickedCheckbox.value;
-
+            
             if (clickedCheckbox.checked) {
-                if (channel === 'wholesale') {
+                if (clickedCheckbox.id === 'wholesale-channel-checkbox') {
                     retailCheckbox.checked = false;
                     selectedChannel = 'wholesale';
-                } else if (channel === 'retail') {
+                } else if (clickedCheckbox.id === 'retail-channel-checkbox') {
                     wholesaleCheckbox.checked = false;
                     selectedChannel = 'retail';
                 }
             } else {
-                // Default back to the opposite channel if the current one is unchecked
-                if (channel === 'wholesale' && !retailCheckbox.checked) {
-                    retailCheckbox.checked = true;
-                    selectedChannel = 'retail';
-                } else if (channel === 'retail' && !wholesaleCheckbox.checked) {
-                    wholesaleCheckbox.checked = true;
-                    selectedChannel = 'wholesale'; 
+                if (clickedCheckbox.id === 'wholesale-channel-checkbox') {
+                     retailCheckbox.checked = true; // Force check retail
+                     selectedChannel = 'retail';
+                } else if (clickedCheckbox.id === 'retail-channel-checkbox') {
+                    wholesaleCheckbox.checked = true; // Force check wholesale
+                    selectedChannel = 'wholesale';
                 }
             }
             
-            // Force rate update based on new channel if a category is selected
             if (selectedCategory) {
                  updateRateInput();
             }
@@ -312,10 +353,9 @@
         wholesaleCheckbox.addEventListener('change', handleChannelChange);
         retailCheckbox.addEventListener('change', handleChannelChange);
         
-        // 2. Customer Selection
+        // 2. Customer Selection (omitted for brevity)
         customerItems.forEach(item => {
             item.addEventListener('click', function() {
-                // Clear active state from all
                 customerItems.forEach(i => i.classList.remove('bg-yellow-200'));
                 this.classList.add('bg-yellow-200');
 
@@ -324,12 +364,12 @@
                 const balance = parseFloat(this.dataset.balance);
                 
                 customerIdInput.value = selectedCustomerId;
-                customerNameDisplay.textContent = selectedCustomerName;
-                customerBalanceDisplay.textContent = formatCurrency(balance);
+                document.getElementById('current-customer-name').textContent = selectedCustomerName;
+                document.getElementById('current-customer-balance').textContent = formatCurrency(balance);
                 
                 updateAddItemButton();
                 if (cartItems.length > 0) {
-                     confirmSaleBtn.disabled = false;
+                    confirmSaleBtn.disabled = false;
                 }
             });
         });
@@ -338,12 +378,12 @@
         categoryTabs.forEach(tab => {
             tab.addEventListener('click', function() {
                 // Clear active state from all
-                categoryTabs.forEach(t => t.classList.remove('bg-yellow-300', 'hover:bg-yellow-400'));
-                categoryTabs.forEach(t => t.classList.add('bg-gray-100', 'hover:bg-gray-200'));
+                categoryTabs.forEach(t => t.classList.remove('bg-yellow-300'));
+                categoryTabs.forEach(t => t.classList.add('bg-gray-100'));
                 
                 // Set active state on clicked tab
-                this.classList.remove('bg-gray-100', 'hover:bg-gray-200');
-                this.classList.add('bg-yellow-300', 'hover:bg-yellow-400');
+                this.classList.remove('bg-gray-100');
+                this.classList.add('bg-yellow-300');
 
                 selectedCategory = this.dataset.category;
                 selectedRateField = this.dataset.rateField;
@@ -353,11 +393,11 @@
             });
         });
 
-        // 4. Input Changes
+        // 4. Input Changes (omitted for brevity)
         weightInput.addEventListener('input', calculateLineTotal);
         rateInput.addEventListener('input', calculateLineTotal); 
 
-        // 5. Add Item to Cart
+        // 5. Add Item to Cart (omitted for brevity)
         addItemBtn.addEventListener('click', function() {
             if (selectedCustomerId && selectedCategory && parseFloat(weightInput.value) > 0 && parseFloat(rateInput.value) > 0) {
                 const item = {
@@ -367,94 +407,76 @@
                 };
                 cartItems.push(item);
 
-                // Reset inputs and re-load default rate
                 weightInput.value = 0;
-                rateInput.value = 0.00; 
                 calculateLineTotal();
 
-                // Re-load default rate for the active category (must be run after clearing inputs)
                 updateRateInput(); 
 
                 updateCartDisplay();
-                weightInput.focus(); // Focus on weight for the next item
+                weightInput.focus(); 
             } else {
                 alert('Please select a customer, category, and enter valid weight/rate.');
             }
         });
 
-        // 6. Form Submission (AJAX) - Logic remains the same
-        saleForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
+        // 🟢 NEW: Listener to check for rate updates when the tab becomes active
+        window.addEventListener('focus', function() {
+            const rateUpdateFlag = localStorage.getItem('rates_updated');
             
-            if (!selectedCustomerId || cartItems.length === 0) {
-                alert('Please select a customer and add items to the cart.');
-                return;
-            }
-
-            confirmSaleBtn.disabled = true;
-            confirmSaleBtn.textContent = 'Processing...';
-
-            // Prepare the data to send (items mapping is done above)
-            const data = {
-                _token: document.querySelector('input[name="_token"]').value,
-                customer_id: selectedCustomerId,
-                cart_items: cartItems.map(item => ({
-                    category: item.category,
-                    weight: item.weight,
-                    rate: item.rate,
-                })),
-                total_payable: parseFloat(finalTotalPayableInput.value),
-            };
-
-            try {
-                const response = await fetch(saleForm.action, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: JSON.stringify(data),
+            if (rateUpdateFlag === 'true') { 
+                fetchLatestRates().then(success => {
+                    if (success) {
+                        localStorage.removeItem('rates_updated');
+                    }
                 });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    alert('Sale successful! Transaction ID: ' + result.sale_id);
-                    document.getElementById('cancel-sale-btn').click(); 
-                } else {
-                    alert('Sale failed: ' + (result.message || 'Server Error'));
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('An unexpected error occurred during the sale.');
-            } finally {
-                confirmSaleBtn.disabled = false;
-                confirmSaleBtn.textContent = 'Confirm Sale (Credit)';
             }
         });
-        
-        // 7. Initial State Setup
-        
+
+
+        // 6. Final State Setup (Default Selections)
         const initialSetup = () => {
-             // 1. Set default channel visual state (wholesale checkbox already checked via HTML/Controller default)
-             
-             // 2. Select first customer
+            // 1. Select first customer
             if (customerItems.length > 0) {
                 customerItems[0].click(); 
             }
 
-            // 3. Select first category (Wholesale) to load rates and enable buttons
+            // 2. Select first category (This simulates the click, which calls updateRateInput)
             if (categoryTabs.length > 0) {
-                 categoryTabs[0].click(); 
+                // Set state variables directly for guaranteed initial load
+                const defaultTab = categoryTabs[0];
+                selectedCategory = defaultTab.dataset.category;
+                selectedRateField = defaultTab.dataset.rateField;
+
+                // Visually activate the first tab
+                defaultTab.classList.remove('bg-gray-100', 'hover:bg-gray-200');
+                defaultTab.classList.add('bg-yellow-300');
             }
+            
+            // 🟢 FIX: Ensure updateRateInput is called explicitly now that state is set
+            updateRateInput(); 
         }
         
         // Run initial setup immediately after DOM is ready
         initialSetup();
         
-        // 8. Final state cleanup
-        calculateLineTotal();
+        // 7. Final state cleanup
         updateCartDisplay();
+        
+        // 8. Handle removal of cart item
+        cartContainer.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-item-btn')) {
+                const index = e.target.closest('.remove-item-btn').dataset.index;
+                cartItems.splice(index, 1);
+                updateCartDisplay();
+            }
+        });
+
+        // 9. Handle Cancel button
+        document.getElementById('cancel-sale-btn').addEventListener('click', function() {
+            cartItems = [];
+            updateCartDisplay();
+            window.location.reload(); 
+        });
 
     });
 </script>

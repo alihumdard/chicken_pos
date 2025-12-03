@@ -6,102 +6,181 @@ use App\Models\Purchase;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Exception;
 
 class RateController extends Controller
 {
+    // Define margins centrally for clean calculation
+    private const RATE_MARGINS = [
+        'wholesale_rate'                => 10.00, // Margin is set to 20.00
+        'live_chicken_rate'             => 20.00,
+        'wholesale_hotel_mix_rate'      => 25.00,
+        'wholesale_hotel_chest_rate'    => 125.00,
+        'wholesale_hotel_thigh_rate'    => 75.00,
+        'wholesale_customer_piece_rate' => 0.00, // No Margin
+        'retail_mix_rate'               => 50.00,
+        'retail_chest_rate'             => 150.00,
+        'retail_thigh_rate'             => 100.00,
+        'retail_piece_rate'             => -10.00, // Loss/Negative Margin
+    ];
+    
     /**
      * Display the daily rates overview, checking for a specific date or the active rate.
      */
     public function index(Request $request)
     {
-        // Get the requested date, default to today
-        $targetDate = $request->input('target_date', now()->toDateString());
-
-        // 1. Fetch all suppliers for the dropdown
-        $suppliers = Supplier::orderBy('name')->get(['id', 'name']);
-
-        // Default rates structure (Initialized)
-        $defaultData = [
-            'base_effective_cost'           => 0.00,
-            'manual_base_cost'              => 0.00, // 🟢 ADDED
-            'net_stock_available'           => 0.00,
-            'wholesale_rate'                => 0.00,
-            'permanent_rate'                => 0.00,
-            'retail_mix_rate'               => 0.00,
-            'retail_chest_rate'             => 0.00,
-            'retail_thigh_rate'             => 0.00,
-            'retail_piece_rate'             => 0.00,
-
-            // New fields for rates.index, initialized to 0.00
-            'live_chicken_rate'             => 0.00,
-            'wholesale_hotel_mix_rate'      => 0.00,
-            'wholesale_hotel_chest_rate'    => 0.00,
-            'wholesale_hotel_thigh_rate'    => 0.00,
-            'wholesale_customer_piece_rate' => 0.00,
-
-            'is_historical'                 => false,
-        ];
-
-        // 2. Try to fetch an existing rate for the target date
-        $activeRate = DailyRate::whereDate('created_at', $targetDate)
-            ->latest()
-            ->first();
-
-        if ($activeRate) {
-            // Found a SAVED rate for the specific day (historical or today's activated rate)
+        try {
+            // ... (rest of the index logic remains the same)
+            $targetDate = $request->input('target_date', now()->toDateString());
+            $suppliers = Supplier::orderBy('name')->get(['id', 'name']);
             $defaultData = [
-                'base_effective_cost'           => $activeRate->base_effective_cost,
-                'manual_base_cost'              => $activeRate->manual_base_cost ?? 0.00, // 🟢 READ SAVED MANUAL COST
-                'wholesale_rate'                => $activeRate->wholesale_rate,
-                'permanent_rate'                => $activeRate->permanent_rate,
-                'retail_mix_rate'               => $activeRate->retail_mix_rate,
-                'retail_chest_rate'             => $activeRate->retail_chest_rate,
-                'retail_thigh_rate'             => $activeRate->retail_thigh_rate,
-                'retail_piece_rate'             => $activeRate->retail_piece_rate,
-                
-                'live_chicken_rate'             => $activeRate->live_chicken_rate ?? 0.00,
-                'wholesale_hotel_mix_rate'      => $activeRate->wholesale_hotel_mix_rate ?? 0.00,
-                'wholesale_hotel_chest_rate'    => $activeRate->wholesale_hotel_chest_rate ?? 0.00,
-                'wholesale_hotel_thigh_rate'    => $activeRate->wholesale_hotel_thigh_rate ?? 0.00,
-                'wholesale_customer_piece_rate' => $activeRate->wholesale_customer_piece_rate ?? 0.00,
-
-                'is_historical'                 => true, // Marks this as a saved, uneditable view
+                'base_effective_cost'           => 0.00,
+                'manual_base_cost'              => 0.00, 
+                'net_stock_available'           => 0.00,
+                'wholesale_rate'                => 0.00,
+                'permanent_rate'                => 0.00, 
+                'retail_mix_rate'               => 0.00,
+                'retail_chest_rate'             => 0.00,
+                'retail_thigh_rate'             => 0.00,
+                'retail_piece_rate'             => 0.00,
+                'live_chicken_rate'             => 0.00,
+                'wholesale_hotel_mix_rate'      => 0.00,
+                'wholesale_hotel_chest_rate'    => 0.00,
+                'wholesale_hotel_thigh_rate'    => 0.00,
+                'wholesale_customer_piece_rate' => 0.00,
+                'is_historical'                 => false,
             ];
-            
-            // Calculate current stock sum for display purposes
-            $stockData = $this->calculateCombinedStock();
-            $defaultData['net_stock_available'] = $stockData['net_stock'] ?? 0.00;
 
-        } elseif (now()->toDateString() == $targetDate) {
-            // 3. Live calculation: No rate saved for today. Use average cost and summed stock
-            
-            $combinedData = $this->calculateCombinedRatesAndStock();
-            $baseCost     = $combinedData['average_effective_cost'];
-            
-            $defaultData['base_effective_cost'] = $baseCost;
-            // The manual_base_cost stays 0.00 in $defaultData if this block runs
-            $defaultData['net_stock_available'] = $combinedData['sum_net_stock'];
 
-            // --- DYNAMIC DEFAULT RATE CALCULATION (Base Cost + Margin) ---
-            $defaultData['wholesale_rate']          = $baseCost + 10.00;      
-            $defaultData['live_chicken_rate']       = $baseCost + 20.00;      
-            $defaultData['wholesale_hotel_mix_rate']      = $baseCost + 25.00;    
-            $defaultData['wholesale_hotel_chest_rate']    = $baseCost + 125.00;   
-            $defaultData['wholesale_hotel_thigh_rate']    = $baseCost + 75.00;    
-            $defaultData['wholesale_customer_piece_rate'] = $baseCost;          
-            $defaultData['retail_mix_rate']         = $baseCost + 50.00;      
-            $defaultData['retail_chest_rate']       = $baseCost + 150.00;     
-            $defaultData['retail_thigh_rate']       = $baseCost + 100.00;     
-            $defaultData['retail_piece_rate']       = $baseCost - 10.00;      
+            $activeRate = DailyRate::whereDate('created_at', $targetDate)
+                ->latest()
+                ->first();
 
+            if ($activeRate) {
+                $savedManualCost = (float)($activeRate->manual_base_cost ?? 0.00);
+                $baseForCalculation = $savedManualCost > 0 ? $savedManualCost : (float)$activeRate->base_effective_cost;
+
+                $defaultData['base_effective_cost'] = (float)$activeRate->base_effective_cost;
+                $defaultData['manual_base_cost'] = $savedManualCost; 
+                
+                // Recalculate all individual rates based on the saved base cost.
+                $defaultData['wholesale_rate']                = $baseForCalculation + self::RATE_MARGINS['wholesale_rate'];
+                $defaultData['live_chicken_rate']             = $baseForCalculation + self::RATE_MARGINS['live_chicken_rate'];
+                $defaultData['wholesale_hotel_mix_rate']      = $baseForCalculation + self::RATE_MARGINS['wholesale_hotel_mix_rate'];
+                $defaultData['wholesale_hotel_chest_rate']    = $baseForCalculation + self::RATE_MARGINS['wholesale_hotel_chest_rate'];
+                $defaultData['wholesale_hotel_thigh_rate']    = $baseForCalculation + self::RATE_MARGINS['wholesale_hotel_thigh_rate'];
+                $defaultData['wholesale_customer_piece_rate'] = $baseForCalculation + self::RATE_MARGINS['wholesale_customer_piece_rate'];
+                $defaultData['retail_mix_rate']               = $baseForCalculation + self::RATE_MARGINS['retail_mix_rate'];
+                $defaultData['retail_chest_rate']             = $baseForCalculation + self::RATE_MARGINS['retail_chest_rate'];
+                $defaultData['retail_thigh_rate']             = $baseForCalculation + self::RATE_MARGINS['retail_thigh_rate'];
+                $defaultData['retail_piece_rate']             = $baseForCalculation + self::RATE_MARGINS['retail_piece_rate'];
+                $defaultData['permanent_rate'] = $activeRate->permanent_rate ?? 0.00;
+
+                $defaultData['is_historical'] = now()->toDateString() != $targetDate;
+                
+                $stockData = $this->calculateCombinedStock();
+                $defaultData['net_stock_available'] = $stockData['net_stock'] ?? 0.00;
+
+            } elseif (now()->toDateString() == $targetDate) {
+                
+                $combinedData = $this->calculateCombinedRatesAndStock();
+                $baseCost     = $combinedData['average_effective_cost'];
+                
+                $defaultData['base_effective_cost'] = $baseCost;
+                $defaultData['net_stock_available'] = $combinedData['sum_net_stock'];
+
+                // DYNAMIC DEFAULT RATE CALCULATION (Base Cost + Margin)
+                $defaultData['wholesale_rate']          = $baseCost + self::RATE_MARGINS['wholesale_rate'];
+                $defaultData['live_chicken_rate']       = $baseCost + self::RATE_MARGINS['live_chicken_rate'];
+                $defaultData['wholesale_hotel_mix_rate']      = $baseCost + self::RATE_MARGINS['wholesale_hotel_mix_rate'];
+                $defaultData['wholesale_hotel_chest_rate']    = $baseCost + self::RATE_MARGINS['wholesale_hotel_chest_rate'];
+                $defaultData['wholesale_hotel_thigh_rate']    = $baseCost + self::RATE_MARGINS['wholesale_hotel_thigh_rate'];
+                $defaultData['wholesale_customer_piece_rate'] = $baseCost + self::RATE_MARGINS['wholesale_customer_piece_rate'];
+                $defaultData['retail_mix_rate']         = $baseCost + self::RATE_MARGINS['retail_mix_rate'];
+                $defaultData['retail_chest_rate']       = $baseCost + self::RATE_MARGINS['retail_chest_rate'];
+                $defaultData['retail_thigh_rate']       = $baseCost + self::RATE_MARGINS['retail_thigh_rate'];
+                $defaultData['retail_piece_rate']       = $baseCost + self::RATE_MARGINS['retail_piece_rate'];      
+
+            }
+
+            return view('pages.rates.index', compact('suppliers', 'defaultData', 'targetDate'));
+            
+        } catch (Exception $e) {
+            return redirect()->route('admin.dashboard')->with('error', 'Error loading daily rates data. Please check the database configuration: ' . $e->getMessage());
         }
-
-        return view('pages.rates.index', compact('suppliers', 'defaultData', 'targetDate'));
     }
 
     /**
-     * Helper method to calculate the AVERAGE effective cost and SUMMED net stock across all suppliers.
+     * Store a new set of Daily Rates and activate them.
      */
+    public function store(Request $request)
+    {
+        // 1. Validation 
+        $data = $request->validate([
+            'supplier_id'                   => ['nullable', 'exists:suppliers,id'],
+            'base_effective_cost'           => ['required', 'numeric', 'min:0'],
+            'manual_base_cost'              => ['nullable', 'numeric', 'min:0'], 
+            'wholesale_rate'                => ['required', 'numeric', 'min:0'],
+            'permanent_rate'                => ['required', 'numeric', 'min:0'], 
+            'live_chicken_rate'             => ['required', 'numeric', 'min:0'], 
+            'wholesale_hotel_mix_rate'      => ['required', 'numeric', 'min:0'], 
+            'wholesale_hotel_chest_rate'    => ['required', 'numeric', 'min:0'], 
+            'wholesale_hotel_thigh_rate'    => ['required', 'numeric', 'min:0'], 
+            'wholesale_customer_piece_rate' => ['required', 'numeric', 'min:0'], 
+            'retail_mix_rate'               => ['required', 'numeric', 'min:0'],
+            'retail_chest_rate'             => ['required', 'numeric', 'min:0'],
+            'retail_thigh_rate'             => ['required', 'numeric', 'min:0'],
+            'retail_piece_rate'             => ['required', 'numeric', 'min:0'],
+        ]);
+        
+        if (empty($data['supplier_id'])) {
+             $data['supplier_id'] = Supplier::first()->id ?? 1;
+        }
+        
+        $data['manual_base_cost'] = $data['manual_base_cost'] ?? 0.00;
+
+        try {
+            // 2. Deactivate previous rates saved TODAY only.
+            DailyRate::whereDate('created_at', now()->toDateString())->update(['is_active' => false]);
+
+            // 3. Create the new DailyRate record
+            DailyRate::create(array_merge($data, ['is_active' => true]));
+            
+            // 🟢 Handle AJAX request (from the Override button)
+            if ($request->ajax() || $request->wantsJson()) {
+                
+                // Determine the base cost for recalculating all rates for the display
+                $baseCost = (float)($data['manual_base_cost'] ?? $data['base_effective_cost']);
+
+                $updatedRates = [];
+                // Recalculate and format all rates based on the saved cost for the frontend update
+                foreach (self::RATE_MARGINS as $key => $margin) {
+                    $updatedRates[$key] = number_format($baseCost + $margin, 2, '.', '');
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Rates overridden and saved successfully (via AJAX).',
+                    'base_effective_cost' => number_format($baseCost, 2, '.', ''),
+                    'rates' => $updatedRates,
+                ]);
+            }
+
+            // 4. Default action (from Activate Today's Rates button)
+            return redirect()->route('admin.rates.index', ['target_date' => now()->toDateString()])->with('success', 'New daily rates activated and saved successfully!');
+
+        } catch (Exception $e) {
+            // 🛑 FIX: Returning the detailed exception message for debugging
+            $errorMessage = 'Database error: ' . $e->getMessage();
+            
+            if ($request->ajax() || $request->wantsJson()) {
+                 return response()->json(['success' => false, 'message' => $errorMessage], 500);
+            }
+            return back()->withInput()->with('error', $errorMessage);
+        }
+    }
+    
+    // ... (Helper methods remain unchanged)
     private function calculateCombinedRatesAndStock(): array
     {
         $suppliers = Supplier::pluck('id');
@@ -129,9 +208,6 @@ class RateController extends Controller
         ];
     }
     
-    /**
-     * Helper method to calculate the summed net stock across all suppliers.
-     */
     private function calculateCombinedStock(): array
     {
          $totalLiveWeight = Purchase::sum('net_live_weight');
@@ -142,54 +218,11 @@ class RateController extends Controller
          ];
     }
     
-    /**
-     * Handle AJAX request to get cost and stock data for a selected supplier.
-     */
     public function getSupplierData(Request $request)
     {
         return response()->json([
             'base_effective_cost' => 0.00,
             'net_stock_available' => 0.00,
         ]);
-    }
-
-    /**
-     * Store a new set of Daily Rates and activate them.
-     */
-    public function store(Request $request)
-    {
-        // 1. Validation 
-        $data = $request->validate([
-            'supplier_id'                   => ['nullable', 'exists:suppliers,id'],
-            'base_effective_cost'           => ['required', 'numeric', 'min:0'],
-            'manual_base_cost'              => ['nullable', 'numeric', 'min:0'], // 🟢 VALIDATE NEW FIELD
-            'wholesale_rate'                => ['required', 'numeric', 'min:0'],
-            'permanent_rate'                => ['required', 'numeric', 'min:0'], 
-            'live_chicken_rate'             => ['required', 'numeric', 'min:0'], 
-            'wholesale_hotel_mix_rate'      => ['required', 'numeric', 'min:0'], 
-            'wholesale_hotel_chest_rate'    => ['required', 'numeric', 'min:0'], 
-            'wholesale_hotel_thigh_rate'    => ['required', 'numeric', 'min:0'], 
-            'wholesale_customer_piece_rate' => ['required', 'numeric', 'min:0'], 
-            'retail_mix_rate'               => ['required', 'numeric', 'min:0'],
-            'retail_chest_rate'             => ['required', 'numeric', 'min:0'],
-            'retail_thigh_rate'             => ['required', 'numeric', 'min:0'],
-            'retail_piece_rate'             => ['required', 'numeric', 'min:0'],
-        ]);
-        
-        if (empty($data['supplier_id'])) {
-             $data['supplier_id'] = Supplier::first()->id ?? 1;
-        }
-        
-        // Ensure manual_base_cost is set to 0 if null/missing (based on nullable validation)
-        $data['manual_base_cost'] = $data['manual_base_cost'] ?? 0.00;
-
-        // 2. Deactivate previous rates saved TODAY only.
-        DailyRate::whereDate('created_at', now()->toDateString())->update(['is_active' => false]);
-
-        // 3. Create the new DailyRate record
-        DailyRate::create(array_merge($data, ['is_active' => true]));
-
-        // 4. Redirect with success and a date parameter to show the newly saved rate for today
-        return redirect()->route('admin.rates.index', ['target_date' => now()->toDateString()])->with('success', 'New daily rates activated successfully!');
     }
 }
