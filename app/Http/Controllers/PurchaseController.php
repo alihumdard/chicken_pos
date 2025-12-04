@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\Supplier; 
 use App\Models\Purchase; 
@@ -13,17 +14,19 @@ class PurchaseController extends Controller
      * Display the form for creating a new purchase entry (acting as the index view) 
      * and list previous purchases.
      */
-    public function index()
+  public function index()
     {
-            $suppliers = Supplier::orderBy('name')
+        $suppliers = Supplier::orderBy('name')
                                   ->get(['id', 'name']);
 
-        // 2. FETCH PURCHASES (For the table display)
+        // 🟢 FIX START: Filter purchases to ONLY show records from the current date
+        $currentDate = Carbon::now()->toDateString();
+        
         try {
             // Attempt to fetch real purchases and eager load supplier names
             $purchases = Purchase::with('supplier:id,name')
+                                 ->whereDate('created_at', $currentDate) // 🟢 FILTER BY CURRENT DATE
                                  ->latest()
-                                 ->limit(10)
                                  ->get()
                                  // Map data to match the expected format used in the Blade view
                                  ->map(function ($purchase) {
@@ -44,7 +47,7 @@ class PurchaseController extends Controller
              $purchases = collect([
                 (object)[
                     'id' => 1, 
-                    'created_at' => now()->subDay(),
+                    'created_at' => now(), // Mock date is today
                     'supplier_name' => 'Ali Poultry Farms (Mock)',
                     'driver_no' => 'LE-45',
                     'net_live_weight' => 1947.00,
@@ -52,18 +55,9 @@ class PurchaseController extends Controller
                     'total_payable' => 973500.00,
                     'effective_cost' => 600.00,
                 ],
-                (object)[
-                    'id' => 2, 
-                    'created_at' => now()->subDays(2),
-                    'supplier_name' => 'Khan Logistics (Mock)',
-                    'driver_no' => 'BW-11',
-                    'net_live_weight' => 1500.00,
-                    'buying_rate' => 480.00,
-                    'total_payable' => 720000.00,
-                    'effective_cost' => 576.00,
-                ],
             ]);
         }
+        // 🟢 FIX END
         
         // Return the purchase creation form and the purchases list
         return view('pages.purchases.index', compact('suppliers', 'purchases'));
@@ -82,7 +76,7 @@ class PurchaseController extends Controller
      */
     public function store(Request $request)
     {
-        // ... (Store logic remains the same for AJAX submission)
+        // ... (Store logic remains the same)
         $validatedData = $request->validate([
             'supplier_id' => 'required|numeric|exists:suppliers,id',
             'driver_no' => 'nullable|string|max:50',
@@ -102,7 +96,7 @@ class PurchaseController extends Controller
 
             $purchaseData = [
                 'id' => $purchase->id,
-                'created_at' => $purchase->created_at->format('Y-m-d H:i:s'),
+                'created_at' => $purchase->created_at->diffForHumans(), // Use diffForHumans for display in live update
                 'supplier_name' => optional($purchase->supplier)->name ?? 'N/A',
                 'driver_no' => $purchase->driver_no,
                 'net_live_weight' => (float)$purchase->net_live_weight,
@@ -117,6 +111,7 @@ class PurchaseController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
+            // Mock or error logic
             $mockId = rand(1000, 9999);
             $supplierName = Supplier::find($request->supplier_id)?->name ?? "Mock ID {$request->supplier_id}";
 
@@ -124,7 +119,7 @@ class PurchaseController extends Controller
                 'message' => "Purchase saved successfully! (MOCK: ID $mockId)",
                 'purchase' => [
                     'id' => $mockId,
-                    'created_at' => now()->format('Y-m-d H:i:s'),
+                    'created_at' => 'just now',
                     'supplier_name' => $supplierName,
                     'driver_no' => $request->driver_no,
                     'net_live_weight' => (float)$request->net_live_weight,

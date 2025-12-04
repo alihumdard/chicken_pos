@@ -16,109 +16,42 @@ class ReportController extends Controller
     // Placeholder methods for existing routes
     public function index() { 
         // Implement logic to display a reports index page, or redirect to a main report
-        return redirect()->route('admin.reports.pnl'); 
+       return redirect()->route('admin.reports.stock'); 
     }
     
     /**
      * Handles the Profit & Loss report functionality,
      * aggregating data and using the ProfitLossSummary DTO.
      */
-    public function stock(Request $request) // <-- UPDATED: Now contains P&L logic
+public function stock(Request $request) 
     {
-        // Use \Carbon\Carbon everywhere to avoid namespace confusion
-        $startDate = $request->input('start_date', \Carbon\Carbon::now()->startOfMonth()->toDateString());
-        $endDate   = $request->input('end_date', \Carbon\Carbon::now()->toDateString());
+        $today = Carbon::today();
+        $gauge_max_range = 5000; // Fixed max capacity for visual scale
+
+        // 1. CUMULATIVE DATA (Net Stock, matching Dashboard logic)
+        $totalPurchasedWeight = Purchase::sum('net_live_weight'); // Total Purchases to date
+        $totalSoldWeightToDate = SaleItem::sum('weight_kg'); // Total Sales to date
         
-        $start = \Carbon\Carbon::parse($startDate)->startOfDay();
-        $end   = \Carbon\Carbon::parse($endDate)->endOfDay();
+        // 2. CURRENT NET STOCK (Current Stock on Dashboard)
+        $currentNetStock = max(0, $totalPurchasedWeight - $totalSoldWeightToDate);
+
+        // 3. TODAY'S SOLD WEIGHT (Sold Today on Dashboard)
+        $todaySoldWeight = SaleItem::whereDate('created_at', $today)->sum('weight_kg');
+
+        // 4. MORNING OPENING STOCK: Total Stock - Sales BEFORE today
+        $totalSoldBeforeToday = $totalSoldWeightToDate - $todaySoldWeight;
+        $morningOpeningStock = max(0, $totalPurchasedWeight - $totalSoldBeforeToday);
         
-        // Mock Expenses
-        $dailyExpenses = $this->generateMockExpenses($start, $end);
-        
-        // 2. Fetch Aggregated Sales (Revenue)
-        $salesData = Sale::select(
-                DB::raw('DATE(created_at) as date'),
-                DB::raw('SUM(total_amount) as total_sales')
-            )
-            ->whereBetween('created_at', [$start, $end])
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get()
-            ->keyBy('date');
+        $data = [
+            'today_date' => $today->format('d M, Y'),
+            'current_net_stock' => $currentNetStock,
+            'morning_opening' => $morningOpeningStock,
+            'sold_today_weight' => $todaySoldWeight,
+            'total_purchased_weight' => $totalPurchasedWeight, 
+            'gauge_max_range' => $gauge_max_range, 
+        ];
 
-        // 3. Fetch Aggregated Purchases (COGS - Calculated by Effective Cost)
-        $purchaseData = Purchase::select(
-                DB::raw('DATE(created_at) as date'),
-                DB::raw('SUM(total_payable) as total_cost'),
-                DB::raw('SUM(net_live_weight) as total_weight_in')
-            )
-            ->whereBetween('created_at', [$start, $end])
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get()
-            ->keyBy('date');
-            
-        // 4. Combine data day-by-day
-        $allDates = $salesData->keys()->merge($purchaseData->keys())->unique()->sort();
-
-        $dailyReport      = [];
-        $totalRevenue     = 0;
-        $totalCogs        = 0;
-        $totalExpenses    = 0;
-        $totalInputWeight = 0;
-        
-        foreach ($allDates as $date) {
-            $sales    = $salesData->get($date);
-            $purchases = $purchaseData->get($date);
-            $expenses = $dailyExpenses[$date] ?? 0;
-
-            $revenue  = $sales->total_sales ?? 0;
-            $cost     = $purchases->total_cost ?? 0;
-            $weightIn = $purchases->total_weight_in ?? 0;
-            
-            $cogsForDisplay = $cost; 
-            
-            $netProfit = $revenue - $cogsForDisplay - $expenses;
-            
-            $dailyReport[] = [
-                'date'       => $date,
-                'revenue'    => $revenue,
-                'cost'       => $cogsForDisplay,
-                'expenses'   => $expenses,
-                'net_profit' => $netProfit,
-            ];
-
-            $totalRevenue     += $revenue;
-            $totalCogs        += $cogsForDisplay;
-            $totalExpenses    += $expenses;
-            $totalInputWeight += $weightIn;
-        }
-
-        // 5. Instantiate DTO to aggregate final totals (Net Profit, Output Weight)
-        $pnlSummary = new ProfitLossSummary([
-            'totalRevenue'     => $totalRevenue,
-            'totalCogs'        => $totalCogs,
-            'totalExpenses'    => $totalExpenses,
-            'totalInputWeight' => $totalInputWeight,
-            'dailyReport'      => $dailyReport,
-        ]);
-        
-        // 5b. Prepare chart data using DTO's calculated output weight
-        $chartLabels     = ['Input vs Output'];
-        $chartInputData  = [$pnlSummary->totalInputWeight];
-        $chartOutputData = [$pnlSummary->totalOutputWeight]; // Calculated in DTO
-
-        // 6. Return to view, merging DTO's array output with other required variables
-        return view('pages.report.stock_report', array_merge( // DTO is converted to array to pass data
-            $pnlSummary->toArray(),
-            compact(
-                'startDate', 
-                'endDate', 
-                'chartLabels',
-                'chartInputData',
-                'chartOutputData'
-            )
-        ));
+        return view('pages.report.stock_report', $data);
     }
 
     // --- PURCHASE REPORT METHODS ---

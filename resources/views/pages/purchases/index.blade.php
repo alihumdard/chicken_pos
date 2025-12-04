@@ -49,7 +49,7 @@
     </style>
     <div class="flex-1 p-4 sm:p-6 lg:p-8 bg-gray-100">
 
-        {{-- Success/Error Message Display Area (Updated ID to statusMessage for JS targeting) --}}
+        {{-- Success/Error Message Display Area --}}
         <div id="statusMessage" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
             <span class="block sm:inline"></span>
         </div>
@@ -254,21 +254,47 @@
                             <input type="hidden" name="total_payable" id="total_payable" value="0">
                         </div>
 
+                        {{-- 🟢 DYNAMIC EFFECTIVE COST BLOCK (PHP logic added to fetch formula data safely) --}}
+                        @php
+                            // Ensure the RateFormula model is available in the controller that renders this view.
+                            $purchaseFormula = null;
+                            if (class_exists(\App\Models\RateFormula::class)) {
+                                $purchaseFormula = \App\Models\RateFormula::where('rate_key', 'purchase_effective_cost')->first();
+                            }
+                            
+                            // 🟢 Generate default or saved formula string
+                            $pFormula = $purchaseFormula ?? (object)['multiply' => 1.0, 'divide' => 1.0, 'plus' => 0.0, 'minus' => 0.0];
+                            $pFormulaText = "×{$pFormula->multiply} ÷{$pFormula->divide} +{$pFormula->plus} -{$pFormula->minus}";
+                        @endphp
                         <div
                             class="bg-[var(--blue-primary)] p-3 rounded-xl text-center shadow flex flex-col justify-center">
-                            <p class="text-blue-100 text-xs">Effective Cost (x 1.2)</p>
+                            
+                            {{-- Display the dynamic formula status text --}}
+                            <p class="text-blue-100 text-xs">Effective Cost (Dynamic)</p>
+                            
                             <h1 class="text-2xl font-bold text-white leading-none mt-1">
                                 <span id="effective_cost_display">0</span><span class="text-sm">/kg</span>
                             </h1>
-                            <p class="text-xs text-blue-100 mt-1">Base rate for sales</p>
+                            
+                            <p class="text-xs text-blue-100 mt-1" id="effective_cost_formula_display">
+                                Formula: {{ $pFormulaText }}
+                            </p>
+
                             <input type="hidden" name="effective_cost" id="effective_cost" value="0">
+                            
+                            {{-- 🟢 PASS FORMULA DATA TO JS (CRITICAL FIX) --}}
+                            <input type="hidden" id="purchase_formula_data" 
+                                value="{{ htmlspecialchars(json_encode([
+                                    'multiply' => $pFormula->multiply, 
+                                    'divide' => $pFormula->divide, 
+                                    'plus' => $pFormula->plus, 
+                                    'minus' => $pFormula->minus
+                                ])) }}">
                         </div>
 
                     </div>
                 </div>
             
-              
-                {{-- 🟢 END NEW: BASE COST OVERRIDE INPUT --}}
 
                 <div class="h-[70px] flex items-center justify-end px-6 border-t border-[var(--border-light)]">
                     <button type="submit" id="savePurchaseBtn"
@@ -279,9 +305,9 @@
 
 
                 
-                {{-- 🟢 PURCHASE HISTORY TABLE --}}
+                {{-- 🟢 PURCHASE HISTORY TABLE (Unchanged) --}}
                 <div class="bg-[var(--card-bg)] p-4 rounded-xl shadow-sm border border-[var(--border-light)] flex flex-col mt-4">
-                    <h3 class="font-bold text-[var(--text-dark)] text-xl mb-3">5. Recent Purchase History</h3>
+                    <h3 class="font-bold text-[var(--text-dark)] text-xl mb-3">4. Recent Purchase History (Today)</h3>
                     
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
@@ -339,330 +365,359 @@
                         </table>
                     </div>
                 </div>
-                {{-- 🟢 END NEW SECTION --}}
             </div>
         </form>
 
 
-
     </div>
 
-    <script>
-        // Global delete URL template (used in deletePurchase function)
-        const DELETE_URL_BASE = "{{ route('admin.purchases.store') }}".replace('/store', ''); 
+   <script>
+    // Global delete URL template (used in deletePurchase function)
+    const DELETE_URL_BASE = "{{ route('admin.purchases.store') }}".replace('/store', ''); 
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const form = document.getElementById('purchaseForm');
-            const saveBtn = document.getElementById('savePurchaseBtn');
-            const statusMessage = document.getElementById('statusMessage');
-            const purchaseTableBody = document.getElementById('purchase-table-body');
-            const applyOverrideBtn = document.getElementById('applyOverrideBtn'); // 🟢 NEW
+    document.addEventListener('DOMContentLoaded', function () {
+        
+        // Safety check for core elements
+        if (!document.getElementById('gross_weight') || !document.getElementById('net_live_weight')) {
+            console.error("Critical: Purchase view inputs are missing. Calculation cannot proceed.");
+            return;
+        }
+
+        const form = document.getElementById('purchaseForm');
+        const saveBtn = document.getElementById('savePurchaseBtn');
+        const statusMessage = document.getElementById('statusMessage');
+        const purchaseTableBody = document.getElementById('purchase-table-body');
+        
+        // --- Input/Output Mappings ---
+        const inputs = {
+            gross_weight: document.getElementById('gross_weight'),
+            dead_weight: document.getElementById('dead_weight'),
+            dead_qty: document.getElementById('dead_qty'),
+            shrink_loss: document.getElementById('shrink_loss'),
+            buying_rate: document.getElementById('buying_rate'),
+            supplier_id: document.getElementById('supplier_id'),
+            driver_no: document.getElementById('driver_no'),
+        };
+
+        const outputs = {
+            net_live_weight: document.getElementById('net_live_weight'),
+            total_payable: document.getElementById('total_payable'),
+            total_payable_display: document.getElementById('total_payable_display'),
+            effective_cost: document.getElementById('effective_cost'),
+            effective_cost_display: document.getElementById('effective_cost_display'),
+        };
+
+        const EFFECTIVE_COST_FACTOR = 1.2;
+        const csrfToken = document.querySelector('input[name="_token"]').value;
+        
+        // 🟢 1. CRITICAL FIX: Initialize purchaseFormula based on settings data or fallback
+        let purchaseFormula = null;
+        const formulaDataElement = document.getElementById('purchase_formula_data');
+        const defaultBusinessRule = { multiply: EFFECTIVE_COST_FACTOR, divide: 1.0, plus: 0.0, minus: 0.0 };
+        const genericDefault = { multiply: 1.0, divide: 1.0, plus: 0.0, minus: 0.0 };
+
+        if (formulaDataElement && formulaDataElement.value) {
+            try {
+                purchaseFormula = JSON.parse(formulaDataElement.value);
+            } catch (e) {
+                console.error("Error parsing purchase formula JSON:", e);
+                // Fallback 1: Parsing failed -> Use the business rule (x 1.2)
+                purchaseFormula = defaultBusinessRule; 
+            }
+        }
+        
+        // 🟢 2. Check if the retrieved formula is the non-modifying default (1.0, 1.0, 0.0, 0.0)
+        // This ensures that when the user hasn't touched the formula, we enforce the x 1.2 rule.
+        if (purchaseFormula && 
+            purchaseFormula.multiply == 1.0 && 
+            purchaseFormula.divide == 1.0 && 
+            purchaseFormula.plus == 0.0 && 
+            purchaseFormula.minus == 0.0) 
+        {
+            purchaseFormula = defaultBusinessRule; // Use the business rule (x 1.2)
+        } else if (purchaseFormula === null) {
+            purchaseFormula = defaultBusinessRule; // Use the business rule if no data element existed
+        }
+
+
+        function parseInput(element) {
+            return parseFloat(element ? element.value || 0 : 0) || 0;
+        }
+
+        function formatCurrency(number) {
+            return new Intl.NumberFormat('en-US', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(Math.round(number));
+        }
+
+        function timeAgo() {
+            return 'just now'; 
+        }
+        
+        // HELPER FUNCTION to apply the formula
+        function applyFormulaJS(baseRate, formula) {
+            if (!formula) return baseRate;
             
-            // Utility functions/objects defined earlier
-            const inputs = {
-                gross_weight: document.getElementById('gross_weight'),
-                dead_weight: document.getElementById('dead_weight'),
-                dead_qty: document.getElementById('dead_qty'),
-                shrink_loss: document.getElementById('shrink_loss'),
-                buying_rate: document.getElementById('buying_rate'),
-                supplier_id: document.getElementById('supplier_id'),
-                driver_no: document.getElementById('driver_no'),
-                // 🟢 NEW INPUT
-                override_effective_cost: document.getElementById('override_effective_cost'), 
-            };
-
-            const outputs = {
-                net_live_weight: document.getElementById('net_live_weight'),
-                total_payable: document.getElementById('total_payable'),
-                total_payable_display: document.getElementById('total_payable_display'),
-                effective_cost: document.getElementById('effective_cost'),
-                effective_cost_display: document.getElementById('effective_cost_display'),
-            };
-
-            const EFFECTIVE_COST_FACTOR = 1.2;
-            const csrfToken = document.querySelector('input[name="_token"]').value;
-
-            function parseInput(element) {
-                return parseFloat(element ? element.value || 0 : 0) || 0;
-            }
-
-            function formatCurrency(number) {
-                return new Intl.NumberFormat('en-US', {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0
-                }).format(Math.round(number));
-            }
-
-            function timeAgo() {
-                return 'just now'; 
-            }
+            const multiply = parseFloat(formula.multiply) || 1.0;
+            const divide   = parseFloat(formula.divide) || 1.0;
+            const plus     = parseFloat(formula.plus) || 0.0;
+            const minus    = parseFloat(formula.minus) || 0.0;
             
-            // --- CORE CALCULATIONS (UPDATED for override) ---
-            function calculateTotals() {
-                const grossWeight = parseInput(inputs.gross_weight);
-                const deadWeight = parseInput(inputs.dead_weight);
-                const shrinkLoss = parseInput(inputs.shrink_loss);
-                const buyingRate = parseInput(inputs.buying_rate);
-                
-                // 🟢 Check for manual override value
-                let manualOverride = parseInput(inputs.override_effective_cost);
-                let useManualCost = manualOverride > 0;
-
-                let netLiveWeight = grossWeight - deadWeight - shrinkLoss;
-                if (netLiveWeight < 0) netLiveWeight = 0; 
-
-                const totalPayable = netLiveWeight * buyingRate;
-
-                let calculatedEffectiveCost = 0;
-                if (netLiveWeight > 0) {
-                    calculatedEffectiveCost = (totalPayable / netLiveWeight) * EFFECTIVE_COST_FACTOR;
-                }
-                
-                // Determine the final cost to use
-                let finalEffectiveCost = useManualCost ? manualOverride : calculatedEffectiveCost;
-
-
-                outputs.net_live_weight.value = netLiveWeight.toFixed(2);
-                outputs.total_payable.value = totalPayable.toFixed(2);
-                outputs.total_payable_display.value = `Rs ${formatCurrency(totalPayable)}`;
-                outputs.effective_cost.value = finalEffectiveCost.toFixed(2);
-                outputs.effective_cost_display.textContent = finalEffectiveCost.toFixed(0);
-                
-                // Highlight if override is active
-                const costBox = outputs.effective_cost_display.closest('div');
-                if(useManualCost) {
-                    // Update color using CSS variables if available, otherwise fallback
-                    outputs.effective_cost_display.closest('div').style.backgroundColor = 'var(--yellow-dark)'; 
-                    outputs.effective_cost_display.closest('div').style.color = 'black'; 
-                } else {
-                    outputs.effective_cost_display.closest('div').style.backgroundColor = 'var(--blue-primary)'; 
-                    outputs.effective_cost_display.closest('div').style.color = 'white'; 
-                }
+            let finalRate = baseRate;
+            
+            finalRate *= multiply;
+            
+            if (divide !== 0 && divide !== 1) {
+                finalRate /= divide;
             }
 
-            // --- RENDER TABLE ROW (Unchanged) ---
-            function renderPurchaseRow(purchase) {
-                const supplierName = purchase.supplier_name;
-                
-                const netWgt = parseFloat(purchase.net_live_weight).toFixed(2);
-                const buyingRate = parseFloat(purchase.buying_rate).toFixed(2);
-                const totalPayable = formatCurrency(purchase.total_payable);
-                const effectiveCost = formatCurrency(purchase.effective_cost);
-                
-                const timeDisplay = purchase.created_at || timeAgo();
+            finalRate += plus;
+            finalRate -= minus;
+            
+            return Math.max(0.00, finalRate);
+        }
+        
+        // --- CORE CALCULATION FUNCTION ---
+        function calculateTotals() {
+            const grossWeight = parseInput(inputs.gross_weight);
+            const deadWeight = parseInput(inputs.dead_weight);
+            const shrinkLoss = parseInput(inputs.shrink_loss);
+            const buyingRate = parseInput(inputs.buying_rate);
 
-                const newRow = document.createElement('tr');
-                newRow.id = `purchase-row-${purchase.id}`; // Set ID for removal
-                newRow.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#${purchase.id}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        <div class="font-semibold">${supplierName}</div>
-                        <div class="text-xs text-gray-500">Driver: ${purchase.driver_no || 'N/A'}</div>
-                        <div class="text-xs text-gray-400 mt-0.5">${timeDisplay}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-[var(--green-primary)]">${netWgt}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-700">${buyingRate}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-extrabold text-[var(--text-dark)]">${totalPayable}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-[var(--blue-primary)] font-bold">${effectiveCost}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button type="button" 
-                                onclick="deletePurchase(${purchase.id})"
-                                class="text-[var(--red-primary)] hover:text-red-700 transition-colors">
-                            <i class="fa-solid fa-trash-alt"></i>
-                        </button>
-                    </td>
-                `;
+            // 1. Net Live Weight Calculation (Original Logic)
+            let netLiveWeight = grossWeight - deadWeight - shrinkLoss;
+            if (netLiveWeight < 0) netLiveWeight = 0; 
 
-                const placeholderRow = document.getElementById('no-purchases-row');
-                if (placeholderRow) {
-                    placeholderRow.remove();
-                }
+            // 2. Total Payable Calculation (Original Logic)
+            const totalPayable = netLiveWeight * buyingRate;
 
-                purchaseTableBody.prepend(newRow);
+            // 3. Base Cost for Formula Application (Cost / Wgt, WITHOUT static 1.2 factor)
+            let baseCostForFormula = 0;
+            if (netLiveWeight > 0) {
+                // Raw cost per kg
+                baseCostForFormula = (totalPayable / netLiveWeight);
             }
             
-            // --- NEW FUNCTION: DELETE PURCHASE ---
-            window.deletePurchase = async function(id) {
-                if (!confirm(`Are you sure you want to delete Purchase #${id}? This action cannot be undone.`)) {
-                    return;
-                }
+            // 4. Apply the Formula from Settings page (Formula rules handle multiplication/addition/etc.)
+            let finalEffectiveCost = applyFormulaJS(baseCostForFormula, purchaseFormula); 
 
-                const deleteUrl = `${DELETE_URL_BASE}/${id}`;
-                const rowId = `purchase-row-${id}`;
-                const rowElement = document.getElementById(rowId);
+            // --- Update Outputs ---
+            outputs.net_live_weight.value = netLiveWeight.toFixed(2);
+            outputs.total_payable.value = totalPayable.toFixed(2);
+            outputs.total_payable_display.value = `Rs ${formatCurrency(totalPayable)}`;
+            outputs.effective_cost.value = finalEffectiveCost.toFixed(2);
+            outputs.effective_cost_display.textContent = finalEffectiveCost.toFixed(0);
+            
+            // Set cost box style
+            outputs.effective_cost_display.closest('div').style.backgroundColor = 'var(--blue-primary)'; 
+            outputs.effective_cost_display.closest('div').style.color = 'white'; 
+        }
 
-                // Show a temporary deleting message if the row exists
-                if (rowElement) {
-                    rowElement.style.opacity = 0.5;
-                }
+        // --- RENDER TABLE ROW (Unchanged) ---
+        function renderPurchaseRow(purchase) {
+            const supplierName = purchase.supplier_name;
+            
+            const netWgt = parseFloat(purchase.net_live_weight).toFixed(2);
+            const buyingRate = parseFloat(purchase.buying_rate).toFixed(2);
+            const totalPayable = formatCurrency(purchase.total_payable);
+            const effectiveCost = formatCurrency(purchase.effective_cost);
+            
+            const timeDisplay = purchase.created_at || timeAgo();
 
-                try {
-                    // Laravel resource routes require POST + _method DELETE header for AJAX
-                    const response = await fetch(deleteUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': csrfToken,
-                            'X-HTTP-Method-Override': 'DELETE', 
-                        },
-                        body: JSON.stringify({ _method: 'DELETE' })
-                    });
+            const newRow = document.createElement('tr');
+            newRow.id = `purchase-row-${purchase.id}`; // Set ID for removal
+            newRow.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#${purchase.id}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                    <div class="font-semibold">${supplierName}</div>
+                    <div class="text-xs text-gray-500">Driver: ${purchase.driver_no || 'N/A'}</div>
+                    <div class="text-xs text-gray-400 mt-0.5">${timeDisplay}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-[var(--green-primary)]">${netWgt}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-700">${buyingRate}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-extrabold text-[var(--text-dark)]">${totalPayable}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-[var(--blue-primary)] font-bold">${effectiveCost}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button type="button" 
+                            onclick="deletePurchase(${purchase.id})"
+                            class="text-[var(--red-primary)] hover:text-red-700 transition-colors">
+                        <i class="fa-solid fa-trash-alt"></i>
+                    </button>
+                </td>
+            `;
 
-                    const responseData = await response.json();
+            const placeholderRow = document.getElementById('no-purchases-row');
+            if (placeholderRow) {
+                placeholderRow.remove();
+            }
 
-                    if (response.ok) {
-                        // SUCCESS: Remove row from DOM
-                        if (rowElement) {
-                            rowElement.remove();
-                        }
-                        
-                        // Check if table is empty after deletion
-                        if (purchaseTableBody.children.length === 0) {
-                            purchaseTableBody.innerHTML = `
-                                <tr id="no-purchases-row">
-                                    <td colspan="7" class="px-6 py-10 text-center text-gray-500 text-sm italic">
-                                        No recent purchases found. Save a new one using the form above.
-                                    </td>
-                                </tr>`;
-                        }
+            purchaseTableBody.prepend(newRow);
+        }
+        
+        // --- DELETE PURCHASE (Unchanged) ---
+        window.deletePurchase = async function(id) {
+            if (!confirm(`Are you sure you want to delete Purchase #${id}? This action cannot be undone.`)) {
+                return;
+            }
 
-                        // Display success message
-                        statusMessage.className = 'bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4';
-                        statusMessage.querySelector('span').textContent = responseData.message || `Purchase #${id} deleted successfully.`;
-                        statusMessage.classList.remove('hidden');
+            const deleteUrl = `${DELETE_URL_BASE}/${id}`;
+            const rowId = `purchase-row-${id}`;
+            const rowElement = document.getElementById(rowId);
 
-                    } else {
-                        // ERROR
-                        if (rowElement) {
-                            rowElement.style.opacity = 1.0; // Restore opacity on failure
-                        }
-                        statusMessage.className = 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4';
-                        statusMessage.querySelector('span').textContent = responseData.message || `Failed to delete purchase #${id}.`;
-                        statusMessage.classList.remove('hidden');
+            if (rowElement) {
+                rowElement.style.opacity = 0.5;
+            }
+
+            try {
+                const response = await fetch(deleteUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-HTTP-Method-Override': 'DELETE', 
+                    },
+                    body: JSON.stringify({ _method: 'DELETE' })
+                });
+
+                const responseData = await response.json();
+
+                if (response.ok) {
+                    if (rowElement) {
+                        rowElement.remove();
+                    }
+                    
+                    if (purchaseTableBody.children.length === 0) {
+                        purchaseTableBody.innerHTML = `
+                            <tr id="no-purchases-row">
+                                <td colspan="7" class="px-6 py-10 text-center text-gray-500 text-sm italic">
+                                    No recent purchases found. Save a new one using the form above.
+                                </td>
+                            </tr>`;
                     }
 
-                } catch (error) {
-                    // NETWORK ERROR
+                    statusMessage.className = 'bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4';
+                    statusMessage.querySelector('span').textContent = responseData.message || `Purchase #${id} deleted successfully.`;
+                    statusMessage.classList.remove('hidden');
+
+                } else {
                     if (rowElement) {
                         rowElement.style.opacity = 1.0; 
                     }
-                    console.error('Network Error during deletion:', error);
                     statusMessage.className = 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4';
-                    statusMessage.querySelector('span').textContent = 'Network error during deletion.';
+                    statusMessage.querySelector('span').textContent = responseData.message || `Failed to delete purchase #${id}.`;
                     statusMessage.classList.remove('hidden');
                 }
-            }
 
-
-            // --- AJAX FORM SUBMISSION (Updated for override) ---
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                // 1. Basic Validation Check
-                if (parseInput(outputs.net_live_weight) <= 0) {
-                     statusMessage.className = 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4';
-                     statusMessage.querySelector('span').textContent = 'Net Live Weight must be greater than zero. Please check Gross Weight and deductions.';
-                     statusMessage.classList.remove('hidden');
-                     return;
+            } catch (error) {
+                if (rowElement) {
+                    rowElement.style.opacity = 1.0; 
                 }
-                
-                // 🟢 Recalculate one final time to ensure the effective_cost hidden field is updated
-                calculateTotals(); 
-                
-                const formData = new FormData(form);
-                
-                // IMPORTANT: Remove the temporary override field from form data before sending to backend, 
-                // as the final value is already in the 'effective_cost' hidden field.
-                formData.delete('override_effective_cost'); 
+                console.error('Network Error during deletion:', error);
+                statusMessage.className = 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4';
+                statusMessage.querySelector('span').textContent = 'Network error during deletion.';
+                statusMessage.classList.remove('hidden');
+            }
+        }
 
-                saveBtn.disabled = true;
-                saveBtn.textContent = 'Saving...';
-                statusMessage.classList.add('hidden');
 
-                try {
-                    const response = await fetch(form.action, {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                        body: formData
-                    });
+        // --- AJAX FORM SUBMISSION (Unchanged) ---
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // 1. Basic Validation Check
+            if (parseInput(outputs.net_live_weight) <= 0) {
+                 statusMessage.className = 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4';
+                 statusMessage.querySelector('span').textContent = 'Net Live Weight must be greater than zero. Please check Gross Weight and deductions.';
+                 statusMessage.classList.remove('hidden');
+                 return;
+            }
+            
+            // 🟢 Recalculate one final time to ensure the effective_cost hidden field is updated
+            calculateTotals(); 
+            
+            const formData = new FormData(form);
+            
+            // IMPORTANT: Remove the temporary purchase_formula_data field from form data before sending
+            formData.delete('purchase_formula_data'); 
 
-                    const contentType = response.headers.get("content-type");
-                    if (contentType && contentType.indexOf("application/json") !== -1) {
-                         const responseData = await response.json();
-                         
-                        if (response.ok) {
-                            // SUCCESS
-                            renderPurchaseRow(responseData.purchase); 
-                            
-                            statusMessage.className = 'bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4';
-                            statusMessage.querySelector('span').textContent = responseData.message || 'Purchase saved successfully!';
-                            statusMessage.classList.remove('hidden');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+            statusMessage.classList.add('hidden');
 
-                            // Reset input fields
-                            inputs.gross_weight.value = 0;
-                            inputs.dead_weight.value = 0;
-                            inputs.dead_qty.value = 0;
-                            inputs.shrink_loss.value = 0;
-                            inputs.buying_rate.value = 0;
-                            inputs.driver_no.value = '';
-                            
-                            // 🟢 Reset override field
-                            inputs.override_effective_cost.value = '';
-                            
-                            calculateTotals(); // Recalculate and reset display
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: formData
+                });
 
-                        } else if (response.status === 422) {
-                            let errorMsg = 'Validation Failed: ';
-                            if (responseData.errors) {
-                                errorMsg += Object.values(responseData.errors).flat().join(' | ');
-                            }
-                            statusMessage.className = 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4';
-                            statusMessage.querySelector('span').textContent = errorMsg;
-                            statusMessage.classList.remove('hidden');
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                     const responseData = await response.json();
+                    
+                    if (response.ok) {
+                        // SUCCESS
+                        renderPurchaseRow(responseData.purchase); 
+                        
+                        statusMessage.className = 'bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4';
+                        statusMessage.querySelector('span').textContent = responseData.message || 'Purchase saved successfully!';
+                        statusMessage.classList.remove('hidden');
 
-                        } else {
-                            statusMessage.className = 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4';
-                            statusMessage.querySelector('span').textContent = responseData.message || 'An unexpected server error occurred.';
-                            statusMessage.classList.remove('hidden');
+                        // Reset input fields
+                        inputs.gross_weight.value = 0;
+                        inputs.dead_weight.value = 0;
+                        inputs.dead_qty.value = 0;
+                        inputs.shrink_loss.value = 0;
+                        inputs.buying_rate.value = 0;
+                        inputs.driver_no.value = '';
+                        
+                        calculateTotals(); // Recalculate and reset display
+
+                    } else if (response.status === 422) {
+                        let errorMsg = 'Validation Failed: ';
+                        if (responseData.errors) {
+                            errorMsg += Object.values(responseData.errors).flat().join(' | ');
                         }
+                        statusMessage.className = 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4';
+                        statusMessage.querySelector('span').textContent = errorMsg;
+                        statusMessage.classList.remove('hidden');
+
                     } else {
-                         statusMessage.className = 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4';
-                         statusMessage.querySelector('span').textContent = 'Fatal Server Error (Non-JSON Response). Check server logs.';
-                         statusMessage.classList.remove('hidden');
+                        statusMessage.className = 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4';
+                        statusMessage.querySelector('span').textContent = responseData.message || 'An unexpected server error occurred.';
+                        statusMessage.classList.remove('hidden');
                     }
-
-
-                }  finally {
-                    saveBtn.disabled = false;
-                    saveBtn.textContent = 'Save Purchase';
+                } else {
+                     statusMessage.className = 'bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4';
+                     statusMessage.querySelector('span').textContent = 'Fatal Server Error (Non-JSON Response). Check server logs.';
+                     statusMessage.classList.remove('hidden');
                 }
-            });
-            
-            // --- Event Listeners (Updated for override field) ---
-            const calculationInputs = [
-                inputs.gross_weight, inputs.dead_weight, inputs.shrink_loss, inputs.buying_rate, inputs.dead_qty
-            ];
 
-            calculationInputs.forEach(input => {
-                if (input) {
-                    input.addEventListener('input', calculateTotals);
-                    input.addEventListener('focus', () => input.classList.add('input-focus'));
-                    input.addEventListener('blur', () => input.classList.remove('input-focus'));
-                }
-            });
-            
-            // 🟢 New event listeners for the override field
-            if (inputs.override_effective_cost) {
-                // Clicking 'Apply' or changing the input triggers calculation immediately
-                applyOverrideBtn.addEventListener('click', calculateTotals);
-                inputs.override_effective_cost.addEventListener('input', calculateTotals);
-                inputs.override_effective_cost.addEventListener('focus', () => inputs.override_effective_cost.classList.add('input-focus'));
-                inputs.override_effective_cost.addEventListener('blur', () => inputs.override_effective_cost.classList.remove('input-focus'));
+
+            } 
+            finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save Purchase';
             }
-
-            calculateTotals();
         });
-    </script>
+        
+        // --- Event Listeners (Triggers calculateTotals) ---
+        const calculationInputs = [
+            inputs.gross_weight, inputs.dead_weight, inputs.shrink_loss, inputs.buying_rate, inputs.dead_qty
+        ];
+
+        calculationInputs.forEach(input => {
+            if (input) {
+                input.addEventListener('input', calculateTotals);
+                input.addEventListener('focus', () => input.classList.add('input-focus'));
+                input.addEventListener('blur', () => input.classList.remove('input-focus'));
+            }
+        });
+        
+        calculateTotals();
+    });
+</script>
 @endsection
