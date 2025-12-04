@@ -78,7 +78,8 @@ class SalesController extends Controller
                 $line_total = $item['weight'] * $item['rate'];
                 $total_check += $line_total;
 
-                $saleItemsData[] = new SaleItem([
+                // SaleItem model is assumed to be correctly defined
+                $saleItemsData[] = new SaleItem([ 
                     'product_category' => $item['category'],
                     'weight_kg' => $item['weight'],
                     'rate_pkr' => $item['rate'],
@@ -88,20 +89,25 @@ class SalesController extends Controller
 
             $sale->items()->saveMany($saleItemsData);
 
+            // Update customer balance in DB
             $customer->current_balance += $sale->total_amount;
             $customer->save();
 
             DB::commit();
 
+            // 🟢 FIX: Return updated customer details for immediate frontend display
             return response()->json([
                 'message' => 'Sale confirmed and saved successfully.',
                 'sale_id' => $sale->id,
+                'customer_id' => $customer->id,
+                'customer_name' => $customer->name,
+                'updated_balance' => number_format($customer->current_balance, 2, '.', ''), // Send the new balance
             ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Sales Transaction Failed: ' . $e->getMessage());
-            return response()->json(['message' => 'Transaction failed. Please try again.'], 500);
+            return response()->json(['message' => 'Transaction failed. Please try again. Error: ' . $e->getMessage()], 500);
         }
     }
 }

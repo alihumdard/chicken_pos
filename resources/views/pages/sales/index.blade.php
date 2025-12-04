@@ -73,6 +73,8 @@
                     @php
                         // Maps category name to the corresponding WHOLESALE rate field name in the DailyRate model
                         $categoryRateMap = [
+                            // 🟢 ADDED: Truck option using the general wholesale_rate
+                            'Truck' => ['rate_field' => 'wholesale_rate', 'icon' => 'fa-solid fa-truck'], 
                             'Chest' => ['rate_field' => 'wholesale_hotel_chest_rate', 'icon' => 'fa-solid fa-drumstick-bite'],
                             'Thigh' => ['rate_field' => 'wholesale_hotel_thigh_rate', 'icon' => 'fa-solid fa-drumstick-bite'],
                             'Mix' => ['rate_field' => 'wholesale_hotel_mix_rate', 'icon' => 'fa-solid fa-layer-group'],
@@ -147,6 +149,7 @@
         
         // State variables
         let selectedCustomerId = null;
+        let selectedCustomerName = null; // Added to store selected customer name
         let selectedCategory = null;
         let selectedRateField = null; 
         let selectedChannel = 'wholesale'; // Default to Wholesale
@@ -183,7 +186,7 @@
             'wholesale_hotel_thigh_rate': 'retail_thigh_rate',
             'wholesale_customer_piece_rate': 'retail_piece_rate',
             'live_chicken_rate': 'retail_mix_rate', // Map live chicken to general retail mix
-            'wholesale_rate': 'retail_mix_rate', // Map general wholesale rate to general retail mix
+            'wholesale_rate': 'retail_mix_rate', // Map general wholesale rate to general retail mix // 🟢 This handles the new 'Truck' category
         };
 
 
@@ -192,6 +195,11 @@
         const formatCurrency = (value) => {
             return parseFloat(value).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' PKR';
         };
+        
+        const formatCurrencyNoDecimal = (value) => {
+            return parseFloat(value).toLocaleString('en-PK', { maximumFractionDigits: 0 });
+        };
+
 
         const calculateLineTotal = () => {
             const weight = parseFloat(weightInput.value) || 0;
@@ -259,9 +267,6 @@
         
         const updateCartDisplay = () => {
             let grandTotal = 0;
-            const cartContainer = document.getElementById('cart-items-container');
-            const totalPayableDisplay = document.getElementById('total-payable-display');
-            const finalTotalPayableInput = document.getElementById('final-total-payable');
             
             cartContainer.innerHTML = ''; 
 
@@ -280,6 +285,9 @@
                             <button type="button" data-index="${index}" class="remove-item-btn text-red-500 hover:text-red-700 text-sm">
                                 <i class="fa-solid fa-times-circle"></i>
                             </button>
+                            <input type="hidden" name="cart_items[${index}][category]" value="${item.category}">
+                            <input type="hidden" name="cart_items[${index}][weight]" value="${item.weight.toFixed(3)}">
+                            <input type="hidden" name="cart_items[${index}][rate]" value="${item.rate.toFixed(2)}">
                             <span>${index + 1}. ${item.category} - ${item.weight.toFixed(3)}kg @ ${item.rate.toFixed(2)}</span>
                         </div>
                         <span>${formatCurrency(lineTotal)}</span>
@@ -345,6 +353,7 @@
                 }
             }
             
+            // Re-run setup to use the newly selected channel for rate display
             if (selectedCategory) {
                  updateRateInput();
             }
@@ -353,7 +362,7 @@
         wholesaleCheckbox.addEventListener('change', handleChannelChange);
         retailCheckbox.addEventListener('change', handleChannelChange);
         
-        // 2. Customer Selection (omitted for brevity)
+        // 2. Customer Selection 
         customerItems.forEach(item => {
             item.addEventListener('click', function() {
                 customerItems.forEach(i => i.classList.remove('bg-yellow-200'));
@@ -393,11 +402,11 @@
             });
         });
 
-        // 4. Input Changes (omitted for brevity)
+        // 4. Input Changes
         weightInput.addEventListener('input', calculateLineTotal);
         rateInput.addEventListener('input', calculateLineTotal); 
 
-        // 5. Add Item to Cart (omitted for brevity)
+        // 5. Add Item to Cart
         addItemBtn.addEventListener('click', function() {
             if (selectedCustomerId && selectedCategory && parseFloat(weightInput.value) > 0 && parseFloat(rateInput.value) > 0) {
                 const item = {
@@ -419,20 +428,89 @@
             }
         });
 
-        // 🟢 NEW: Listener to check for rate updates when the tab becomes active
-        window.addEventListener('focus', function() {
-            const rateUpdateFlag = localStorage.getItem('rates_updated');
+        // 🟢 FIX: Handle Confirm Sale Submission (AJAX)
+        saleForm.addEventListener('submit', async function(e) {
+            e.preventDefault(); // Prevent default form submission (page reload)
+
+            if (!selectedCustomerId || cartItems.length === 0) {
+                alert('Please select a customer and add items to the cart.');
+                return;
+            }
             
-            if (rateUpdateFlag === 'true') { 
-                fetchLatestRates().then(success => {
-                    if (success) {
-                        localStorage.removeItem('rates_updated');
-                    }
+            // Disable button during submission to prevent double click
+            confirmSaleBtn.disabled = true;
+            confirmSaleBtn.textContent = 'Processing...';
+
+            const formData = new FormData(saleForm);
+            
+            try {
+                const response = await fetch(saleForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: formData
                 });
+
+                const data = await response.json();
+
+                if (response.ok && data.sale_id) {
+                    // Success: Show message and update customer balance on the fly
+
+                    alert('Success: ' + data.message + ` (Sale ID: ${data.sale_id})`); 
+
+                    // 1. Update the Balance Display (Current Transaction View)
+                    customerBalanceDisplay.textContent = formatCurrency(data.updated_balance);
+                    
+                    // 2. Update the data attribute on the relevant list item (Customer Selection List)
+                    const customerListItem = document.querySelector(`.customer-item[data-id="${data.customer_id}"]`);
+                    if (customerListItem) {
+                        customerListItem.dataset.balance = data.updated_balance;
+                        
+                        // 3. Update the small balance text inside the list item
+                        const balanceSpan = customerListItem.querySelector('.text-sm.text-gray-700');
+                        if (balanceSpan) {
+                             balanceSpan.textContent = `(Bal: ${formatCurrencyNoDecimal(data.updated_balance)} PKR)`;
+                        }
+                        
+                        // Optional: Highlight the customer list item for confirmation
+                        customerListItem.classList.remove('bg-yellow-200');
+                        customerListItem.classList.add('bg-green-200');
+                        setTimeout(() => {
+                             customerListItem.classList.remove('bg-green-200');
+                             customerListItem.classList.add('bg-yellow-200'); // Re-highlight current selection
+                        }, 1500);
+                    }
+
+                    // 4. Reset POS for next sale
+                    cartItems = [];
+                    updateCartDisplay();
+                    weightInput.value = 0;
+                    calculateLineTotal();
+                    
+                    // You can add a redirect here if needed: 
+                    // window.location.href = "{{ route('admin.reports.sell.summary') }}"; 
+
+                } else {
+                    // Handle Validation/Server Errors
+                    let errorMessage = data.message || 'An unknown error occurred.';
+                    if (data.errors) {
+                        errorMessage += "\nValidation Errors:\n" + Object.values(data.errors).flat().join('\n');
+                    }
+                    alert('Error: ' + errorMessage);
+                }
+
+            } catch (error) {
+                console.error('Sale confirmation failed:', error);
+                alert('A network or critical error occurred. Check the console.');
+            } finally {
+                // Re-enable button
+                confirmSaleBtn.disabled = false;
+                confirmSaleBtn.textContent = 'Confirm Sale (Credit)';
             }
         });
-
-
+        
         // 6. Final State Setup (Default Selections)
         const initialSetup = () => {
             // 1. Select first customer
@@ -440,20 +518,16 @@
                 customerItems[0].click(); 
             }
 
-            // 2. Select first category (This simulates the click, which calls updateRateInput)
-            if (categoryTabs.length > 0) {
-                // Set state variables directly for guaranteed initial load
-                const defaultTab = categoryTabs[0];
-                selectedCategory = defaultTab.dataset.category;
-                selectedRateField = defaultTab.dataset.rateField;
-
-                // Visually activate the first tab
-                defaultTab.classList.remove('bg-gray-100', 'hover:bg-gray-200');
-                defaultTab.classList.add('bg-yellow-300');
-            }
+            // 2. Select the new 'Truck' category by default for wholesale selling
+            const truckTab = document.querySelector('.category-tab[data-category="Truck"]');
             
-            // 🟢 FIX: Ensure updateRateInput is called explicitly now that state is set
-            updateRateInput(); 
+            if (truckTab) {
+                // Manually simulate a click event to trigger category selection and rate update logic
+                truckTab.click();
+            } else if (categoryTabs.length > 0) {
+                // Fallback to the first category if 'Truck' is not found
+                categoryTabs[0].click();
+            }
         }
         
         // Run initial setup immediately after DOM is ready
