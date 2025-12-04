@@ -6,8 +6,10 @@ use App\Models\Customer;
 use App\Models\Sale; // Import the Sale Model
 use App\Models\SaleItem; // Import the SaleItem Model
 use App\Models\DailyRate; // Import the DailyRate Model
+use App\Models\Purchase; // 🟢 ADDED: Import Purchase Model for stock calculation
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB; // For database transaction
+use Exception; // For error handling
 
 class SalesController extends Controller
 {
@@ -62,21 +64,44 @@ class SalesController extends Controller
         DB::beginTransaction();
 
         try {
+            // 1. Calculate total weight being sold in this transaction
+            $total_weight_to_sell = 0.00;
+            foreach ($validated['cart_items'] as $item) {
+                $total_weight_to_sell += (float) $item['weight'];
+            }
+
+            // 2. Calculate current available stock (Total Purchases - Total Past Sales)
+            // Note: This requires the SaleItem model to be defined with weight_kg field
+            $total_purchased = Purchase::sum('net_live_weight');
+            $total_sold_past = DB::table('sale_items')->sum('weight_kg'); // Using DB query for SaleItem sum
+            $current_net_stock = $total_purchased - $total_sold_past;
+
+            // 3. Stock Check: If selling more than available, block the sale.
+            if ($total_weight_to_sell > $current_net_stock) {
+                DB::rollBack();
+                $available_display = number_format(max(0, $current_net_stock), 2);
+                $selling_display = number_format($total_weight_to_sell, 2);
+
+                return response()->json([
+                    'message' => "Error: Insufficient stock. You are attempting to sell $selling_display KG, but only $available_display KG stock is available.",
+                ], 400);
+            }
+            
+            // --- Proceed with sale if stock is sufficient ---
+
             $customer = Customer::findOrFail($validated['customer_id']);
 
             $sale = Sale::create([
                 'customer_id' => $customer->id,
                 'total_amount' => $validated['total_payable'],
                 'payment_status' => 'credit', 
-                'sale_channel' => $validated['rate_channel'], // 🚩 SAVING THE SELECTED CHANNEL
+                'sale_channel' => $validated['rate_channel'], 
             ]);
 
-            $total_check = 0;
             $saleItemsData = [];
 
             foreach ($validated['cart_items'] as $item) {
                 $line_total = $item['weight'] * $item['rate'];
-                $total_check += $line_total;
 
                 // SaleItem model is assumed to be correctly defined
                 $saleItemsData[] = new SaleItem([ 
@@ -95,16 +120,17 @@ class SalesController extends Controller
 
             DB::commit();
 
-            // 🟢 FIX: Return updated customer details for immediate frontend display
+            // Return success response with updated balance
+            // Stock will now be automatically reduced for subsequent transactions/rate checks 
             return response()->json([
-                'message' => 'Sale confirmed and saved successfully.',
+                'message' => 'Sale confirmed and saved successfully. Stock updated.',
                 'sale_id' => $sale->id,
                 'customer_id' => $customer->id,
                 'customer_name' => $customer->name,
                 'updated_balance' => number_format($customer->current_balance, 2, '.', ''), // Send the new balance
             ], 201);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             \Log::error('Sales Transaction Failed: ' . $e->getMessage());
             return response()->json(['message' => 'Transaction failed. Please try again. Error: ' . $e->getMessage()], 500);

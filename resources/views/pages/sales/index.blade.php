@@ -69,28 +69,54 @@
                     </label>
                 </div>
                 
-                <div id="category-tabs" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-                    @php
-                        // Maps category name to the corresponding WHOLESALE rate field name in the DailyRate model
-                        $categoryRateMap = [
-                            // 🟢 ADDED: Truck option using the general wholesale_rate
-                            'Truck' => ['rate_field' => 'wholesale_rate', 'icon' => 'fa-solid fa-truck'], 
-                            'Chest' => ['rate_field' => 'wholesale_hotel_chest_rate', 'icon' => 'fa-solid fa-drumstick-bite'],
-                            'Thigh' => ['rate_field' => 'wholesale_hotel_thigh_rate', 'icon' => 'fa-solid fa-drumstick-bite'],
-                            'Mix' => ['rate_field' => 'wholesale_hotel_mix_rate', 'icon' => 'fa-solid fa-layer-group'],
-                            'Piece' => ['rate_field' => 'wholesale_customer_piece_rate', 'icon' => 'fa-solid fa-bone'],
-                            'Live' => ['rate_field' => 'live_chicken_rate', 'icon' => 'fa-solid fa-feather-alt'],
-                        ];
-                    @endphp
-                    @foreach ($categoryRateMap as $categoryName => $details)
-                        <div class="category-tab bg-gray-100 rounded-lg p-4 flex flex-col items-center cursor-pointer transition-all hover:bg-gray-200"
-                            data-category="{{ $categoryName }}"
-                            data-rate-field="{{ $details['rate_field'] }}">
-                            <i class="{{ $details['icon'] }} text-3xl mb-2 text-gray-700"></i>
-                            <span class="text-sm font-medium">{{ $categoryName }}</span>
-                        </div>
-                    @endforeach
+                {{-- 🟢 REFACTOR START: Split Category Tabs into two visible groups --}}
+                @php
+                    // Define a single source of truth for rate fields/icons
+                    $allCategories = [
+                        'Chest' => ['rate_field' => 'wholesale_hotel_chest_rate', 'icon' => 'fa-solid fa-drumstick-bite'],
+                        'Thigh' => ['rate_field' => 'wholesale_hotel_thigh_rate', 'icon' => 'fa-solid fa-drumstick-bite'],
+                        'Mix' => ['rate_field' => 'wholesale_hotel_mix_rate', 'icon' => 'fa-solid fa-layer-group'],
+                        'Piece' => ['rate_field' => 'wholesale_customer_piece_rate', 'icon' => 'fa-solid fa-bone'],
+                        'Live' => ['rate_field' => 'live_chicken_rate', 'icon' => 'fa-solid fa-feather-alt'],
+                        'live' => ['rate_field' => 'wholesale_rate', 'icon' => 'fa-solid fa-feather-alt'],
+                    ];
+                    
+                    // Define the keys for each display group
+                    $wholesaleGroup = [ 'Chest', 'Thigh', 'Mix', 'Piece', 'live'];
+                    $retailGroup = ['Live', 'Mix', 'Chest', 'Thigh', 'Piece']; // Live is often first in retail
+                @endphp
+
+                <div id="category-tabs-wrapper" class="mb-6">
+                    
+                    {{-- 1. WHOLESALE CATEGORIES --}}
+                    <div id="wholesale-category-grid" class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        @foreach ($wholesaleGroup as $categoryName)
+                            @php $details = $allCategories[$categoryName]; @endphp
+                            <div class="category-tab bg-gray-100 rounded-lg p-4 flex flex-col items-center cursor-pointer transition-all hover:bg-gray-200"
+                                data-category="{{ $categoryName }}"
+                                data-rate-field="{{ $details['rate_field'] }}">
+                                <i class="{{ $details['icon'] }} text-3xl mb-2 text-gray-700"></i>
+                                <span class="text-sm font-medium">{{ $categoryName }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                    
+                    {{-- 2. RETAIL CATEGORIES (Hidden by default) --}}
+                    <div id="retail-category-grid" class="grid grid-cols-2 md:grid-cols-5 gap-3 hidden">
+                        @foreach ($retailGroup as $categoryName)
+                            @php $details = $allCategories[$categoryName]; @endphp
+                            <div class="category-tab bg-gray-100 rounded-lg p-4 flex flex-col items-center cursor-pointer transition-all hover:bg-gray-200"
+                                data-category="{{ $categoryName }}"
+                                data-rate-field="{{ $details['rate_field'] }}">
+                                <i class="{{ $details['icon'] }} text-3xl mb-2 text-gray-700"></i>
+                                <span class="text-sm font-medium">{{ $categoryName }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                    
                 </div>
+                {{-- 🟢 REFACTOR END --}}
+
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div>
@@ -149,7 +175,7 @@
         
         // State variables
         let selectedCustomerId = null;
-        let selectedCustomerName = null; // Added to store selected customer name
+        let selectedCustomerName = null; 
         let selectedCategory = null;
         let selectedRateField = null; 
         let selectedChannel = 'wholesale'; // Default to Wholesale
@@ -160,7 +186,9 @@
         const customerIdInput = document.getElementById('selected-customer-id');
         const customerNameDisplay = document.getElementById('current-customer-name');
         const customerBalanceDisplay = document.getElementById('current-customer-balance');
-        const categoryTabs = document.querySelectorAll('.category-tab');
+        const categoryTabs = document.querySelectorAll('.category-tab'); // Selects ALL buttons from both grids
+        const wholesaleGrid = document.getElementById('wholesale-category-grid');
+        const retailGrid = document.getElementById('retail-category-grid');
         const weightInput = document.getElementById('weight-input');
         const rateInput = document.getElementById('rate-input');
         const lineTotalDisplay = document.getElementById('line-total-display');
@@ -176,7 +204,6 @@
         const wholesaleCheckbox = document.getElementById('wholesale-channel-checkbox');
         const retailCheckbox = document.getElementById('retail-channel-checkbox');
         
-        // 🟢 Define the AJAX route using the Blade Helper
         const FETCH_RATES_ROUTE = "{{ route('admin.sales.fetch-rates') }}"; 
 
         // --- Rate Field Mapping (Maps Wholesale keys to their Retail equivalent) ---
@@ -185,8 +212,7 @@
             'wholesale_hotel_chest_rate': 'retail_chest_rate',
             'wholesale_hotel_thigh_rate': 'retail_thigh_rate',
             'wholesale_customer_piece_rate': 'retail_piece_rate',
-            'live_chicken_rate': 'retail_mix_rate', // Map live chicken to general retail mix
-            'wholesale_rate': 'retail_mix_rate', // Map general wholesale rate to general retail mix // 🟢 This handles the new 'Truck' category
+            'wholesale_rate': 'retail_mix_rate', 
         };
 
 
@@ -216,16 +242,32 @@
             let rate = 0.00;
             let displayKey = '';
             
-            if (channel === 'wholesale' && ACTIVE_RATES.wholesale.hasOwnProperty(wholesaleKey)) {
-                rate = ACTIVE_RATES.wholesale[wholesaleKey];
-                displayKey = wholesaleKey;
-            } else if (channel === 'retail') {
-                const retailKey = retailRateMap[wholesaleKey];
-                if (retailKey && ACTIVE_RATES.retail.hasOwnProperty(retailKey)) {
-                    rate = ACTIVE_RATES.retail[retailKey];
-                    displayKey = retailKey;
+            if (channel === 'wholesale') {
+                // For ALL wholesale/live categories, pull from the wholesale object
+                if (ACTIVE_RATES.wholesale.hasOwnProperty(wholesaleKey)) {
+                    rate = ACTIVE_RATES.wholesale[wholesaleKey];
+                    displayKey = wholesaleKey;
                 }
+            } else if (channel === 'retail') {
+                
+                // 🛑 FIX START: Correctly pull Live Chicken Rate and map others
+                if (wholesaleKey === 'live_chicken_rate') {
+                    // Pull Live Chicken Rate from ACTIVE_RATES.wholesale
+                    if (ACTIVE_RATES.wholesale.hasOwnProperty('live_chicken_rate')) {
+                        rate = ACTIVE_RATES.wholesale.live_chicken_rate;
+                        displayKey = wholesaleKey + ' (Retail)'; 
+                    }
+                } else {
+                    // Handle all other retail-mapped items (Truck, Mix, Chest, Thigh, Piece)
+                    const retailKey = retailRateMap[wholesaleKey];
+                    if (retailKey && ACTIVE_RATES.retail.hasOwnProperty(retailKey)) {
+                        rate = ACTIVE_RATES.retail[retailKey];
+                        displayKey = retailKey;
+                    }
+                }
+                // 🛑 FIX END
             }
+
             // Ensure rate is a number
             rate = parseFloat(rate) || 0.00;
             
@@ -234,7 +276,7 @@
         
         // 🟢 Function to update the rate input based on selected category and channel
         const updateRateInput = () => {
-            const currentSelectedRateField = selectedRateField; // Use current state variable
+            const currentSelectedRateField = selectedRateField; 
             const currentSelectedChannel = wholesaleCheckbox.checked ? 'wholesale' : 'retail';
 
             if (!selectedCategory || !currentSelectedRateField) {
@@ -332,6 +374,16 @@
         // --- Event Handlers ---
         
         // 1. Channel Selection (Checkboxes)
+        const toggleCategoryGrids = (channel) => {
+            if (channel === 'wholesale') {
+                wholesaleGrid.classList.remove('hidden');
+                retailGrid.classList.add('hidden');
+            } else {
+                wholesaleGrid.classList.add('hidden');
+                retailGrid.classList.remove('hidden');
+            }
+        };
+        
         const handleChannelChange = (event) => {
             const clickedCheckbox = event.target;
             
@@ -353,6 +405,9 @@
                 }
             }
             
+            // Toggle visibility of the two category grids
+            toggleCategoryGrids(selectedChannel);
+
             // Re-run setup to use the newly selected channel for rate display
             if (selectedCategory) {
                  updateRateInput();
@@ -383,7 +438,7 @@
             });
         });
         
-        // 3. Category Selection
+        // 3. Category Selection (Event listener uses the shared class '.category-tab')
         categoryTabs.forEach(tab => {
             tab.addEventListener('click', function() {
                 // Clear active state from all
@@ -428,7 +483,7 @@
             }
         });
 
-        // 🟢 FIX: Handle Confirm Sale Submission (AJAX)
+        // 🟢 Handle Confirm Sale Submission (AJAX)
         saleForm.addEventListener('submit', async function(e) {
             e.preventDefault(); // Prevent default form submission (page reload)
 
@@ -488,9 +543,6 @@
                     updateCartDisplay();
                     weightInput.value = 0;
                     calculateLineTotal();
-                    
-                    // You can add a redirect here if needed: 
-                    // window.location.href = "{{ route('admin.reports.sell.summary') }}"; 
 
                 } else {
                     // Handle Validation/Server Errors
@@ -517,16 +569,20 @@
             if (customerItems.length > 0) {
                 customerItems[0].click(); 
             }
+            
+            // 2. Ensure Wholesale Grid is shown by default
+            toggleCategoryGrids(selectedChannel);
 
-            // 2. Select the new 'Truck' category by default for wholesale selling
-            const truckTab = document.querySelector('.category-tab[data-category="Truck"]');
+            // 3. Select the 'Truck' category by default for wholesale selling
+            const truckTab = document.querySelector('#wholesale-category-grid .category-tab[data-category="Truck"]');
             
             if (truckTab) {
                 // Manually simulate a click event to trigger category selection and rate update logic
                 truckTab.click();
-            } else if (categoryTabs.length > 0) {
+            } else {
                 // Fallback to the first category if 'Truck' is not found
-                categoryTabs[0].click();
+                const firstTab = document.querySelector('#wholesale-category-grid .category-tab');
+                if (firstTab) firstTab.click();
             }
         }
         
@@ -550,6 +606,19 @@
             cartItems = [];
             updateCartDisplay();
             window.location.reload(); 
+        });
+
+        // 10. Listener to check for rate updates when the tab becomes active (if any)
+        window.addEventListener('focus', function() {
+            const rateUpdateFlag = localStorage.getItem('rates_updated');
+            
+            if (rateUpdateFlag === 'true') { 
+                fetchLatestRates().then(success => {
+                    if (success) {
+                        localStorage.removeItem('rates_updated');
+                    }
+                });
+            }
         });
 
     });

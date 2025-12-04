@@ -274,6 +274,16 @@
                     </a>
                 </div>
             </div>
+            {{-- <a href="{{ route('admin.stock.index') }}"
+                class="sidebar-link flex items-center w-full group {{ request()->routeIs('admin.stock.*') ? 'active' : '' }}">
+                <i class="fas fa-shopping-cart mr-4 text-base w-5 text-center"></i> 
+                <span class="text-sm font-medium">Stock-Moniter</span>
+            </a> --}}
+            <a href="{{ route('admin.settings.index') }}"
+                class="sidebar-link flex items-center w-full group {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
+                <i class="fas fa-shopping-cart mr-4 text-base w-5 text-center"></i> {{-- Changed icon for relevance --}}
+                <span class="text-sm font-medium">Settings</span>
+            </a>
         </nav>
 
         {{-- Logout/Footer Area --}}

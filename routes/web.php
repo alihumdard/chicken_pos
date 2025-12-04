@@ -72,8 +72,8 @@ Route::middleware('auth')->group(function () {
         Route::get('sales', [SalesController::class, 'index'])->name('sales.index');
         Route::get('sales/create', [SalesController::class, 'create'])->name('sales.create');
         Route::post('sales', [SalesController::class, 'store'])->name('sales.store');
-        Route::delete('sales/{sale}', [SalesController::class, 'destroy'])->name('sales.destroy'); 
-        
+        Route::delete('sales/{sale}', [SalesController::class, 'destroy'])->name('sales.destroy');
+
         // 🟢 FIX: NEW ROUTE FOR SYNCHRONIZATION
         Route::get('sales/fetch-rates', [SalesController::class, 'getLatestRates'])->name('sales.fetch-rates');
 
@@ -81,10 +81,26 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/profit-loss', [ReportController::class, 'profitLossReportDynamic'])->name('reports.pnl');
         Route::get('/reports/stock', [ReportController::class, 'stock'])->name('reports.stock');
-        
+
         // Dynamic Report Routes
         Route::get('/reports/purchase', [ReportController::class, 'purchaseReport'])->name('reports.purchase');
         Route::post('/reports/purchase/filter', [ReportController::class, 'filterPurchaseReport'])->name('reports.purchase.filter');
         Route::get('/reports/sell-summary', [ReportController::class, 'sellSummaryReport'])->name('reports.sell.summary');
+
+        // 🟢 NEW SETTINGS ROUTE (Moved and Named)
+        Route::get('/settings', function () {
+            return view('pages.settings');
+        })->name('settings.index');
+
+        Route::get('/stock-moniter', function () {
+            return view('pages.stock_moniter');
+        })->name('stock.index');
+
+        Route::get('/rates', [RateController::class, 'index'])->name('rates.index');
+        Route::post('/rates', [RateController::class, 'store'])->name('rates.store');
+
+        // 🟢 NEW FORMULA ROUTES
+        Route::get('/settings/rates/formulas', [RateController::class, 'getRateFormulas'])->name('rates.formulas.get');
+        Route::post('/settings/rates/formulas', [RateController::class, 'updateRateFormula'])->name('rates.formulas.update');
     });
 });
