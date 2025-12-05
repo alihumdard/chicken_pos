@@ -10,24 +10,11 @@
 </head>
 
 <body>
-
-    {{-- 🟢 Main Wrapper: Flex container spanning full viewport height --}}
     <div class="flex min-h-screen"> 
-        
-        {{-- 1. Sidebar: Takes its defined width (e.g., w-64) and spans the full height (min-h-screen). 
-             Ensure your sidebar CSS/Tailwind classes make it occupy its space (e.g., w-64). --}}
         @include('includes.sidebar')
-
-        {{-- 2. Content Area: Takes the remaining horizontal space (flex-1) and stacks header and content vertically (flex-col). --}}
         <div class="flex-1 flex flex-col">
-            
-            {{-- Header: Now included inside the content wrapper, so it takes the full width of the remaining space. --}}
             @include('includes.header') 
-            
-            {{-- Content: The main content yield area is directly below the header. --}}
             @yield('content')
-            
-            {{-- Footer (Optional: Place footer here if it should only cover the main content area) --}}
             @include('includes.footer')
 
         </div>
