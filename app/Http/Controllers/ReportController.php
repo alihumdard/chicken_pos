@@ -6,7 +6,6 @@ use App\Models\Purchase;
 use App\Models\Supplier;
 use App\Models\Sale;
 use App\Models\SaleItem;
-use App\Models\ProfitLossSummary;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -15,14 +14,11 @@ class ReportController extends Controller
 {
     // Placeholder methods for existing routes
     public function index() { 
-        // Implement logic to display a reports index page, or redirect to a main report
-        // Assuming this now redirects to the stock/P&L view
         return redirect()->route('admin.reports.stock_report'); 
     }
     
     /**
      * Handles the STOCK Report AND the Profit & Loss (P&L) report functionality.
-     * The Blade view accessing this method must be set up to display both sets of data.
      */
     public function stock(Request $request) 
     {
@@ -30,7 +26,7 @@ class ReportController extends Controller
         $endDate = Carbon::parse($request->input('end_date', Carbon::now()->toDateString()))->endOfDay();
         $startDate = Carbon::parse($request->input('start_date', Carbon::now()->startOfMonth()->toDateString()))->startOfDay();
 
-        // --- 2. STOCK & INVENTORY CALCULATIONS (Original Stock Logic) ---
+        // --- 2. STOCK & INVENTORY CALCULATIONS ---
         $today = Carbon::today();
         $gauge_max_range = 5000; 
 
@@ -42,7 +38,7 @@ class ReportController extends Controller
         $totalSoldBeforeToday = $totalSoldWeightToDate - $todaySoldWeight;
         $morningOpeningStock = max(0, $totalPurchasedWeight - $totalSoldBeforeToday);
         
-        // --- 3. PROFIT & LOSS CALCULATIONS (New/Moved P&L Logic) ---
+        // --- 3. PROFIT & LOSS CALCULATIONS ---
 
         // Aggregate Revenue and Cost (COGS) based on the filter dates
         $totalRevenue = SaleItem::whereBetween('created_at', [$startDate, $endDate])->sum('line_total');
@@ -55,7 +51,9 @@ class ReportController extends Controller
         $chartOutputData = [];
         
         $currentDate = $startDate->copy();
-        $mockExpenses = $this->generateMockExpenses($startDate, $endDate);
+
+        // 🟢 REMOVED: Mock Expense Generator
+        // $mockExpenses = $this->generateMockExpenses($startDate, $endDate); 
 
         while ($currentDate->lte($endDate)) {
             $dateString = $currentDate->toDateString();
@@ -68,7 +66,9 @@ class ReportController extends Controller
             $dailyInputWeight = Purchase::whereDate('created_at', $currentDate)->sum('net_live_weight');
             $dailyOutputWeight = SaleItem::whereDate('created_at', $currentDate)->sum('weight_kg');
             
-            $dailyExpenses = $mockExpenses[$dateString] ?? 0;
+            // 🟢 UPDATED: Set Expenses to 0 (Real data logic can be added here later)
+            $dailyExpenses = 0; 
+            
             $netProfit = $dailyRevenue - $dailyCost - $dailyExpenses;
 
             $dailyReport[] = [
@@ -87,15 +87,13 @@ class ReportController extends Controller
             $currentDate->addDay();
         }
 
-        // Final Totals for the header cards
-        $totalExpenses = array_sum(array_column($dailyReport, 'expenses'));
+        // Final Totals
+        $totalExpenses = 0; // Since daily expenses are 0
         $totalNetProfit = $totalRevenue - $totalCogs - $totalExpenses;
 
 
         // --- 4. DATA COMPILATION & VIEW RETURN ---
-        // Combine Stock data and P&L data
         $data = [
-            // Stock Data
             'today_date' => $today->format('d M, Y'),
             'current_net_stock' => $currentNetStock,
             'morning_opening' => $morningOpeningStock,
@@ -103,7 +101,6 @@ class ReportController extends Controller
             'total_purchased_weight' => $totalPurchasedWeight, 
             'gauge_max_range' => $gauge_max_range, 
             
-            // P&L Data (Resolves Undefined Variable errors in the P&L Blade)
             'startDate' => $startDate->toDateString(), 
             'endDate' => $endDate->toDateString(),
             'totalRevenue' => $totalRevenue, 
@@ -116,16 +113,10 @@ class ReportController extends Controller
             'chartOutputData' => $chartOutputData,
         ];
 
-        // Assuming the P&L report is the one being viewed, but named 'stock_report'
-        // If your P&L view is actually pages.reports.pnl, change 'pages.report.stock_report' below
         return view('pages.report.stock_report', $data);
     }
 
-    
-  
-
     // --- PURCHASE REPORT METHODS ---
-
     public function purchaseReport(Request $request)
     {
         $suppliers = Supplier::select('id', 'name')->orderBy('name')->get(); 
@@ -153,12 +144,9 @@ class ReportController extends Controller
         }
 
         $purchases = $query->orderBy('created_at', 'desc')->get();
-
         $html = $this->renderPurchaseTableRows($purchases);
 
-        return response()->json([
-            'html' => $html,
-        ]);
+        return response()->json(['html' => $html]);
     }
     
     protected function renderPurchaseTableRows($purchases)
@@ -194,15 +182,13 @@ class ReportController extends Controller
         $html .= '<td class="p-2">' . number_format($totalGrossWeight, 2) . 'kg</td>';
         $html .= '<td class="p-2 text-red-500">-' . number_format($totalDeadShrinkWeight, 2) . 'kg</td>';
         $html .= '<td class="p-2 text-green-600">' . number_format($totalNetLiveWeight, 2) . 'kg</td>';
-            $html .= '<td class="p-2">—</td>';
+        $html .= '<td class="p-2">—</td>';
         $html .= '</tr>';
 
         return $html;
     }
 
-
     // --- SELL SUMMARY REPORT METHOD ---
-
     public function sellSummaryReport(Request $request)
     {
         $date = $request->input('date', Carbon::now()->toDateString());
@@ -229,8 +215,6 @@ class ReportController extends Controller
 
         foreach ($sales as $sale) {
             $customerName = $sale->customer->name ?? 'Retail/Walk-in'; 
-            
-            // 🚩 NEW: Use the saved sale_channel. Default to 'permanent' for older records.
             $saleChannel = strtolower($sale->sale_channel ?? 'permanent'); 
 
             foreach ($sale->items as $item) {
@@ -241,7 +225,6 @@ class ReportController extends Controller
                 $grandTotalWeight += $weight;
                 $grandTotalRevenue += $lineTotal;
 
-                // 1. Check for Retail Sales (Explicitly selected on the form)
                 if ($saleChannel === 'retail') {
                     if (isset($retailSalesAggregation[$category])) {
                         $retailSalesAggregation[$category]['weight'] += $weight;
@@ -250,7 +233,6 @@ class ReportController extends Controller
                         $retailSalesAggregation[$category]['count'] += 1;
                     }
                 } 
-                // 2. Check for Wholesale Sales (Explicitly selected on the form OR customer name contains 'truck/wholesale')
                 elseif ($saleChannel === 'wholesale' || str_contains(strtolower($customerName), 'truck')) {
                     $wholesaleSales[] = [
                         'customer_name' => $customerName,
@@ -260,7 +242,6 @@ class ReportController extends Controller
                         'category' => $category,
                     ];
                 } 
-                // 3. Permanent/Hotel Sales (Any other sale with a customer ID that wasn't retail/wholesale)
                 elseif ($sale->customer_id) {
                     if (!isset($permanentSales[$sale->id])) {
                         $permanentSales[$sale->id] = [
@@ -271,7 +252,6 @@ class ReportController extends Controller
                         ];
                     }
                     $permanentSales[$sale->id]['items'][] = $item;
-                    // Aggregate line totals to ensure accurate sale amount
                     $permanentSales[$sale->id]['total_sale_amount'] += $lineTotal; 
                 }
             }
@@ -283,8 +263,6 @@ class ReportController extends Controller
         $totalWholesaleRevenue = array_sum(array_column($wholesaleSales, 'total'));
         $totalWholesaleWeight = array_sum(array_column($wholesaleSales, 'weight'));
         
-        // ... (Rest of the code remains the same as it correctly builds the reportData array) ...
-
         $reportData = [
             'wholesaleSales' => $wholesaleSales,
             'permanentSales' => $permanentSales,
@@ -303,29 +281,10 @@ class ReportController extends Controller
         return view('pages.report.selll_summary_report', $reportData);
     }
 
-    // --- PROFIT & LOSS REPORT DYNAMIC REDIRECT ---
-
     public function profitLossReportDynamic(Request $request)
     {
-        // This method will now redirect to the stock method, which now holds the P&L logic
         return redirect()->route('admin.reports.stock', $request->query());
     }
     
-    /**
-     * @param \Carbon\Carbon $start
-     * @param \Carbon\Carbon $end
-     * @return array
-     */
-    private function generateMockExpenses(\Carbon\Carbon $start, \Carbon\Carbon $end): array
-    {
-        $expenses = [];
-        $currentDate = $start->copy();
-        
-        while ($currentDate->lte($end)) {
-            $expenses[$currentDate->toDateString()] = rand(50, 500); 
-            $currentDate->addDay();
-        }
-        
-        return $expenses;
-    }
+    // 🟢 REMOVED: generateMockExpenses function
 }

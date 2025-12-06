@@ -4,9 +4,7 @@
 
     <div class="flex">
 
-        <!-- MAIN PAGE -->
         <main id="mainContent" class="flex-1 p-4 sm:p-6 lg:p-10 bg-gray-50">
-            <!-- PAGE CONTENT -->
             <div class="p-4 space-y-6">
 
                 <h1 class="text-3xl font-extrabold text-gray-800 mb-6 tracking-tight">
@@ -37,7 +35,6 @@
                     </div>
                 </form>
 
-                <!-- TOP CARDS (Dynamic Data) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
                     {{-- 1. Total Revenue --}}
@@ -54,7 +51,7 @@
 
                     {{-- 3. Total Expenses --}}
                     <div class="bg-white p-4 rounded-xl shadow border-l-4 border-yellow-500">
-                        <p class="text-gray-600">Total Expenses (Mock)</p>
+                        <p class="text-gray-600">Total Expenses</p> {{-- 🟢 REMOVED (Mock) --}}
                         <h2 class="text-2xl font-bold text-yellow-600">{{ number_format($totalExpenses, 0) }} PKR</h2>
                     </div>
 
@@ -68,7 +65,6 @@
 
                 </div>
 
-                <!-- CHART (Dynamic Data) -->
                 <div class="bg-white p-5 shadow rounded-xl">
                     <h3 class="font-semibold mb-3">Total Input vs Output Weight Analysis</h3>
                     <div class="h-64">
@@ -76,7 +72,6 @@
                     </div>
                 </div>
 
-                <!-- DAILY TABLE (Dynamic Data) -->
                 <div class="bg-white p-5 shadow rounded-xl overflow-x-auto">
                     <h3 class="font-semibold mb-3">Daily Breakdown ({{ $startDate }} to {{ $endDate }})</h3>
                     <table class="w-full text-sm border">

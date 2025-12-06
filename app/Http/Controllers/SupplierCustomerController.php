@@ -1,11 +1,11 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException; // 🟢 IMPORTED for explicit exception handling
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class SupplierCustomerController extends Controller
 {
@@ -14,110 +14,75 @@ class SupplierCustomerController extends Controller
      */
     public function index()
     {
-        $suppliers = Supplier::all(); 
-        $customers = Customer::all(); 
+        $suppliers = Supplier::all();
+        $customers = Customer::all();
 
         return view('pages.supplier.index', compact('suppliers', 'customers'));
     }
 
     /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        // This method usually shows the form. Since you are using a modal on the index page, 
-        // this might not be needed, but we keep it returning the index view for consistency.
-        return view('pages.supplier.index');
-    }
-
-    /**
-     * Store a newly created resource in storage.
+     * Store a newly created resource (Supplier or Customer).
      */
     public function store(Request $request)
     {
-        // 🛑 FIX: The client-side relies on a JSON response. 
-        // We ensure we only try/catch and return JSON here.
         try {
             // 1. Validation
             $validatedData = $request->validate([
-                'name' => 'required|string|max:255',
-                'type' => 'required|in:supplier,customer',
+                'name'            => 'required|string|max:255',
+                'type'            => 'required|in:supplier,customer',
                 'opening_balance' => 'nullable|numeric',
+                'phone'           => 'nullable|string|max:20', // Added helpful fields
+                'address'         => 'nullable|string|max:255',
             ]);
-            
+
             $contact = null;
 
             // 2. SAVE DATA BASED ON TYPE
             if ($validatedData['type'] === 'supplier') {
                 $contact = Supplier::create([
-                    'name' => $validatedData['name'],
-                    'current_balance' => $validatedData['opening_balance'] ?? 0, 
+                    'name'            => $validatedData['name'],
+                    'phone'           => $validatedData['phone'] ?? null,
+                    'address'         => $validatedData['address'] ?? null,
+                    'current_balance' => $validatedData['opening_balance'] ?? 0,
                 ]);
             } else {
                 $contact = Customer::create([
-                    'name' => $validatedData['name'],
-                    'current_balance' => $validatedData['opening_balance'] ?? 0, 
+                    'name'            => $validatedData['name'],
+                    'phone'           => $validatedData['phone'] ?? null,
+                    'address'         => $validatedData['address'] ?? null,
+                    'current_balance' => $validatedData['opening_balance'] ?? 0,
                 ]);
             }
 
-            // 🟢 CRITICAL STEP: Add the 'type' field to the contact object 
-            // for the JavaScript appendContactToList function to use.
-            $contact->type = $validatedData['type']; 
+            // Return type for JS
+            $contact->type = $validatedData['type'];
 
-            // 3. RETURN JSON: Return the created contact object for JavaScript
             return response()->json([
                 'success' => true,
                 'message' => ucfirst($validatedData['type']) . ' added successfully!',
-                'contact' => $contact, 
-            ], 201); // 201 Created status - prevents browser reload
+                'contact' => $contact,
+            ], 201);
 
         } catch (ValidationException $e) {
-            // Handle validation errors (422)
             return response()->json([
                 'success' => false,
-                'message' => 'The given data was invalid.',
-                'errors' => $e->errors(),
+                'message' => 'Validation failed.',
+                'errors'  => $e->errors(),
             ], 422);
 
         } catch (\Exception $e) {
-            // Handle other errors (500)
             return response()->json([
                 'success' => false,
-                'message' => 'Could not save the contact. Error: ' . $e->getMessage(), // Added error message for debugging
+                'message' => 'Server Error: ' . $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
+     * Remove the specified resource.
      */
     public function destroy(Request $request, string $id)
     {
-        // Get the type from the request body sent by AJAX
         $type = $request->input('type');
 
         if ($type === 'supplier') {
@@ -125,22 +90,165 @@ class SupplierCustomerController extends Controller
         } elseif ($type === 'customer') {
             $deleted = Customer::destroy($id);
         } else {
-             return response()->json([
-                'success' => false,
-                'message' => 'Invalid contact type provided.',
-            ], 400); // 400 Bad Request
+            return response()->json(['success' => false, 'message' => 'Invalid type.'], 400);
         }
 
         if ($deleted) {
-            return response()->json([
-                'success' => true,
-                'message' => ucfirst($type) . ' deleted successfully!',
-            ]);
+            return response()->json(['success' => true, 'message' => ucfirst($type) . ' deleted successfully!']);
         }
-        
-        return response()->json([
-            'success' => false,
-            'message' => ucfirst($type) . ' not found or could not be deleted.',
-        ], 404); // 404 Not Found
+
+        return response()->json(['success' => false, 'message' => 'Not found.'], 404);
     }
+
+    // ==========================================
+    // 🟢 LEDGER & PAYMENT LOGIC
+    // ==========================================
+
+    /**
+     * Get Ledger for a specific Supplier
+     */
+
+    public function getSupplierLedger($id)
+    {
+        // 1. Supplier dhundain
+        $supplier = Supplier::findOrFail($id);
+
+        // 2. Transactions table se data layen
+        // Note: Hum 'transactions' table use kar rahe hain jo humne migration se banayi thi
+        $transactions = DB::table('transactions')
+            ->where('supplier_id', $id)
+            ->orderBy('date', 'desc') // Newest date first
+            ->orderBy('id', 'desc')   // Newest entry first
+            ->limit(50)               // Sirf last 50 records
+            ->get();
+
+        // 3. JSON wapis bhejen
+        return response()->json([
+            // Note: Make sure karen apke database me column ka naam 'current_balance' hi hai
+            'current_balance' => $supplier->current_balance ?? 0,
+            'transactions'    => $transactions,
+        ]);
+    }
+    public function getCustomerLedger($id)
+    {
+        $customer = Customer::findOrFail($id);
+
+        // Fetch transactions for CUSTOMER
+        $transactions = DB::table('transactions')
+            ->where('customer_id', $id) // 🟢 Notice: 'customer_id'
+            ->orderBy('date', 'desc')
+            ->orderBy('id', 'desc')
+            ->limit(50)
+            ->get();
+
+        return response()->json([
+            'current_balance' => $customer->current_balance ?? 0,
+            'transactions'    => $transactions,
+        ]);
+    }
+    /**
+     * Store a Payment / Transaction
+     */
+    public function storePayment(Request $request)
+    {
+        // 1. Determine Validation Rules based on input
+        // If 'supplier_id' is present, validate against suppliers table
+        // If 'customer_id' is present, validate against customers table
+
+        $rules = [
+            'amount'      => 'required|numeric|min:1',
+            'date'        => 'required|date',
+            'type'        => 'required|string',
+            'description' => 'nullable|string',
+        ];
+
+        if ($request->has('supplier_id')) {
+            $rules['supplier_id'] = 'required|exists:suppliers,id'; // 🟢 FIXES "Table not found" error
+            $isSupplier           = true;
+        } elseif ($request->has('customer_id')) {
+            $rules['customer_id'] = 'required|exists:customers,id';
+            $isSupplier           = false;
+        } else {
+            return response()->json(['message' => 'Supplier ID or Customer ID is required'], 422);
+        }
+
+        $request->validate($rules);
+
+        DB::beginTransaction();
+
+        try {
+            $amount = $request->amount;
+            $debit  = 0;
+            $credit = 0;
+            $desc   = $request->description;
+
+            // 2. Handle Supplier Logic
+            if ($isSupplier) {
+                $supplier = Supplier::findOrFail($request->supplier_id);
+
+                // Logic: Payment to Supplier reduces the balance (Debit)
+                if ($request->type === 'payment') {
+                    $debit = $amount;
+                    $supplier->decrement('current_balance', $amount); // Reduce debt
+                    if (! $desc) {
+                        $desc = "Cash Payment";
+                    }
+
+                } elseif ($request->type === 'opening_balance') {
+                    $credit = $amount; // Increases debt
+                    $supplier->increment('current_balance', $amount);
+                    if (! $desc) {
+                        $desc = "Opening Balance Adjustment";
+                    }
+
+                }
+
+                $balance    = $supplier->current_balance;
+                $foreignKey = ['supplier_id' => $supplier->id];
+            }
+            // 3. Handle Customer Logic
+            else {
+                $customer = Customer::findOrFail($request->customer_id);
+
+                                                    // Logic: Payment FROM Customer reduces balance (Credit)
+                if ($request->type === 'payment') { // Receiving money
+                    $credit = $amount;
+                    $customer->decrement('current_balance', $amount);
+                    if (! $desc) {
+                        $desc = "Cash Received";
+                    }
+
+                } elseif ($request->type === 'opening_balance') { // They owe us
+                    $debit = $amount;
+                    $customer->increment('current_balance', $amount);
+                    if (! $desc) {
+                        $desc = "Opening Balance Adjustment";
+                    }
+
+                }
+
+                $balance    = $customer->current_balance;
+                $foreignKey = ['customer_id' => $customer->id];
+            }
+
+            // 4. Record Transaction
+            DB::table('transactions')->insert(array_merge($foreignKey, [
+                'date'        => $request->date,
+                'description' => $desc,
+                'debit'       => $debit,
+                'credit'      => $credit,
+                'balance'     => $balance,
+                'created_at'  => now(),
+                'updated_at'  => now(),
+            ]));
+
+            DB::commit();
+            return response()->json(['message' => 'Transaction added successfully']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
+
 }
