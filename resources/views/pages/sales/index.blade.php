@@ -1,15 +1,26 @@
 @extends('layouts.main')
 
 @section('content')
+    {{-- 🟢 SweetAlert2 CDN (Zaroori hai popup ke liye) --}}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <div class="flex-1 p-4 sm:p-6 lg:p-8 bg-gray-100 ">
 
         <h1 class="text-2xl font-bold mb-6">Sales Point - Wholesale & Permanent</h1>
+        <div id="statusMessage" class="mb-4 hidden p-3 rounded-lg text-sm font-medium" role="alert"></div>
         <hr>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
             {{-- Left Column: Customer Selection --}}
             <div class="bg-white p-4 rounded-lg shadow-md overflow-y-auto">
-                <h2 class="text-2xl font-bold mb-3">Customer Selection</h2>
+                {{-- Header with Add Button --}}
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-2xl font-bold">Customer Selection</h2>
+                    <button onclick="openModal()" 
+                        class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 px-3 rounded flex items-center transition-colors shadow-sm">
+                        <i class="fas fa-plus mr-1"></i> New
+                    </button>
+                </div>
 
                 <div class="relative mb-4">
                     <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -21,20 +32,20 @@
                 </div>
 
 
-                <ul id="customer-list" class="space-y-2">
+                <ul id="customer-list" class="space-y-2 max-h-[600px] overflow-y-auto">
                     @forelse ($customers as $customer)
-                        <li class="customer-item px-3 hover:bg-gray-100 rounded cursor-pointer text-lg font-bold transition-colors"
+                        <li class="customer-item px-3 rounded cursor-pointer text-lg font-bold transition-colors"
                             data-id="{{ $customer->id }}" data-name="{{ $customer->name }}"
                             data-balance="{{ number_format($customer->current_balance, 2, '.', '') }}">
                             {{ $customer->name }}
                             <br>
-                            <span class="text-sm text-gray-700">
+                            <span class="text-sm text-gray-700 balance-text">
                                 (Bal: {{ number_format($customer->current_balance, 0) }} PKR)
                             </span>
                         </li>
                         <hr>
                     @empty
-                        <li class="p-3 text-gray-500">
+                        <li id="no-customer-placeholder" class="p-3 text-gray-500">
                             No customers found. Please add a customer to begin a sale.
                         </li>
                     @endforelse
@@ -194,13 +205,13 @@
                     <button type="button" id="add-item-btn"
                         class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition-colors mb-4"
                         disabled>
-                        + Add Item to Cart
+                        + Add Item 
                     </button>
 
                     <hr class="my-4">
 
                     <div id="cart-items-container" class="space-y-2 max-h-40 overflow-y-auto mb-4">
-                        <div class="text-gray-500 text-center py-4">Cart is Empty</div>
+                        <div class="text-gray-500 text-center py-4">Empty</div>
                     </div>
 
                     <hr class="my-4">
@@ -226,8 +237,107 @@
             </div>
         </div>
     </div>
+
+    {{-- 🟢 MODAL FOR ADDING CUSTOMER (Hidden by default) --}}
+    <div id="contactModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-40 transition-opacity backdrop-blur-sm" onclick="closeModal()"></div>
+    
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-gray-100">
+                
+                <div class="bg-white px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-800" id="modalTitle">Add New Customer</h3>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+    
+                <form id="contactForm">
+                    @csrf
+                    {{-- Force Type to Customer --}}
+                    <input type="hidden" name="type" value="customer"> 
+                    
+                    <div class="px-6 py-6 space-y-5">
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                            <input type="text" name="name" id="contactName" required 
+                                   class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 focus:border-slate-400 outline-none transition-all placeholder-gray-300"
+                                   placeholder="e.g. Hotel Bismillah">
+                            <p id="nameError" class="text-xs text-red-500 mt-1 hidden"></p>
+                        </div>
+    
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Opening Balance</label>
+                            <input type="number" name="opening_balance" id="openingBalance" value="0"
+                                   class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 focus:border-slate-400 outline-none transition-all placeholder-gray-300">
+                            <p class="text-xs text-gray-400 mt-1">Positive = They owe us. Negative = We owe them.</p>
+                        </div>
+    
+                    </div>
+    
+                    <div class="bg-gray-50 px-6 py-4 flex flex-row-reverse">
+                        <button type="submit" id="saveContactBtn" class="w-full sm:w-auto inline-flex justify-center rounded-lg bg-slate-800 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600 transition-colors">
+                            Save Customer
+                        </button>
+                        <button type="button" onclick="closeModal()" class="mt-3 inline-flex w-full sm:w-auto justify-center rounded-lg bg-white px-6 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:mr-3 transition-colors">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+    
+            </div>
+        </div>
+    </div>
+
+
     <script>
+        // 🟢 ROUTE FOR ADDING CONTACT
+        const STORE_CONTACT_URL = "{{ route('admin.contacts.store') }}"; 
+
+        // 🟢 MODAL JS LOGIC
+        function openModal() {
+            const modal = document.getElementById('contactModal');
+            const form = document.getElementById('contactForm');
+            form.reset();
+            document.getElementById('nameError').classList.add('hidden');
+            modal.classList.remove('hidden');
+            // Focus on name input
+            setTimeout(() => document.getElementById('contactName').focus(), 100);
+        }
+
+        function closeModal() {
+            document.getElementById('contactModal').classList.add('hidden');
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
+            
+            // 🔍 CUSTOMER SEARCH LOGIC (Fix: Moved Inside DOMContentLoaded)
+            // Use 'input' event to catch clear 'x' clicks and pasting
+            document.getElementById('customer-search').addEventListener('input', function() {
+                let filter = this.value.toLowerCase().trim();
+                let items = document.querySelectorAll('.customer-item');
+
+                items.forEach(function(item) {
+                    let text = item.textContent.toLowerCase();
+                    // Identify the HR tag that comes immediately after this LI
+                    let hr = item.nextElementSibling; 
+
+                    if (text.includes(filter)) {
+                        item.classList.remove('hidden');
+                        // Only remove hidden if the next sibling is actually an HR tag
+                        if(hr && hr.tagName === 'HR') {
+                            hr.classList.remove('hidden'); 
+                        }
+                    } else {
+                        item.classList.add('hidden');
+                        if(hr && hr.tagName === 'HR') {
+                            hr.classList.add('hidden'); 
+                        }
+                    }
+                });
+            });
+
             // 🟢 RATES DATA LOADED FROM CONTROLLER
             let ACTIVE_RATES = @json($rates);
 
@@ -240,11 +350,10 @@
             let cartItems = [];
 
             // DOM Elements
-            const customerItems = document.querySelectorAll('.customer-item');
             const customerIdInput = document.getElementById('selected-customer-id');
             const customerNameDisplay = document.getElementById('current-customer-name');
             const customerBalanceDisplay = document.getElementById('current-customer-balance');
-            const categoryTabs = document.querySelectorAll('.category-tab'); // Selects ALL buttons from both grids
+            const categoryTabs = document.querySelectorAll('.category-tab'); 
             const wholesaleGrid = document.getElementById('wholesale-category-grid');
             const retailGrid = document.getElementById('retail-category-grid');
             const weightInput = document.getElementById('weight-input');
@@ -257,14 +366,13 @@
             const confirmSaleBtn = document.getElementById('confirm-sale-btn');
             const saleForm = document.getElementById('sale-form');
             const rateSourceDisplay = document.getElementById('rate-source-display');
+            const customerList = document.getElementById('customer-list'); // UL element
 
             // Checkbox Elements
             const wholesaleCheckbox = document.getElementById('wholesale-channel-checkbox');
             const retailCheckbox = document.getElementById('retail-channel-checkbox');
 
             const FETCH_RATES_ROUTE = "{{ route('admin.sales.fetch-rates') }}";
-
-            // --- Rate Field Mapping (Maps Wholesale keys to their Retail equivalent) ---
             const retailRateMap = {
                 'wholesale_hotel_mix_rate': 'retail_mix_rate',
                 'wholesale_hotel_chest_rate': 'retail_chest_rate',
@@ -272,7 +380,6 @@
                 'wholesale_customer_piece_rate': 'retail_piece_rate',
                 'wholesale_rate': 'retail_mix_rate',
             };
-
 
             // --- Utility Functions ---
 
@@ -293,46 +400,33 @@
                 updateAddItemButton();
             };
 
-            /**
-             * Fetches the correct rate value based on the selected channel and category key.
-             */
             const getRateByChannel = (channel, wholesaleKey) => {
                 let rate = 0.00;
                 let displayKey = '';
 
                 if (channel === 'wholesale') {
-                    // For ALL wholesale/live categories, pull from the wholesale object
                     if (ACTIVE_RATES.wholesale.hasOwnProperty(wholesaleKey)) {
                         rate = ACTIVE_RATES.wholesale[wholesaleKey];
                         displayKey = wholesaleKey;
                     }
                 } else if (channel === 'retail') {
-
-                    // 🛑 FIX START: Correctly pull Live Chicken Rate and map others
                     if (wholesaleKey === 'live_chicken_rate') {
-                        // Pull Live Chicken Rate from ACTIVE_RATES.wholesale
                         if (ACTIVE_RATES.wholesale.hasOwnProperty('live_chicken_rate')) {
                             rate = ACTIVE_RATES.wholesale.live_chicken_rate;
                             displayKey = wholesaleKey + ' (Retail)';
                         }
                     } else {
-                        // Handle all other retail-mapped items (Truck, Mix, Chest, Thigh, Piece)
                         const retailKey = retailRateMap[wholesaleKey];
                         if (retailKey && ACTIVE_RATES.retail.hasOwnProperty(retailKey)) {
                             rate = ACTIVE_RATES.retail[retailKey];
                             displayKey = retailKey;
                         }
                     }
-                    // 🛑 FIX END
                 }
-
-                // Ensure rate is a number
                 rate = parseFloat(rate) || 0.00;
-
                 return { rate: rate, displayKey: displayKey.replace(/_/g, ' ') };
             };
 
-            // 🟢 Function to update the rate input based on selected category and channel
             const updateRateInput = () => {
                 const currentSelectedRateField = selectedRateField;
                 const currentSelectedChannel = wholesaleCheckbox.checked ? 'wholesale' : 'retail';
@@ -342,22 +436,15 @@
                     rateSourceDisplay.textContent = 'Rate source: No Category Selected';
                     return;
                 }
-
-                // 1. Fetch the default saved rate for the current channel and category
                 const rateData = getRateByChannel(currentSelectedChannel, currentSelectedRateField);
-
-                // 2. Update UI (This is the core function for showing the saved rate)
                 rateInput.value = rateData.rate.toFixed(2);
                 rateSourceDisplay.textContent = `Rate source: ${currentSelectedChannel.toUpperCase()} - ${rateData.displayKey}`;
-
-                calculateLineTotal(); // Also update line total whenever rate changes
+                calculateLineTotal();
             };
-
 
             const updateAddItemButton = () => {
                 const weight = parseFloat(weightInput.value);
                 const rate = parseFloat(rateInput.value);
-
                 if (selectedCustomerId && selectedCategory && weight > 0 && rate > 0) {
                     addItemBtn.disabled = false;
                 } else {
@@ -367,17 +454,14 @@
 
             const updateCartDisplay = () => {
                 let grandTotal = 0;
-
                 cartContainer.innerHTML = '';
-
                 if (cartItems.length === 0) {
-                    cartContainer.innerHTML = '<div class="text-gray-500 text-center py-4">Cart is Empty</div>';
+                    cartContainer.innerHTML = '<div class="text-gray-500 text-center py-4">Empty</div>';
                     confirmSaleBtn.disabled = true;
                 } else {
                     cartItems.forEach((item, index) => {
                         const lineTotal = item.weight * item.rate;
                         grandTotal += lineTotal;
-
                         const itemDiv = document.createElement('div');
                         itemDiv.className = 'flex justify-between text-gray-700 py-1 border-b';
                         itemDiv.innerHTML = `
@@ -396,7 +480,6 @@
                     });
                     confirmSaleBtn.disabled = !selectedCustomerId;
                 }
-
                 totalPayableDisplay.textContent = formatCurrency(grandTotal);
                 finalTotalPayableInput.value = grandTotal.toFixed(2);
             };
@@ -405,33 +488,26 @@
                 try {
                     const response = await fetch(FETCH_RATES_ROUTE, {
                         method: 'GET',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Accept': 'application/json'
-                        }
+                        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
                     });
-
                     if (response.ok) {
                         const data = await response.json();
                         if (data.success) {
                             ACTIVE_RATES = data.rates;
                             updateRateInput();
-                            console.log('Rates successfully synchronized from backend.');
                             return true;
                         }
                     }
                     return false;
-
                 } catch (error) {
                     console.error("Failed to fetch latest rates:", error);
                     return false;
                 }
             };
 
-
             // --- Event Handlers ---
 
-            // 1. Channel Selection (Checkboxes)
+            // 1. Channel Selection
             const toggleCategoryGrids = (channel) => {
                 if (channel === 'wholesale') {
                     wholesaleGrid.classList.remove('hidden');
@@ -444,7 +520,6 @@
 
             const handleChannelChange = (event) => {
                 const clickedCheckbox = event.target;
-
                 if (clickedCheckbox.checked) {
                     if (clickedCheckbox.id === 'wholesale-channel-checkbox') {
                         retailCheckbox.checked = false;
@@ -455,64 +530,61 @@
                     }
                 } else {
                     if (clickedCheckbox.id === 'wholesale-channel-checkbox') {
-                        retailCheckbox.checked = true; // Force check retail
+                        retailCheckbox.checked = true;
                         selectedChannel = 'retail';
                     } else if (clickedCheckbox.id === 'retail-channel-checkbox') {
-                        wholesaleCheckbox.checked = true; // Force check wholesale
+                        wholesaleCheckbox.checked = true;
                         selectedChannel = 'wholesale';
                     }
                 }
-
-                // Toggle visibility of the two category grids
                 toggleCategoryGrids(selectedChannel);
-
-                // Re-run setup to use the newly selected channel for rate display
-                if (selectedCategory) {
-                    updateRateInput();
-                }
+                if (selectedCategory) updateRateInput();
             };
 
             wholesaleCheckbox.addEventListener('change', handleChannelChange);
             retailCheckbox.addEventListener('change', handleChannelChange);
 
-            // 2. Customer Selection 
-            customerItems.forEach(item => {
-                item.addEventListener('click', function () {
-                    customerItems.forEach(i => i.classList.remove('bg-yellow-200'));
-                    this.classList.add('bg-yellow-200');
+            // 🟢 CUSTOMER SELECTION LOGIC (Function to attach listeners)
+            function attachCustomerListeners() {
+                const items = document.querySelectorAll('.customer-item');
+                items.forEach(item => {
+                    // Remove old listener to prevent duplicates (cloning is a quick hack for this)
+                    const newItem = item.cloneNode(true);
+                    item.parentNode.replaceChild(newItem, item);
+                    
+                    newItem.addEventListener('click', function () {
+                        document.querySelectorAll('.customer-item').forEach(i => i.classList.remove('bg-yellow-200'));
+                        this.classList.add('bg-yellow-200');
 
-                    selectedCustomerId = this.dataset.id;
-                    selectedCustomerName = this.dataset.name;
-                    const balance = parseFloat(this.dataset.balance);
+                        selectedCustomerId = this.dataset.id;
+                        selectedCustomerName = this.dataset.name;
+                        const balance = parseFloat(this.dataset.balance);
 
-                    customerIdInput.value = selectedCustomerId;
-                    document.getElementById('current-customer-name').textContent = selectedCustomerName;
-                    document.getElementById('current-customer-balance').textContent = formatCurrency(balance);
+                        customerIdInput.value = selectedCustomerId;
+                        customerNameDisplay.textContent = selectedCustomerName;
+                        customerBalanceDisplay.textContent = formatCurrency(balance);
 
-                    updateAddItemButton();
-                    if (cartItems.length > 0) {
-                        confirmSaleBtn.disabled = false;
-                    }
+                        updateAddItemButton();
+                        if (cartItems.length > 0) confirmSaleBtn.disabled = false;
+                    });
                 });
-            });
+            }
+            // Attach listeners initially
+            attachCustomerListeners();
 
-            // 3. Category Selection (Event listener uses the shared class '.category-tab')
+
+            // 3. Category Selection
             categoryTabs.forEach(tab => {
                 tab.addEventListener('click', function () {
-                    // Clear active state from all
                     categoryTabs.forEach(t => {
                         t.classList.remove('bg-yellow-400', 'border-black', 'shadow-md');
                         t.classList.add('bg-white', 'border-gray-300');
                     });
-
-                    // Set active state on clicked tab (Yellow Background like image)
                     this.classList.remove('bg-white', 'border-gray-300');
                     this.classList.add('bg-yellow-400', 'border-black', 'shadow-md');
-
                     selectedCategory = this.dataset.category;
                     selectedRateField = this.dataset.rateField;
-
-                    updateRateInput(); // 🟢 Load the new default rate
+                    updateRateInput();
                     updateAddItemButton();
                 });
             });
@@ -530,29 +602,129 @@
                         rate: parseFloat(rateInput.value),
                     };
                     cartItems.push(item);
-
                     weightInput.value = 0;
                     calculateLineTotal();
-
                     updateRateInput();
-
                     updateCartDisplay();
                     weightInput.focus();
                 } else {
-                    alert('Please select a customer, category, and enter valid weight/rate.');
+                    // 🟢 SWEET ALERT VALIDATION ERROR
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Missing Information',
+                        text: 'Please select a customer, category, and enter valid weight/rate.',
+                        confirmButtonColor: '#3085d6',
+                    });
                 }
             });
 
-            // 🟢 Handle Confirm Sale Submission (AJAX)
-            saleForm.addEventListener('submit', async function (e) {
-                e.preventDefault(); // Prevent default form submission (page reload)
+            // 🟢 SUBMIT NEW CUSTOMER (AJAX)
+            document.getElementById('contactForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const form = e.target;
+                const formData = new FormData(form);
+                const submitBtn = document.getElementById('saveContactBtn');
+                const nameError = document.getElementById('nameError');
+                
+                nameError.classList.add('hidden');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Saving...';
 
+                try {
+                    const response = await fetch(STORE_CONTACT_URL, {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        if (response.status === 422 && errorData.errors?.name) {
+                            nameError.textContent = errorData.errors.name[0];
+                            nameError.classList.remove('hidden');
+                        } else {
+                            // 🟢 SWEET ALERT SERVER ERROR
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Oops...',
+                                text: errorData.message || 'Error occurred',
+                            });
+                        }
+                        return;
+                    }
+
+                    const data = await response.json();
+                    
+                    // 1. Create New List Item for POS
+                    const li = document.createElement('li');
+                    li.className = 'customer-item px-3 hover:bg-gray-100 rounded cursor-pointer text-lg font-bold transition-colors bg-yellow-100 border border-yellow-300';
+                    li.dataset.id = data.contact.id;
+                    li.dataset.name = data.contact.name;
+                    // Ensure balance is handled correctly
+                    let bal = data.contact.current_balance ? parseFloat(data.contact.current_balance) : 0;
+                    li.dataset.balance = bal.toFixed(2);
+                    
+                    li.innerHTML = `
+                        ${data.contact.name}
+                        <br>
+                        <span class="text-sm text-gray-700 balance-text">
+                            (Bal: ${formatCurrencyNoDecimal(bal)} PKR)
+                        </span>
+                    `;
+
+                    // 2. Remove placeholder if exists
+                    const placeholder = document.getElementById('no-customer-placeholder');
+                    if(placeholder) placeholder.remove();
+
+                    // 3. Prepend to list
+                    customerList.prepend(document.createElement('hr'));
+                    customerList.prepend(li);
+
+                    // 4. Re-attach listeners so new item is clickable
+                    attachCustomerListeners();
+
+                    // 5. Select the new customer automatically
+                    li.click();
+
+                    // 6. Close Modal
+                    closeModal();
+
+                    // 🟢 SWEET ALERT SUCCESS (Customer Added)
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Saved!',
+                        text: 'Customer added successfully!',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    // 🟢 SWEET ALERT NETWORK ERROR
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Network Error',
+                        text: 'Something went wrong. Please check your connection.',
+                    });
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Save Customer';
+                }
+            });
+
+
+            // 🟢 Handle Confirm Sale Submission
+            saleForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
                 if (!selectedCustomerId || cartItems.length === 0) {
-                    alert('Please select a customer and add items to the cart.');
+                    // 🟢 SWEET ALERT VALIDATION
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Empty Cart',
+                        text: 'Please select a customer and add items to the cart.',
+                    });
                     return;
                 }
-
-                // Disable button during submission to prevent double click
                 confirmSaleBtn.disabled = true;
                 confirmSaleBtn.textContent = 'Processing...';
 
@@ -571,93 +743,80 @@
                     const data = await response.json();
 
                     if (response.ok && data.sale_id) {
-                        // Success: Show message and update customer balance on the fly
+                        // 🟢 SWEET ALERT SUCCESS (SALE DONE)
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Sale Completed!',
+                            text: data.message + ` (Sale ID: ${data.sale_id})`,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
 
-                        alert('Success: ' + data.message + ` (Sale ID: ${data.sale_id})`);
-
-                        // 1. Update the Balance Display (Current Transaction View)
                         customerBalanceDisplay.textContent = formatCurrency(data.updated_balance);
 
-                        // 2. Update the data attribute on the relevant list item (Customer Selection List)
+                        // Update list item balance
                         const customerListItem = document.querySelector(`.customer-item[data-id="${data.customer_id}"]`);
                         if (customerListItem) {
                             customerListItem.dataset.balance = data.updated_balance;
-
-                            // 3. Update the small balance text inside the list item
-                            const balanceSpan = customerListItem.querySelector('.text-sm.text-gray-700');
+                            const balanceSpan = customerListItem.querySelector('.balance-text');
                             if (balanceSpan) {
                                 balanceSpan.textContent = `(Bal: ${formatCurrencyNoDecimal(data.updated_balance)} PKR)`;
                             }
-
-                            // Optional: Highlight the customer list item for confirmation
                             customerListItem.classList.remove('bg-yellow-200');
                             customerListItem.classList.add('bg-green-200');
                             setTimeout(() => {
                                 customerListItem.classList.remove('bg-green-200');
-                                customerListItem.classList.add('bg-yellow-200'); // Re-highlight current selection
+                                customerListItem.classList.add('bg-yellow-200');
                             }, 1500);
                         }
 
-                        // 4. Reset POS for next sale
                         cartItems = [];
                         updateCartDisplay();
                         weightInput.value = 0;
                         calculateLineTotal();
-
                     } else {
-                        // Handle Validation/Server Errors
-                        let errorMessage = data.message || 'An unknown error occurred.';
-                        if (data.errors) {
-                            errorMessage += "\nValidation Errors:\n" + Object.values(data.errors).flat().join('\n');
-                        }
-                        alert('Error: ' + errorMessage);
+                        let errorMessage = data.message || 'Error occurred.';
+                        if (data.errors) errorMessage += "\n" + Object.values(data.errors).flat().join('\n');
+                        
+                        // 🟢 SWEET ALERT ERROR (Server/Validation)
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Transaction Failed',
+                            text: errorMessage,
+                        });
                     }
-
                 } catch (error) {
-                    console.error('Sale confirmation failed:', error);
-                    alert('A network or critical error occurred. Check the console.');
+                    console.error('Sale failed:', error);
+                    // 🟢 SWEET ALERT NETWORK ERROR
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Network Error',
+                        text: 'Could not complete the sale. Check console for details.',
+                    });
                 } finally {
-                    // Re-enable button
                     confirmSaleBtn.disabled = false;
                     confirmSaleBtn.textContent = 'Confirm Sale (Credit)';
                 }
             });
 
-            // 6. Final State Setup (Default Selections)
+            // Final Setup
             const initialSetup = () => {
-                // 1. Select first customer
-                if (customerItems.length > 0) {
-                    customerItems[0].click();
+                if (document.querySelectorAll('.customer-item').length > 0) {
+                   // Optional: Auto Select first customer? 
+                   // document.querySelectorAll('.customer-item')[0].click();
                 }
-
-                // 2. Ensure Wholesale Grid is shown by default
                 toggleCategoryGrids(selectedChannel);
-
-                // 3. Select the 'Live/Whole' category by default for wholesale selling
-                // Try live (lowercase) first
                 let liveTab = document.querySelector('#wholesale-category-grid .category-tab[data-category="live"]');
-                if(!liveTab) {
-                     // Try Live (Uppercase)
-                     liveTab = document.querySelector('#wholesale-category-grid .category-tab[data-category="Live"]');
-                }
-
-                if (liveTab) {
-                    // Manually simulate a click event to trigger category selection and rate update logic
-                    liveTab.click();
-                } else {
-                    // Fallback to the first category
+                if(!liveTab) liveTab = document.querySelector('#wholesale-category-grid .category-tab[data-category="Live"]');
+                if (liveTab) liveTab.click();
+                else {
                     const firstTab = document.querySelector('#wholesale-category-grid .category-tab');
                     if (firstTab) firstTab.click();
                 }
             }
-
-            // Run initial setup immediately after DOM is ready
             initialSetup();
-
-            // 7. Final state cleanup
             updateCartDisplay();
 
-            // 8. Handle removal of cart item
             cartContainer.addEventListener('click', function (e) {
                 if (e.target.closest('.remove-item-btn')) {
                     const index = e.target.closest('.remove-item-btn').dataset.index;
@@ -666,26 +825,20 @@
                 }
             });
 
-            // 9. Handle Cancel button
             document.getElementById('cancel-sale-btn').addEventListener('click', function () {
                 cartItems = [];
                 updateCartDisplay();
                 window.location.reload();
             });
 
-            // 10. Listener to check for rate updates when the tab becomes active (if any)
             window.addEventListener('focus', function () {
                 const rateUpdateFlag = localStorage.getItem('rates_updated');
-
                 if (rateUpdateFlag === 'true') {
                     fetchLatestRates().then(success => {
-                        if (success) {
-                            localStorage.removeItem('rates_updated');
-                        }
+                        if (success) localStorage.removeItem('rates_updated');
                     });
                 }
             });
-
         });
     </script>
 @endsection

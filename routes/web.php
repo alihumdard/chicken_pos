@@ -104,3 +104,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/settings/rates/formulas', [RateController::class, 'updateRateFormula'])->name('rates.formulas.update');
     });
 });
+Route::get('/admin/suppliers/{id}/ledger', [SupplierCustomerController::class, 'getLedger']);
+Route::post('/admin/suppliers/payment', [SupplierCustomerController::class, 'storePayment']);
+Route::resource('admin/purchases', App\Http\Controllers\PurchaseController::class, ['as' => 'admin']);
+Route::get('/admin/suppliers/{id}/ledger', [SupplierCustomerController::class, 'getSupplierLedger']);
+Route::get('/admin/customers/{id}/ledger', [SupplierCustomerController::class, 'getCustomerLedger']);
+Route::post('/admin/customers/payment', [SupplierCustomerController::class, 'storePayment']);

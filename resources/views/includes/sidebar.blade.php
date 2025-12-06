@@ -38,6 +38,7 @@
     .sidebar-link.active i {
         color: var(--highlight-color) !important;
     }
+
     .dropdown-container {
         display: block;
     }
@@ -166,20 +167,12 @@
         {{-- Logo Area (RANA POS) --}}
         <div class="p-4 md:p-6 shadow-inner shrink-0 flex items-center space-x-3" style="padding-bottom: 2rem;">
             @php
-                // --- FIX: Ensure settings data is always available ---
-                // Try to use global settings (from View Composer), otherwise fetch directly
-                // Note: The Setting model must be available in this scope.
-                
                 $settingsModel = $globalSettings ?? null;
-
-                // If global settings are not set or not a valid object, fetch them directly
                 if (!($settingsModel instanceof \App\Models\Setting)) {
                     try {
-                        // Use the static method from the Setting model to get the latest data
                         $settingsModel = \App\Models\Setting::getGlobalSettings();
                     } catch (\Throwable $e) {
-                        // Fallback in case of database or model error
-                        $settingsModel = (object)['shop_name' => 'RANA POS', 'logo_url' => null];
+                        $settingsModel = (object) ['shop_name' => 'RANA POS', 'logo_url' => null];
                     }
                 }
 
@@ -189,57 +182,42 @@
             @endphp
 
             @if($logoUrl)
-                {{-- 🟢 Image will show if $logoUrl is set by the database --}}
-                <img src="{{ asset($logoUrl) }}" alt="{{ $shopName }} Logo" class="h-16 rounded-full w-auto" id="sidebar-logo-img">
+                <img src="{{ asset($logoUrl) }}" alt="{{ $shopName }} Logo" class="h-16 rounded-full w-auto"
+                    id="sidebar-logo-img">
             @endif
 
             <h2 class="text-xl font-bold tracking-wide text-white" id="sidebar-shop-name-container">
                 @if($logoUrl)
-                    {{-- 🟢 1. LOGO PRESENT: Display full name (regular white text) --}}
                     <span id="sidebar-shop-name">{{ $displayShopName }}</span>
                 @else
-                    {{-- 🟢 2. LOGO NOT PRESENT: Display full name, styled with the logo highlight color --}}
                     <span class="logo-text" id="sidebar-shop-name">{{ $displayShopName }}</span>
                 @endif
             </h2>
         </div>
 
-        {{-- Navigation Links --}}
         <nav class=" px-2 md:px-4 space-y-2 flex-1 overflow-y-auto">
 
-            {{-- Example: Dashboard --}}
             <a href="{{ route('dashboard') }}"
                 class="sidebar-link flex items-center w-full group {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                 <i class="fas fa-home mr-4 text-base w-5 text-center"></i>
                 <span class="text-sm font-medium">Dashboard</span>
             </a>
-
-            {{-- Suppliers Link --}}
-            <a href="{{ route('admin.contacts.index') }}"
-                class="sidebar-link flex items-center w-full group {{ request()->routeIs('admin.contacts.*') ? 'active' : '' }}">
-                <i class="fas fa-users mr-4 text-base w-5 text-center"></i>
-                <span class="text-sm font-medium">Suppliers & Customers</span>
-            </a>
-
-            {{-- Purchase Link --}}
-            <a href="{{ route('admin.purchases.index') }}"
-                class="sidebar-link flex items-center w-full group {{ request()->routeIs('admin.purchases.*') ? 'active' : '' }}">
-                <i class="fas fa-box-open mr-4 text-base w-5 text-center"></i>
-                <span class="text-sm font-medium">Purchase & Stock</span>
-            </a>
-
-            {{-- Rates Link --}}
-            <a href="{{ route('admin.rates.index') }}"
-                class="sidebar-link flex items-center w-full group {{ request()->routeIs('admin.rates.*') ? 'active' : '' }}">
-                <i class="fas fa-percent mr-4 text-base w-5 text-center"></i>
-                <span class="text-sm font-medium">Rates</span>
-            </a>
-
-            {{-- Sales Link --}}
             <a href="{{ route('admin.sales.index') }}"
                 class="sidebar-link flex items-center w-full group {{ request()->routeIs('admin.sales.*') ? 'active' : '' }}">
                 <i class="fas fa-shopping-cart mr-4 text-base w-5 text-center"></i>
                 <span class="text-sm font-medium">Sales</span>
+            </a>
+
+            <a href="{{ route('admin.purchases.index') }}"
+                class="sidebar-link flex items-center w-full group {{ request()->routeIs('admin.purchases.*') ? 'active' : '' }}">
+                <i class="fas fa-box-open mr-4 text-base w-5 text-center"></i>
+                <span class="text-sm font-medium">Purchase</span>
+            </a>
+
+            <a href="{{ route('admin.rates.index') }}"
+                class="sidebar-link flex items-center w-full group {{ request()->routeIs('admin.rates.*') ? 'active' : '' }}">
+                <i class="fas fa-percent mr-4 text-base w-5 text-center"></i>
+                <span class="text-sm font-medium">Rates & Stock</span>
             </a>
 
             <div class="dropdown-container">
@@ -255,26 +233,30 @@
 
                 <div class="dropdown-content {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}"
                     id="reports-dropdown">
-                    {{-- Sub-Link 1: Purchase Report --}}
+
                     <a href="{{ route('admin.reports.purchase') }}"
                         class="dropdown-link {{ request()->routeIs('admin.reports.purchase') ? 'active-sub' : '' }}">
                         Purchase Report
                     </a>
 
-                    {{-- Sub-Link 2: Sales Report --}}
                     <a href="{{ route('admin.reports.sell.summary') }}"
                         class="dropdown-link {{ request()->routeIs('admin.reports.sell.summary') ? 'active-sub' : '' }}">
                         Sales Report
                     </a>
 
-                    {{-- Sub-Link 3: Stock Report --}}
                     <a href="{{ route('admin.reports.stock') }}"
                         class="dropdown-link {{ request()->routeIs('admin.reports.stock') ? 'active-sub' : '' }}">
                         Stock Report
                     </a>
                 </div>
             </div>
-            
+
+             <a href="{{ route('admin.contacts.index') }}"
+                class="sidebar-link flex items-center w-full group {{ request()->routeIs('admin.contacts.*') ? 'active' : '' }}">
+                <i class="fas fa-users mr-4 text-base w-5 text-center"></i>
+                <span class="text-sm font-medium">Suppliers & Customers</span>
+            </a>
+
             <a href="{{ route('admin.settings.index') }}"
                 class="sidebar-link flex items-center w-full group {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
                 <i class="fas fa-cogs mr-4 text-base w-5 text-center"></i>
@@ -282,7 +264,6 @@
             </a>
         </nav>
 
-        {{-- Logout/Footer Area --}}
         <div class="p-4 border-t" style="border-color: rgba(255, 255, 255, 0.1);">
             <form action="{{ route('logout') }}" method="POST">
                 @csrf
@@ -297,7 +278,6 @@
     </aside>
 </div>
 
-{{-- 3. JavaScript (Updated for Reports Dropdown) --}}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const menuButton = document.querySelector('.mobile-menu-button');
@@ -305,12 +285,10 @@
         const overlay = document.querySelector('.overlay');
         const closeButton = document.querySelector('.sidebar-close-button');
 
-        // --- Mobile Menu Toggle Functionality ---
         function toggleSidebar() {
             sidebar.classList.toggle('open');
             overlay.classList.toggle('open');
-            // Removed 'hide' class toggle from menuButton as it's not defined in CSS
-            
+
             if (sidebar.classList.contains('open')) {
                 document.body.style.overflow = 'hidden';
             } else {
@@ -329,7 +307,6 @@
         document.querySelectorAll('.sidebar-link').forEach(link => {
             link.addEventListener('click', function () {
                 if (window.innerWidth <= 768) {
-                    // No action here to allow the link to navigate.
                 }
             });
         });
@@ -338,17 +315,13 @@
         const reportsToggle = document.getElementById('reports-toggle');
         const reportsDropdown = document.getElementById('reports-dropdown');
         const reportsIcon = reportsToggle.querySelector('.fa-chevron-down');
-
-        // Initial state check for page load (if a report sub-link is active)
         if (reportsDropdown.classList.contains('active')) {
             reportsDropdown.style.display = 'block';
             reportsToggle.classList.add('reports-open');
         }
 
         reportsToggle.addEventListener('click', function (e) {
-            e.preventDefault(); // Stop the link from navigating
-
-            // Check if it's currently active (i.e., a report page is open)
+            e.preventDefault();
             const is_active_route = reportsToggle.classList.contains('active');
 
             if (reportsDropdown.style.display === 'block' && !is_active_route) {
@@ -357,18 +330,15 @@
                 reportsIcon.classList.remove('rotate-180');
                 reportsToggle.classList.remove('reports-open');
             } else {
-                // If closed or an active route, open it
                 reportsDropdown.style.display = 'block';
                 reportsIcon.classList.add('rotate-180');
                 reportsToggle.classList.add('reports-open');
             }
         });
 
-        // Close mobile sidebar on any link click (including dropdowns)
         document.querySelectorAll('.sidebar-link, .dropdown-link').forEach(link => {
             link.addEventListener('click', function () {
                 if (window.innerWidth <= 768) {
-                    // Add a small delay to allow navigation before closing
                     setTimeout(() => {
                         sidebar.classList.remove('open');
                         overlay.classList.remove('open');

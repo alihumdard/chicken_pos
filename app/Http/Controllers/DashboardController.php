@@ -1,69 +1,65 @@
 <?php
+
 namespace App\Http\Controllers;
 
-use App\Models\Purchase;
+use Illuminate\Http\Request;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\Purchase;
+use App\Models\Transaction; // The ledger model we created
 use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // 1. Set Date
         $today = Carbon::today();
 
-        // 2. Calculate Sales Metrics
-        $todaySales = Sale::whereDate('created_at', $today)->get();
+        // 1. Calculate Total Sales Today
+        $total_sales = Sale::whereDate('created_at', $today)->sum('total_amount');
 
-        $totalSalesAmount = $todaySales->sum('total_amount');
+        // 2. Calculate Current Live Stock (Total Purchased - Total Sold)
+        $total_purchased_weight = Purchase::sum('net_live_weight');
+        $total_sold_weight = SaleItem::sum('weight_kg');
+        $current_stock = max(0, $total_purchased_weight - $total_sold_weight);
 
-                                                 // Note: Actual Cash/Credit split depends on Sale model's payment method/status.
-                                                 // Using a mock split here for demonstration.
-        $cashSales   = $totalSalesAmount * 0.40; // Mock 40% Cash
-        $creditSales = $totalSalesAmount * 0.60; // Mock 60% Credit
+        // 3. Today's Purchase Data
+        $today_purchases = Purchase::whereDate('created_at', $today)->get();
+        $today_purchase_net = $today_purchases->sum('net_live_weight');
+        $today_purchase_cost = $today_purchases->sum('total_payable');
 
-        // 3. Calculate Current Live Stock (Total Purchases - Total Sales Weight)
-        $totalPurchasedWeight = Purchase::sum('net_live_weight');
-        $totalSoldWeight      = SaleItem::sum('weight_kg');
-        $currentStock         = max(0, $totalPurchasedWeight - $totalSoldWeight); // Current available stock
+        // 4. Today's Expenses 
+        // (Set to 0 for now until you create an Expense Table, removing mock random numbers)
+        $today_expenses = 0; 
 
-        // 4. Calculate Today's Purchases
-        $todayPurchases    = Purchase::whereDate('created_at', $today)->get();
-        $todayPurchaseNet  = $todayPurchases->sum('net_live_weight');
-        $todayPurchaseCost = $todayPurchases->sum('total_payable');
-
-        // 5. Fetch Recent Transactions (Last 5 sales)
-        $transactions = Sale::with('customer')
-            ->whereDate('created_at', $today)
-            ->latest()
-            ->limit(5)
+        // 5. Recent Transactions (From Ledger)
+        // Mapping the data to match your View's variable names
+        $transactions = Transaction::latest()
+            ->take(10) // Show last 10
             ->get()
-            ->map(function ($sale) {
+            ->map(function ($tx) {
+                // Determine Amount (Debit or Credit)
+                $amount = ($tx->debit > 0) ? $tx->debit : $tx->credit;
+                
+                // Determine Label Color logic based on type
+                $type = ucfirst(str_replace('_', ' ', $tx->type)); // e.g., "Sale", "Payment"
+
                 return (object) [
-                    'time'     => $sale->created_at->format('h:i A'),
-                    'customer' => $sale->customer->name ?? 'N/A',
-                    // Mocking type based on payment status/channel if available, otherwise using Credit/Cash placeholder
-                    'type'     => $sale->payment_status === 'paid' ? 'Cash' : 'Credit',
-                    'amount'   => (float) $sale->total_amount,
+                    'time' => Carbon::parse($tx->created_at)->format('h:i A'),
+                    'customer' => $tx->description, // Description contains Name + Badge info
+                    'type' => $type,
+                    'amount' => $amount
                 ];
             });
 
-                                   // 6. Mock Today's Expenses (Since no Expense Model is provided)
-        $todayExpenses = 25000.00; // Placeholder value
-
-        $data = [
-            'today_date'          => $today->format('d M, Y'),
-            'total_sales'         => $totalSalesAmount,
-            'cash_sales'          => $cashSales,
-            'credit_sales'        => $creditSales,
-            'current_stock'       => $currentStock,
-            'today_purchase_net'  => $todayPurchaseNet,
-            'today_purchase_cost' => $todayPurchaseCost,
-            'today_expenses'      => $todayExpenses,
-            'transactions'        => $transactions,
-        ];
-
-        return view('pages.dashboard', $data);
+        return view('pages.dashboard', [
+            'today_date' => $today->format('d M, Y'),
+            'total_sales' => $total_sales,
+            'current_stock' => $current_stock,
+            'today_purchase_net' => $today_purchase_net,
+            'today_purchase_cost' => $today_purchase_cost,
+            'today_expenses' => $today_expenses,
+            'transactions' => $transactions
+        ]);
     }
 }
