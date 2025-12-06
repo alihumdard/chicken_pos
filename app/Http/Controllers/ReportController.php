@@ -9,50 +9,120 @@ use App\Models\SaleItem;
 use App\Models\ProfitLossSummary;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon; // Keeping the use statement for convention, but using FQCN below
+use Carbon\Carbon;
 
 class ReportController extends Controller
 {
     // Placeholder methods for existing routes
     public function index() { 
         // Implement logic to display a reports index page, or redirect to a main report
-       return redirect()->route('admin.reports.stock'); 
+        // Assuming this now redirects to the stock/P&L view
+        return redirect()->route('admin.reports.stock_report'); 
     }
     
     /**
-     * Handles the Profit & Loss report functionality,
-     * aggregating data and using the ProfitLossSummary DTO.
+     * Handles the STOCK Report AND the Profit & Loss (P&L) report functionality.
+     * The Blade view accessing this method must be set up to display both sets of data.
      */
-public function stock(Request $request) 
+    public function stock(Request $request) 
     {
+        // --- 1. P&L DATE RANGE SETUP ---
+        $endDate = Carbon::parse($request->input('end_date', Carbon::now()->toDateString()))->endOfDay();
+        $startDate = Carbon::parse($request->input('start_date', Carbon::now()->startOfMonth()->toDateString()))->startOfDay();
+
+        // --- 2. STOCK & INVENTORY CALCULATIONS (Original Stock Logic) ---
         $today = Carbon::today();
-        $gauge_max_range = 5000; // Fixed max capacity for visual scale
+        $gauge_max_range = 5000; 
 
-        // 1. CUMULATIVE DATA (Net Stock, matching Dashboard logic)
-        $totalPurchasedWeight = Purchase::sum('net_live_weight'); // Total Purchases to date
-        $totalSoldWeightToDate = SaleItem::sum('weight_kg'); // Total Sales to date
+        $totalPurchasedWeight = Purchase::sum('net_live_weight');
+        $totalSoldWeightToDate = SaleItem::sum('weight_kg');
         
-        // 2. CURRENT NET STOCK (Current Stock on Dashboard)
         $currentNetStock = max(0, $totalPurchasedWeight - $totalSoldWeightToDate);
-
-        // 3. TODAY'S SOLD WEIGHT (Sold Today on Dashboard)
         $todaySoldWeight = SaleItem::whereDate('created_at', $today)->sum('weight_kg');
-
-        // 4. MORNING OPENING STOCK: Total Stock - Sales BEFORE today
         $totalSoldBeforeToday = $totalSoldWeightToDate - $todaySoldWeight;
         $morningOpeningStock = max(0, $totalPurchasedWeight - $totalSoldBeforeToday);
         
+        // --- 3. PROFIT & LOSS CALCULATIONS (New/Moved P&L Logic) ---
+
+        // Aggregate Revenue and Cost (COGS) based on the filter dates
+        $totalRevenue = SaleItem::whereBetween('created_at', [$startDate, $endDate])->sum('line_total');
+        $totalCogs = Purchase::whereBetween('created_at', [$startDate, $endDate])->sum('total_payable');
+
+        // Daily Breakdown for Table and Chart
+        $dailyReport = [];
+        $chartLabels = [];
+        $chartInputData = [];
+        $chartOutputData = [];
+        
+        $currentDate = $startDate->copy();
+        $mockExpenses = $this->generateMockExpenses($startDate, $endDate);
+
+        while ($currentDate->lte($endDate)) {
+            $dateString = $currentDate->toDateString();
+            
+            // Daily Revenue & Cost
+            $dailyRevenue = SaleItem::whereDate('created_at', $currentDate)->sum('line_total');
+            $dailyCost = Purchase::whereDate('created_at', $currentDate)->sum('total_payable');
+            
+            // Daily Weights for Chart
+            $dailyInputWeight = Purchase::whereDate('created_at', $currentDate)->sum('net_live_weight');
+            $dailyOutputWeight = SaleItem::whereDate('created_at', $currentDate)->sum('weight_kg');
+            
+            $dailyExpenses = $mockExpenses[$dateString] ?? 0;
+            $netProfit = $dailyRevenue - $dailyCost - $dailyExpenses;
+
+            $dailyReport[] = [
+                'date' => $dateString,
+                'revenue' => (float)$dailyRevenue,
+                'cost' => (float)$dailyCost,
+                'expenses' => (float)$dailyExpenses,
+                'net_profit' => (float)$netProfit,
+            ];
+
+            // Collect data for Chart JS
+            $chartLabels[] = $currentDate->format('M d');
+            $chartInputData[] = (float)$dailyInputWeight;
+            $chartOutputData[] = (float)$dailyOutputWeight;
+
+            $currentDate->addDay();
+        }
+
+        // Final Totals for the header cards
+        $totalExpenses = array_sum(array_column($dailyReport, 'expenses'));
+        $totalNetProfit = $totalRevenue - $totalCogs - $totalExpenses;
+
+
+        // --- 4. DATA COMPILATION & VIEW RETURN ---
+        // Combine Stock data and P&L data
         $data = [
+            // Stock Data
             'today_date' => $today->format('d M, Y'),
             'current_net_stock' => $currentNetStock,
             'morning_opening' => $morningOpeningStock,
             'sold_today_weight' => $todaySoldWeight,
             'total_purchased_weight' => $totalPurchasedWeight, 
             'gauge_max_range' => $gauge_max_range, 
+            
+            // P&L Data (Resolves Undefined Variable errors in the P&L Blade)
+            'startDate' => $startDate->toDateString(), 
+            'endDate' => $endDate->toDateString(),
+            'totalRevenue' => $totalRevenue, 
+            'totalCogs' => $totalCogs, 
+            'totalExpenses' => $totalExpenses, 
+            'totalNetProfit' => $totalNetProfit, 
+            'dailyReport' => $dailyReport,
+            'chartLabels' => $chartLabels,
+            'chartInputData' => $chartInputData,
+            'chartOutputData' => $chartOutputData,
         ];
 
+        // Assuming the P&L report is the one being viewed, but named 'stock_report'
+        // If your P&L view is actually pages.reports.pnl, change 'pages.report.stock_report' below
         return view('pages.report.stock_report', $data);
     }
+
+    
+  
 
     // --- PURCHASE REPORT METHODS ---
 
@@ -60,7 +130,7 @@ public function stock(Request $request)
     {
         $suppliers = Supplier::select('id', 'name')->orderBy('name')->get(); 
         $purchases = Purchase::with('supplier')
-            ->where('created_at', '>=', \Carbon\Carbon::now()->subDays(30))
+            ->where('created_at', '>=', Carbon::now()->subDays(30))
             ->orderBy('created_at', 'desc')
             ->get(); 
         return view('pages.report.purchase_report', compact('suppliers', 'purchases')); 
@@ -71,7 +141,7 @@ public function stock(Request $request)
         $query = Purchase::with('supplier');
 
         if ($request->filled('start_date') && $request->filled('end_date')) {
-            $endDate = \Carbon\Carbon::parse($request->input('end_date'))->endOfDay(); 
+            $endDate = Carbon::parse($request->input('end_date'))->endOfDay(); 
             $query->whereBetween('created_at', [
                 $request->input('start_date'), 
                 $endDate
@@ -111,7 +181,7 @@ public function stock(Request $request)
             $totalNetLiveWeight += $netLive;
 
             $html .= '<tr class="border-b">';
-            $html .= '<td class="p-2">' . \Carbon\Carbon::parse($purchase->created_at)->format('d/m/Y') . ' – ' . ($purchase->supplier->name ?? 'N/A') . '</td>';
+            $html .= '<td class="p-2">' . Carbon::parse($purchase->created_at)->format('d/m/Y') . ' – ' . ($purchase->supplier->name ?? 'N/A') . '</td>';
             $html .= '<td class="p-2">' . number_format($purchase->gross_weight, 2) . 'kg</td>';
             $html .= '<td class="p-2 text-red-500">-' . number_format($deadShrink, 2) . 'kg</td>';
             $html .= '<td class="p-2 text-green-600">' . number_format($netLive, 2) . 'kg</td>';
@@ -133,11 +203,11 @@ public function stock(Request $request)
 
     // --- SELL SUMMARY REPORT METHOD ---
 
-  public function sellSummaryReport(Request $request)
+    public function sellSummaryReport(Request $request)
     {
-        $date = $request->input('date', \Carbon\Carbon::now()->toDateString());
-        $startDate = \Carbon\Carbon::parse($date)->startOfDay();
-        $endDate = \Carbon\Carbon::parse($date)->endOfDay();
+        $date = $request->input('date', Carbon::now()->toDateString());
+        $startDate = Carbon::parse($date)->startOfDay();
+        $endDate = Carbon::parse($date)->endOfDay();
 
         $sales = Sale::with(['customer', 'items'])
             ->whereBetween('created_at', [$startDate, $endDate])
@@ -233,15 +303,19 @@ public function stock(Request $request)
         return view('pages.report.selll_summary_report', $reportData);
     }
 
-    // --- PROFIT & LOSS REPORT METHOD (Now redirected) ---
+    // --- PROFIT & LOSS REPORT DYNAMIC REDIRECT ---
 
-    public function profitLossReportDynamic(Request $request) // <-- Logic moved to stock()
+    public function profitLossReportDynamic(Request $request)
     {
-        // P&L logic has been moved to the stock() method.
+        // This method will now redirect to the stock method, which now holds the P&L logic
         return redirect()->route('admin.reports.stock', $request->query());
     }
     
-    // --- HELPER METHOD FOR MOCK EXPENSES ---
+    /**
+     * @param \Carbon\Carbon $start
+     * @param \Carbon\Carbon $end
+     * @return array
+     */
     private function generateMockExpenses(\Carbon\Carbon $start, \Carbon\Carbon $end): array
     {
         $expenses = [];

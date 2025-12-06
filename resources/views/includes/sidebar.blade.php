@@ -1,28 +1,16 @@
-@include('includes.head')
-@include('includes.script')
-
 <style>
-    /* --- 1. CORE THEME VARIABLES (Based on your definitions) --- */
     :root {
         --primary-color: #2C394A;
-        /* Dark Blue/Grey Background */
         --secondary-color: color-mix(in srgb, var(--primary-color), white 20%);
-        /* Lighter for hover/header */
         --highlight-color: #F8BC18;
-        /* Gold/Yellow for active state */
         --text-color-primary: #f0f0f0;
-        /* Off-White Text */
         --sub-link-hover-bg: color-mix(in srgb, var(--primary-color), black 10%);
     }
 
-    /* 🟢 Set the ASIDE background to the primary color */
     .bg-sidebar-dark {
         background-color: var(--primary-color);
     }
 
-    /* --- 2. SIDEBAR LINK STYLING --- */
-
-    /* Default link style */
     .sidebar-link {
         color: var(--text-color-primary);
         padding: 0.75rem 1rem;
@@ -35,82 +23,61 @@
         color: var(--text-color-primary);
     }
 
-    /* Hover state (Darker hover for subtle effect) */
     .sidebar-link:hover {
         background-color: color-mix(in srgb, var(--primary-color), black 10%);
         color: var(--text-color-primary) !important;
     }
 
-    /* 🟢 Active/Selected link style */
     .sidebar-link.active {
         background-color: rgba(255, 255, 255, 0.08);
-        /* Subtle white highlight */
         color: var(--text-color-primary) !important;
-        font-weight: 600;
-        /* Left Border for visual indicator (like the image) */
         border-left: 5px solid var(--highlight-color);
         padding-left: 0.75rem;
-        /* Adjust padding due to border */
     }
 
     .sidebar-link.active i {
         color: var(--highlight-color) !important;
-        /* Gold Icon */
     }
-
-    /* --- 3. DROPDOWN SPECIFIC STYLING --- */
-
-    /* Dropdown container for visual grouping */
     .dropdown-container {
         display: block;
     }
 
-    /* Sub-links within the dropdown */
     .dropdown-link {
         color: var(--text-color-primary);
         padding: 0.5rem 1rem 0.5rem 3rem;
-        /* Increased left padding for indentation */
         border-radius: 4px;
         transition: background-color 0.2s ease;
         display: block;
-        /* Make the whole area clickable */
         font-size: 0.875rem;
-        /* text-sm */
     }
 
     .dropdown-link:hover {
         background-color: var(--sub-link-hover-bg);
     }
 
-    /* Active sub-link style */
     .dropdown-link.active-sub {
         color: var(--highlight-color);
         font-weight: 600;
         background-color: var(--sub-link-hover-bg);
-        /* Highlight background */
     }
 
-    /* Hide the dropdown content by default */
     .dropdown-content {
         display: none;
         padding-top: 0.25rem;
         padding-bottom: 0.25rem;
     }
 
-    /* Style for the Reports link when it's open (to look active) */
     .sidebar-link.reports-open {
         background-color: var(--sub-link-hover-bg);
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
     }
 
-    /* 🟢 LOGO TEXT STYLING */
     .logo-text {
         color: var(--highlight-color);
         font-weight: 700;
     }
 
-    /* 🟢 MOBILE BUTTON STYLING (Adjusting to dark theme) */
     .mobile-menu-button {
         display: none;
         position: absolute;
@@ -142,7 +109,6 @@
         color: var(--primary-color);
     }
 
-    /* 🟢 MEDIA QUERIES (Retained for mobile responsiveness) */
     @media (max-width: 768px) {
         .mobile-menu-button {
             display: block;
@@ -198,14 +164,48 @@
         </button>
 
         {{-- Logo Area (RANA POS) --}}
-        <div class="p-4 md:p-6 shadow-inner shrink-0" style="padding-bottom: 2rem;">
-            <h2 class="text-2xl font-bold tracking-wide text-white">
-                <span class="logo-text">RANA</span> POS
+        <div class="p-4 md:p-6 shadow-inner shrink-0 flex items-center space-x-3" style="padding-bottom: 2rem;">
+            @php
+                // --- FIX: Ensure settings data is always available ---
+                // Try to use global settings (from View Composer), otherwise fetch directly
+                // Note: The Setting model must be available in this scope.
+                
+                $settingsModel = $globalSettings ?? null;
+
+                // If global settings are not set or not a valid object, fetch them directly
+                if (!($settingsModel instanceof \App\Models\Setting)) {
+                    try {
+                        // Use the static method from the Setting model to get the latest data
+                        $settingsModel = \App\Models\Setting::getGlobalSettings();
+                    } catch (\Throwable $e) {
+                        // Fallback in case of database or model error
+                        $settingsModel = (object)['shop_name' => 'RANA POS', 'logo_url' => null];
+                    }
+                }
+
+                $shopName = $settingsModel->shop_name ?? 'RANA POS';
+                $logoUrl = $settingsModel->logo_url ?? null;
+                $displayShopName = trim($shopName);
+            @endphp
+
+            @if($logoUrl)
+                {{-- 🟢 Image will show if $logoUrl is set by the database --}}
+                <img src="{{ asset($logoUrl) }}" alt="{{ $shopName }} Logo" class="h-16 rounded-full w-auto" id="sidebar-logo-img">
+            @endif
+
+            <h2 class="text-xl font-bold tracking-wide text-white" id="sidebar-shop-name-container">
+                @if($logoUrl)
+                    {{-- 🟢 1. LOGO PRESENT: Display full name (regular white text) --}}
+                    <span id="sidebar-shop-name">{{ $displayShopName }}</span>
+                @else
+                    {{-- 🟢 2. LOGO NOT PRESENT: Display full name, styled with the logo highlight color --}}
+                    <span class="logo-text" id="sidebar-shop-name">{{ $displayShopName }}</span>
+                @endif
             </h2>
         </div>
 
         {{-- Navigation Links --}}
-        <nav class="mt-4 px-2 md:px-4 space-y-2 flex-1 overflow-y-auto">
+        <nav class=" px-2 md:px-4 space-y-2 flex-1 overflow-y-auto">
 
             {{-- Example: Dashboard --}}
             <a href="{{ route('dashboard') }}"
@@ -224,21 +224,21 @@
             {{-- Purchase Link --}}
             <a href="{{ route('admin.purchases.index') }}"
                 class="sidebar-link flex items-center w-full group {{ request()->routeIs('admin.purchases.*') ? 'active' : '' }}">
-                <i class="fas fa-box-open mr-4 text-base w-5 text-center"></i> {{-- Changed icon for relevance --}}
+                <i class="fas fa-box-open mr-4 text-base w-5 text-center"></i>
                 <span class="text-sm font-medium">Purchase & Stock</span>
             </a>
 
             {{-- Rates Link --}}
             <a href="{{ route('admin.rates.index') }}"
                 class="sidebar-link flex items-center w-full group {{ request()->routeIs('admin.rates.*') ? 'active' : '' }}">
-                <i class="fas fa-percent mr-4 text-base w-5 text-center"></i> {{-- Changed icon for relevance --}}
+                <i class="fas fa-percent mr-4 text-base w-5 text-center"></i>
                 <span class="text-sm font-medium">Rates</span>
             </a>
 
             {{-- Sales Link --}}
             <a href="{{ route('admin.sales.index') }}"
                 class="sidebar-link flex items-center w-full group {{ request()->routeIs('admin.sales.*') ? 'active' : '' }}">
-                <i class="fas fa-shopping-cart mr-4 text-base w-5 text-center"></i> {{-- Changed icon for relevance --}}
+                <i class="fas fa-shopping-cart mr-4 text-base w-5 text-center"></i>
                 <span class="text-sm font-medium">Sales</span>
             </a>
 
@@ -274,14 +274,10 @@
                     </a>
                 </div>
             </div>
-            {{-- <a href="{{ route('admin.stock.index') }}"
-                class="sidebar-link flex items-center w-full group {{ request()->routeIs('admin.stock.*') ? 'active' : '' }}">
-                <i class="fas fa-shopping-cart mr-4 text-base w-5 text-center"></i> 
-                <span class="text-sm font-medium">Stock-Moniter</span>
-            </a> --}}
+            
             <a href="{{ route('admin.settings.index') }}"
                 class="sidebar-link flex items-center w-full group {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
-                <i class="fas fa-shopping-cart mr-4 text-base w-5 text-center"></i> {{-- Changed icon for relevance --}}
+                <i class="fas fa-cogs mr-4 text-base w-5 text-center"></i>
                 <span class="text-sm font-medium">Settings</span>
             </a>
         </nav>
@@ -313,8 +309,8 @@
         function toggleSidebar() {
             sidebar.classList.toggle('open');
             overlay.classList.toggle('open');
-            menuButton.classList.toggle('hide');
-
+            // Removed 'hide' class toggle from menuButton as it's not defined in CSS
+            
             if (sidebar.classList.contains('open')) {
                 document.body.style.overflow = 'hidden';
             } else {
@@ -333,10 +329,7 @@
         document.querySelectorAll('.sidebar-link').forEach(link => {
             link.addEventListener('click', function () {
                 if (window.innerWidth <= 768) {
-                    // This logic is already present and good for closing on link click
-                    // sidebar.classList.remove('open');
-                    // overlay.classList.remove('open');
-                    // document.body.style.overflow = '';
+                    // No action here to allow the link to navigate.
                 }
             });
         });

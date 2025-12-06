@@ -10,35 +10,84 @@
             System Configuration
         </h1>
 
+        {{-- Add success/error message container for General Settings --}}
+        @if (session('success'))
+            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-6" role="alert">
+                <strong class="font-bold">Success!</strong>
+                <span class="block sm:inline">{{ session('success') }}</span>
+            </div>
+        @endif
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
 
             <div class="space-y-10">
 
-                <div>
-                    <h2 class="text-xl font-semibold text-gray-700 mb-4 border-l-4 border-blue-600 pl-3">
-                        General Settings
-                    </h2>
+                {{-- 👇 START: UPDATED GENERAL SETTINGS FORM (Ready for Submission) --}}
+                <form action="{{ route('admin.settings.store') }}" method="POST" enctype="multipart/form-data" id="general-settings-form">
+                    @csrf
+                    
+                    <div>
+                        <h2 class="text-xl font-semibold text-gray-700 mb-4 border-l-4 border-blue-600 pl-3">
+                            General Settings
+                        </h2>
 
-                    <div class="space-y-5">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Shop Name</label>
-                            <input type="text" placeholder="Enter shop name"
-                                   class="w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500">
-                        </div>
+                        <div class="space-y-5">
+                            {{-- Shop Name --}}
+                            <div>
+                                <label for="shop_name" class="block text-sm font-medium text-gray-700 mb-1">Shop Name</label>
+                                <input type="text" name="shop_name" id="shop_name" placeholder="Enter shop name"
+                                        {{-- Value binding is added here, assuming $settings is passed by the controller --}}
+                                        value="{{ old('shop_name', $settings->shop_name ?? '') }}"
+                                        class="w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 @error('shop_name') border-red-500 @enderror">
+                                @error('shop_name')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                            </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                            <input type="text" placeholder="Enter address"
-                                   class="w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500">
-                        </div>
+                            {{-- Address --}}
+                            <div>
+                                <label for="address" class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                                <input type="text" name="address" id="address" placeholder="Enter address"
+                                        {{-- Value binding is added here --}}
+                                        value="{{ old('address', $settings->address ?? '') }}"
+                                        class="w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 @error('address') border-red-500 @enderror">
+                                @error('address')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                            </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                            <input type="text" placeholder="Enter phone number"
-                                   class="w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500">
+                            {{-- Phone Number --}}
+                            <div>
+                                <label for="phone_number" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                                <input type="text" name="phone_number" id="phone_number" placeholder="Enter phone number"
+                                        {{-- Value binding is added here --}}
+                                        value="{{ old('phone_number', $settings->phone_number ?? '') }}"
+                                        class="w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 @error('phone_number') border-red-500 @enderror">
+                                @error('phone_number')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                            </div>
+                            
+                            {{-- Logo Upload Field --}}
+                            <div>
+                                <label for="logo_file" class="block text-sm font-medium text-gray-700 mb-2">Shop Logo (Max 2MB)</label>
+                                <input type="file" name="logo_file" id="logo_file"
+                                        class="w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 p-2
+                                               focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0
+                                               file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                @error('logo_file')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+
+                                {{-- Display existing logo if available --}}
+                                @if (isset($settings->logo_url) && $settings->logo_url)
+                                    <div class="mt-3 flex items-center space-x-3">
+                                        <p class="text-sm text-gray-500">Current Logo:</p>
+                                        <img src="{{ asset($settings->logo_url) }}" alt="Current Logo" class="h-10 w-auto object-contain border p-1 rounded">
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                     </div>
-                </div>
+
+                    {{-- Hidden button to trigger submission from the main 'Save All Changes' button --}}
+                    <div class="hidden">
+                        <button type="submit" id="save-general-btn"></button>
+                    </div>
+                </form>
+                {{-- 👆 END: UPDATED GENERAL SETTINGS FORM --}}
 
                 <div>
                     <h2 class="text-xl font-semibold text-gray-700 mb-4 border-l-4 border-blue-600 pl-3">
@@ -67,7 +116,7 @@
                         <div class="mb-4">
                             <label for="rate_key" class="block text-sm font-medium text-gray-700 mb-1">Select Rate Category</label>
                             <select id="rate_key" name="rate_key"
-                                    class="w-full rounded-lg border-gray-300 shadow-sm p-3 bg-white focus:ring-blue-500 focus:border-blue-500" required>
+                                     class="w-full rounded-lg border-gray-300 shadow-sm p-3 bg-white focus:ring-blue-500 focus:border-blue-500" required>
                                 <option value="" disabled selected>-- Select a category to edit --</option>
                                 {{-- Options will be populated by JavaScript --}}
                             </select>
@@ -80,33 +129,33 @@
                             <div>
                                 <label for="multiply" class="block text-sm font-medium text-gray-700 mb-1">Multiply (×)</label>
                                 <input type="number" name="multiply" id="multiply" step="0.0001" value="1.0000"
-                                       class="w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-green-500 focus:border-green-500 text-sm">
+                                        class="w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-green-500 focus:border-green-500 text-sm">
                             </div>
 
                             {{-- Divide --}}
                             <div>
                                 <label for="divide" class="block text-sm font-medium text-gray-700 mb-1">Divide (÷)</label>
                                 <input type="number" name="divide" id="divide" step="0.0001" min="0.0001" value="1.0000"
-                                       class="w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-green-500 focus:border-green-500 text-sm">
+                                        class="w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-green-500 focus:border-green-500 text-sm">
                             </div>
 
                             {{-- Plus --}}
                             <div>
                                 <label for="plus" class="block text-sm font-medium text-gray-700 mb-1">Plus (+)</label>
                                 <input type="number" name="plus" id="plus" step="0.0001" value="0.0000"
-                                       class="w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-green-500 focus:border-green-500 text-sm">
+                                        class="w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-green-500 focus:border-green-500 text-sm">
                             </div>
 
                             {{-- Minus --}}
                             <div>
                                 <label for="minus" class="block text-sm font-medium text-gray-700 mb-1">Minus (-)</label>
                                 <input type="number" name="minus" id="minus" step="0.0001" min="0" value="0.0000"
-                                       class="w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-green-500 focus:border-green-500 text-sm">
+                                        class="w-full rounded-lg border-gray-300 shadow-sm p-3 focus:ring-green-500 focus:border-green-500 text-sm">
                             </div>
                             
                             <div class="col-span-2 mt-2">
                                 <button type="submit" id="save-formula-btn"
-                                        class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg py-3 shadow-md transition">
+                                         class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg py-3 shadow-md transition">
                                     Save Formula
                                 </button>
                             </div>
@@ -160,7 +209,7 @@
         </div>
 
         <div class="mt-10 border-t pt-6 flex justify-end">
-            <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-xl shadow-lg transition">
+            <button id="main-save-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-xl shadow-lg transition">
                 Save All Changes
             </button>
         </div>
@@ -175,7 +224,18 @@
         const formulaInputsContainer = document.getElementById('formula-inputs');
         const formulaForm = document.getElementById('formula-settings-form');
         const formulaMessage = document.getElementById('formula-message');
+        const mainSaveBtn = document.getElementById('main-save-btn');
+        const generalSettingsForm = document.getElementById('general-settings-form'); // New reference
+        const saveGeneralBtn = document.getElementById('save-general-btn'); // New reference
         
+        // --- GENERAL SETTINGS FORM HANDLING (NEW) ---
+        mainSaveBtn.addEventListener('click', function() {
+            // Trigger the submission of the General Settings form
+            saveGeneralBtn.click(); 
+            // Note: The formula form is only submitted if the formula-specific 'Save Formula' button is clicked.
+        });
+
+
         let allFormulas = {};
 
         /**
@@ -184,6 +244,7 @@
         async function fetchFormulas() {
             try {
                 // Ensure the route is correctly set up: /admin/settings/rates/formulas
+                // This route is NOT defined in the provided code, but is assumed from the JS
                 const response = await fetch('{{ route('admin.rates.formulas.get') }}', { 
                     headers: { 'Accept': 'application/json' }
                 });

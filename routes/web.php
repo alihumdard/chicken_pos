@@ -8,6 +8,7 @@ use App\Http\Controllers\RateController;
 use App\Http\Controllers\ReportController;
 // -- NEW CONTROLLERS --
 use App\Http\Controllers\SalesController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SupplierCustomerController;
 use App\Http\Controllers\UserController;
 use Faker\Guesser\Name;
@@ -87,10 +88,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/reports/purchase/filter', [ReportController::class, 'filterPurchaseReport'])->name('reports.purchase.filter');
         Route::get('/reports/sell-summary', [ReportController::class, 'sellSummaryReport'])->name('reports.sell.summary');
 
-        // 🟢 NEW SETTINGS ROUTE (Moved and Named)
-        Route::get('/settings', function () {
-            return view('pages.settings');
-        })->name('settings.index');
+       
+        Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
+        Route::post('/settings', [SettingController::class, 'store'])->name('settings.store');
 
         Route::get('/stock-moniter', function () {
             return view('pages.stock_moniter');

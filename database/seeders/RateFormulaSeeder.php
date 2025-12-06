@@ -1,5 +1,6 @@
 <?php
 namespace Database\Seeders;
+
 use Illuminate\Database\Seeder;
 use App\Models\RateFormula;
 
@@ -16,7 +17,8 @@ class RateFormulaSeeder extends Seeder
         'retail_chest_rate',
         'retail_thigh_rate',
         'retail_piece_rate',
-        'base_effective_rate'
+        'purchase_effective_cost', 
+        'permanent_rate' 
     ];
 
     /**

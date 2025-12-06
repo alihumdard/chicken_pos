@@ -308,10 +308,10 @@ class RateController extends Controller
             $formula = $formulas->get($key);
             $formattedFormulas[$key] = [
                 'name'     => $name,
-                'multiply' => number_format($formula->multiply ?? 1.0000, 4, '.', ''),
-                'divide'   => number_format($formula->divide ?? 1.0000, 4, '.', ''),
-                'plus'     => number_format($formula->plus ?? 0.0000, 4, '.', ''),
-                'minus'    => number_format($formula->minus ?? 0.0000, 4, '.', ''),
+                'multiply' => number_format($formula->multiply ?? 1.0, 1, '.', ''),
+                'divide'   => number_format($formula->divide ?? 1.0, 1, '.', ''),
+                'plus'     => number_format($formula->plus ?? 0.0, 1, '.', ''),
+                'minus'    => number_format($formula->minus ?? 0.0, 1, '.', ''),
             ];
         }
 
