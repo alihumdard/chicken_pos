@@ -3,6 +3,8 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\PoultryController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\RateController;
 use App\Http\Controllers\ReportController;
@@ -88,7 +90,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/reports/purchase/filter', [ReportController::class, 'filterPurchaseReport'])->name('reports.purchase.filter');
         Route::get('/reports/sell-summary', [ReportController::class, 'sellSummaryReport'])->name('reports.sell.summary');
 
-       
         Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
         Route::post('/settings', [SettingController::class, 'store'])->name('settings.store');
 
@@ -102,6 +103,18 @@ Route::middleware('auth')->group(function () {
         // 🟢 NEW FORMULA ROUTES
         Route::get('/settings/rates/formulas', [RateController::class, 'getRateFormulas'])->name('rates.formulas.get');
         Route::post('/settings/rates/formulas', [RateController::class, 'updateRateFormula'])->name('rates.formulas.update');
+
+        Route::get('/poultry', [PoultryController::class, 'index'])->name('poultry.index');
+        Route::post('/poultry', [PoultryController::class, 'store'])->name('poultry.store');
+        Route::get('/poultry/{id}/edit', [PoultryController::class, 'edit'])->name('poultry.edit');
+        Route::put('/poultry/{id}', [PoultryController::class, 'update'])->name('poultry.update');
+        Route::delete('/poultry/{id}', [PoultryController::class, 'destroy'])->name('poultry.destroy');
+
+        Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
+        Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
+        Route::get('/expenses/{id}/edit', [ExpenseController::class, 'edit'])->name('expenses.edit');
+        Route::put('/expenses/{id}', [ExpenseController::class, 'update'])->name('expenses.update');
+        Route::delete('/expenses/{id}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
     });
 });
 Route::get('/admin/suppliers/{id}/ledger', [SupplierCustomerController::class, 'getLedger']);

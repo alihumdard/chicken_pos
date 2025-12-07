@@ -19,13 +19,15 @@
     .bg-yellow-icon { background-color: #F59E0B; }
 </style>
 
+{{-- Reduced padding on mobile (p-4), kept original large padding on desktop (lg:p-8) --}}
 <div class="p-4 sm:p-6 lg:p-8 bg-gray-100 min-h-screen">
     
     <div class="mb-6">
         <h1 class="text-xl font-bold text-gray-800">Today's Overview - {{ $today_date ?? 'N/A' }}</h1>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    {{-- Grid Layout: 1 col mobile, 2 cols tablet, 4 cols desktop --}}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
         
         {{-- Card 1: Total Sales Today (GREEN) --}}
         <div class="bg-white rounded-xl shadow-lg overflow-hidden justify-between items-center text-center">
@@ -33,10 +35,11 @@
                 Total Sales Today
             </div>
             <div class="p-4 flex flex-col justify-between items-center text-center"> 
-                <h2 class="text-4xl font-extrabold text-gray-900 mb-2"> 
+                {{-- Responsive Text: 3xl on mobile, 4xl on desktop --}}
+                <h2 class="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2"> 
                     PKR {{ number_format($total_sales ?? 0, 0) }}
                 </h2>
-                <p class="pt-6 text-gray-500">Gross Revenue</p>
+                <p class="pt-4 lg:pt-6 text-gray-500">Gross Revenue</p>
             </div>
         </div>
 
@@ -46,7 +49,7 @@
                 Current Live Stock
             </div>
             <div class="p-4 flex flex-col justify-between items-center text-center">
-                <h2 class="text-4xl font-extrabold text-gray-900 mb-4 mt-2"> 
+                <h2 class="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-4 mt-2"> 
                     {{ number_format($current_stock ?? 0, 0) }} KG
                 </h2>
                 <div class="text-sm text-gray-700 w-full mt-4"> 
@@ -61,7 +64,7 @@
                 Today's Purchase
             </div>
             <div class="p-4 flex flex-col justify-start ">
-                <h2 class="text-4xl font-extrabold text-gray-900 mb-4 mt-2"> 
+                <h2 class="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-4 mt-2"> 
                     Net: {{ number_format($today_purchase_net ?? 0, 0) }} KG
                 </h2>
                 <div class="text-sm text-gray-700 w-full mt-4"> 
@@ -76,7 +79,7 @@
                 Today's Expenses
             </div>
             <div class="p-4 flex flex-col justify-between items-start justify-between items-center text-center">
-                <h2 class="text-4xl font-extrabold text-gray-900 mb-6">
+                <h2 class="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-6">
                     PKR {{ number_format($today_expenses ?? 0, 0) }}
                 </h2>
                 <div class="text-sm text-gray-700">
@@ -90,9 +93,10 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {{-- Left Panel: Recent Transactions --}}
-        <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg"> 
+        <div class="lg:col-span-1 bg-white p-4 lg:p-6 rounded-xl shadow-lg"> 
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Recent Ledger Transactions</h3>
             
+            {{-- overflow-x-auto allows table to scroll horizontally on small screens --}}
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
@@ -108,7 +112,6 @@
                         <tr>
                             <td class="px-3 py-3 whitespace-nowrap text-xs text-gray-500">{{ $tx->time }}</td>
                             
-                            {{-- Using {!! !!} to render badges from Controller if descriptions have HTML --}}
                             <td class="px-3 py-3 text-sm font-medium text-gray-800">
                                 {!! $tx->customer !!} 
                             </td>
@@ -139,7 +142,7 @@
         </div>
 
         {{-- Right Panel: Quick Actions --}}
-        <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg"> 
+        <div class="lg:col-span-1 bg-white p-4 lg:p-6 rounded-xl shadow-lg"> 
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
             
             <div class="grid grid-cols-2 gap-4">
@@ -151,7 +154,7 @@
                 </a>
                 
                 {{-- Action 2: Suppliers / Ledger --}}
-                <a href="" class="flex flex-col items-center justify-center p-4 rounded-xl shadow-md bg-purple-600 hover:bg-purple-700 transition-colors h-24">
+                <a href="{{ route('admin.contacts.index') }}" class="flex flex-col items-center justify-center p-4 rounded-xl shadow-md bg-purple-600 hover:bg-purple-700 transition-colors h-24">
                     <i class="fas fa-users text-white text-2xl mb-1"></i>
                     <span class="text-white text-xs font-medium text-center">Suppliers & Customers</span>
                 </a>
