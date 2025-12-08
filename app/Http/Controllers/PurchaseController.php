@@ -15,10 +15,8 @@ class PurchaseController extends Controller
      */
     public function index()
     {
-        // 1. Fetch Suppliers for the dropdown
-        $suppliers = Supplier::select('id', 'name')->orderBy('name')->get();
+        $suppliers = Supplier::select('id', 'name', 'current_balance')->orderBy('name')->get();
 
-        // 2. Fetch Purchases for TODAY only
         $currentDate = Carbon::now()->toDateString();
 
         $purchases = Purchase::with('supplier:id,name')
@@ -26,8 +24,6 @@ class PurchaseController extends Controller
             ->latest()
             ->get()
             ->map(function ($purchase) {
-                // We map this to ensure the view has easy access to formatted data 
-                // AND raw data for the Edit button attributes.
                 $purchase->supplier_name = $purchase->supplier->name ?? 'N/A';
                 $purchase->created_at_human = $purchase->created_at->diffForHumans();
                 return $purchase;
@@ -41,14 +37,62 @@ class PurchaseController extends Controller
      */
     public function store(Request $request)
     {
+        // 1. Validate
         $validatedData = $this->validatePurchase($request);
+        
+        // Add specific validation for cash_paid
+        $request->validate([
+            'cash_paid' => 'nullable|numeric|min:0'
+        ]);
 
         try {
             DB::beginTransaction();
 
-            $purchase = Purchase::create($validatedData);
+            // 2. Create Purchase Record
+            // Exclude cash_paid from Purchase model creation if it's not in the table
+            $purchaseData = collect($validatedData)->except(['cash_paid'])->toArray();
+            $purchase = Purchase::create($purchaseData);
             
-            // Load supplier for the response
+            $supplier = Supplier::findOrFail($request->supplier_id);
+            $totalPayable = $request->total_payable;
+            $cashPaid = $request->input('cash_paid', 0);
+
+            // 3. Update Supplier Balance & Ledger (Purchase Entry)
+            // Logic: We bought goods, so we owe the supplier (Credit Increase)
+            $supplier->current_balance += $totalPayable;
+            $supplier->save();
+
+            DB::table('transactions')->insert([
+                'supplier_id' => $supplier->id,
+                'date' => now(),
+                'type' => 'purchase', // Matches your ledger logic
+                'description' => "Purchase #{$purchase->id} (Driver: {$purchase->driver_no})",
+                'debit' => 0,
+                'credit' => $totalPayable,
+                'balance' => $supplier->current_balance,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // 4. Update Supplier Balance & Ledger (Payment Entry)
+            // Logic: We paid cash, so we owe less (Debit Increase)
+            if ($cashPaid > 0) {
+                $supplier->current_balance -= $cashPaid;
+                $supplier->save();
+
+                DB::table('transactions')->insert([
+                    'supplier_id' => $supplier->id,
+                    'date' => now(),
+                    'type' => 'payment', // Matches your ledger logic
+                    'description' => "Cash Paid for Purchase #{$purchase->id}",
+                    'debit' => $cashPaid,
+                    'credit' => 0,
+                    'balance' => $supplier->current_balance,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+            
             $purchase->load('supplier:id,name');
 
             DB::commit();
@@ -65,7 +109,7 @@ class PurchaseController extends Controller
     }
 
     /**
-     * Update the specified purchase (Used by Edit Mode).
+     * Update the specified purchase.
      */
     public function update(Request $request, $id)
     {
@@ -76,9 +120,11 @@ class PurchaseController extends Controller
             
             DB::beginTransaction();
             
-            $purchase->update($validatedData);
+            // Note: Editing accounting entries is complex. 
+            // Currently, this updates the Purchase record but does NOT auto-adjust 
+            // the historical ledger to avoid data corruption.
             
-            // Reload supplier in case it changed
+            $purchase->update($validatedData);
             $purchase->load('supplier:id,name');
 
             DB::commit();
@@ -94,9 +140,6 @@ class PurchaseController extends Controller
         }
     }
 
-    /**
-     * Remove the specified purchase.
-     */
     public function destroy($id)
     {
         try {
@@ -110,9 +153,6 @@ class PurchaseController extends Controller
         }
     }
 
-    /**
-     * Helper: Validate Request Data
-     */
     private function validatePurchase(Request $request)
     {
         return $request->validate([
@@ -123,29 +163,24 @@ class PurchaseController extends Controller
             'dead_weight'     => 'nullable|numeric|min:0',
             'shrink_loss'     => 'nullable|numeric|min:0',
             'buying_rate'     => 'required|numeric|min:0',
-            // Calculated fields (Validated to ensure frontend logic matches backend)
             'net_live_weight' => 'required|numeric|min:0',
             'total_payable'   => 'required|numeric|min:0',
             'effective_cost'  => 'required|numeric|min:0',
         ]);
     }
 
-    /**
-     * Helper: Format data for JSON response (AJAX)
-     */
     private function formatPurchaseForJson($purchase)
     {
-        // This structure must match what your JS function renderPurchaseRow expects
         return [
             'id'              => $purchase->id,
-            'created_at_human'=> $purchase->created_at->diffForHumans(), // For display
-            'supplier_id'     => $purchase->supplier_id,                 // For Edit Logic
+            'created_at_human'=> $purchase->created_at->diffForHumans(),
+            'supplier_id'     => $purchase->supplier_id,
             'supplier_name'   => optional($purchase->supplier)->name ?? 'N/A',
             'driver_no'       => $purchase->driver_no,
-            'gross_weight'    => (float)$purchase->gross_weight,         // For Edit Logic
-            'dead_qty'        => (int)$purchase->dead_qty,               // For Edit Logic
-            'dead_weight'     => (float)$purchase->dead_weight,          // For Edit Logic
-            'shrink_loss'     => (float)$purchase->shrink_loss,          // For Edit Logic
+            'gross_weight'    => (float)$purchase->gross_weight,
+            'dead_qty'        => (int)$purchase->dead_qty,
+            'dead_weight'     => (float)$purchase->dead_weight,
+            'shrink_loss'     => (float)$purchase->shrink_loss,
             'net_live_weight' => (float)$purchase->net_live_weight,
             'buying_rate'     => (float)$purchase->buying_rate,
             'total_payable'   => (float)$purchase->total_payable,

@@ -187,22 +187,22 @@
     <nav class="flex-1 px-3 py-10 space-y-1 overflow-y-auto sidebar-scroll">
 
         <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-            <i class="fas fa-home"></i>
+            <i class="fas fa-home"></i> {{-- Changed from home to tachometer --}}
             <span class="text-sm font-medium">Dashboard</span>
         </a>
 
         <a href="{{ route('admin.sales.index') }}" class="sidebar-link {{ request()->routeIs('admin.sales.*') ? 'active' : '' }}">
-            <i class="fas fa-shopping-cart"></i>
+            <i class="fas fa-cash-register"></i> {{-- Changed from shopping-cart to cash-register --}}
             <span class="text-sm font-medium">Sales</span>
         </a>
 
         <a href="{{ route('admin.purchases.index') }}" class="sidebar-link {{ request()->routeIs('admin.purchases.*') ? 'active' : '' }}">
-            <i class="fas fa-box-open"></i>
+            <i class="fas fa-cart-arrow-down"></i> {{-- Changed from box-open to cart-arrow-down --}}
             <span class="text-sm font-medium">Purchase</span>
         </a>
 
         <a href="{{ route('admin.rates.index') }}" class="sidebar-link {{ request()->routeIs('admin.rates.*') ? 'active' : '' }}">
-            <i class="fas fa-percent"></i>
+            <i class="fas fa-cubes"></i> {{-- Changed from percent to cubes (Stock) --}}
             <span class="text-sm font-medium">Rates & Stock</span>
         </a>
 
@@ -210,42 +210,50 @@
         <div class="dropdown-container">
             <a href="#" id="reports-toggle" class="sidebar-link justify-between {{ request()->routeIs('admin.reports.*') ? 'active reports-open' : '' }}">
                 <div class="flex items-center">
-                    <i class="fas fa-chart-line"></i>
+                    <i class="fas fa-chart-pie"></i> {{-- Changed from chart-line to chart-pie --}}
                     <span class="text-sm font-medium">Reports</span>
                 </div>
                 <i class="fas fa-chevron-down text-xs transition-transform duration-200 {{ request()->routeIs('admin.reports.*') ? 'rotate-180' : '' }}"></i>
             </a>
 
-            <div id="reports-dropdown" class="dropdown-content" style="{{ request()->routeIs('admin.reports.*') ? 'display: block;' : '' }}">
+           <div id="reports-dropdown" class="dropdown-content" style="{{ request()->routeIs('admin.reports.*') ? 'display: block;' : '' }}">
+                
+                {{-- 🟢 UPDATED: Sub-menu Items with Icons --}}
                 <a href="{{ route('admin.reports.purchase') }}" class="dropdown-link {{ request()->routeIs('admin.reports.purchase') ? 'active-sub' : '' }}">
+                    <i class="fas fa-file-import pr-2"></i> 
                     Purchase Report
                 </a>
+                
                 <a href="{{ route('admin.reports.sell.summary') }}" class="dropdown-link {{ request()->routeIs('admin.reports.sell.summary') ? 'active-sub' : '' }}">
+                    <i class="fas fa-file-export pr-2"></i>
                     Sales Report
                 </a>
+                
                 <a href="{{ route('admin.reports.stock') }}" class="dropdown-link {{ request()->routeIs('admin.reports.stock') ? 'active-sub' : '' }}">
+                    <i class="fas fa-clipboard-list pr-2"></i>
                     Stock Report
                 </a>
+
             </div>
         </div>
 
         <a href="{{ route('admin.contacts.index') }}" class="sidebar-link {{ request()->routeIs('admin.contacts.*') ? 'active' : '' }}">
-            <i class="fas fa-users"></i>
+            <i class="fas fa-handshake"></i> {{-- Changed from users to handshake --}}
             <span class="text-sm font-medium">Suppliers & Customers</span>
         </a>
 
         <a href="{{ route('admin.poultry.index') }}" class="sidebar-link {{ request()->routeIs('admin.poultry.*') ? 'active' : '' }}">
-            <i class="fas fa-dove"></i>
+            <i class="fas fa-feather-alt"></i> {{-- Changed from dove to feather --}}
             <span class="text-sm font-medium">Poultry Management</span>
         </a>
 
         <a href="{{ route('admin.expenses.index') }}" class="sidebar-link {{ request()->routeIs('admin.expenses.*') ? 'active' : '' }}">
-            <i class="fas fa-file-invoice-dollar"></i>
+            <i class="fas fa-wallet"></i> {{-- Changed from file-invoice to wallet --}}
             <span class="text-sm font-medium">Expenses</span>
         </a>
 
         <a href="{{ route('admin.settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
-            <i class="fas fa-cogs"></i>
+            <i class="fas fa-cog"></i> {{-- Changed from cogs to cog --}}
             <span class="text-sm font-medium">Settings</span>
         </a>
 
