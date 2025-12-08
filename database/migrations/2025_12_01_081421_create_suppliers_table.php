@@ -3,7 +3,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB; // Added for DB::table seeding
 
 return new class extends Migration
 {
@@ -14,12 +13,15 @@ return new class extends Migration
     {
         Schema::create('suppliers', function (Blueprint $table) {
             $table->id();
-            $table->string('name', 100)->unique(); // Use 100 length and ensure unique name
-            $table->string('contact_person')->nullable(); // Contact person
-            $table->string('phone')->nullable(); // Phone number
+            // 🟢 UPDATED: Name is NOT unique anymore
+            $table->string('name', 100); 
             
-            // This is for storing the running balance, using 15, 2 for precision
-            $table->decimal('current_balance', 15, 2)->default(0); 
+            $table->string('contact_person')->nullable();
+            
+            // 🟢 UPDATED: Phone is unique but nullable
+            $table->string('phone')->nullable()->unique();
+            
+            $table->decimal('current_balance', 15, 2)->default(0.00); 
             
             $table->timestamps();
         });

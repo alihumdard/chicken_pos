@@ -11,16 +11,21 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // This table stores customer details for the sales point.
         Schema::create('customers', function (Blueprint $table) {
             $table->id();
-            $table->string('name', 100)->unique(); // Business/Customer Name, enforced as unique
+            // 🟢 UPDATED: Name is NOT unique anymore (allows duplicates)
+            $table->string('name', 100); 
+            
             $table->string('contact_person')->nullable();
-            $table->string('phone')->nullable();
+            
+            // 🟢 UPDATED: Phone is unique (no duplicate numbers) but nullable (can be empty)
+            $table->string('phone')->nullable()->unique();
+            
             $table->text('address')->nullable();
-            // Store the outstanding balance (can be positive or negative)
-            // Using 15 total digits with 2 decimal places for high-precision monetary values
+            
+            // 15 digits total, 2 decimal places (e.g., 1234567890123.00)
             $table->decimal('current_balance', 15, 2)->default(0.00);
+            
             $table->timestamps();
         });
     }

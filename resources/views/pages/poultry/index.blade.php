@@ -20,8 +20,7 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Batch No</th>
-                        <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Quantity</th>
+                        <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Name</th>
                         <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Total Weight</th>
                         <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Avg Weight</th>
                         <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Total Cost</th>
@@ -39,9 +38,6 @@
                                 @if($item->description)
                                     <span class="block text-xs text-gray-400 truncate w-32">{{ $item->description }}</span>
                                 @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium">
-                                {{ number_format($item->quantity) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
                                 {{ number_format($item->total_weight, 2) }} KG
@@ -112,14 +108,10 @@
                         </div>
 
                         {{-- Batch No & Quantity --}}
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class=" gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Batch No <span class="text-xs text-gray-400">(Opt)</span></label>
-                                <input type="text" name="batch_no" id="batch_no" placeholder="e.g. B-001" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Quantity (Birds)</label>
-                                <input type="number" name="quantity" id="quantity" placeholder="0" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none" required>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Buyer Name</label>
+                                <input type="text" name="batch_no" id="batch_no" placeholder="Enter buyer name" class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
                             </div>
                         </div>
 

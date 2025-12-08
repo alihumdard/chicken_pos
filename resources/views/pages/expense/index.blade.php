@@ -5,7 +5,7 @@
 
     {{-- 🟢 HEADER & ADD BUTTON --}}
     <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-800 mb-4 sm:mb-0">Daily Shop Expenses</h1>
+        <h1 class="text-2xl font-bold text-gray-800 mb-4 sm:mb-0">Shop Expenses</h1>
         
         <button onclick="openModal()" 
                 class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors shadow-md">
