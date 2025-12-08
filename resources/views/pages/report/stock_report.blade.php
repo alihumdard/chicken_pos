@@ -2,172 +2,203 @@
 
 @section('content')
 
-<div class="flex flex-col w-full max-w-full overflow-x-hidden bg-gray-100">
+    {{-- 
+        CRITICAL FIXES:
+        1. max-w-[100vw]: Forces the container never to exceed the viewport width.
+        2. overflow-x-hidden: Hides any accidental spillover.
+    --}}
+    <div class="w-full max-w-[100vw] overflow-x-hidden bg-gray-100 min-h-screen flex flex-col">
 
-    <main id="mainContent" class="flex-1 p-4 sm:p-6 lg:p-10 bg-gray-50">
-        <div class="space-y-6">
+        {{-- Reduced padding on mobile (p-2) to give more room for content --}}
+        <main class="flex-1 w-full max-w-full p-2 sm:p-6 lg:p-8">
+            
+            <div class="space-y-6 w-full max-w-full">
 
-            {{-- Page Title --}}
-            <h1 class="text-3xl font-extrabold text-gray-800 tracking-tight">
-                Profit & Loss Analysis
-            </h1>
-
-            {{-- Date Range Filter Form --}}
-            <form method="GET" action="{{ route('admin.reports.pnl') }}"
-                  class="mb-8 p-4 bg-white rounded-xl shadow-md grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end w-full">
-
-                <div class="w-full">
-                    <label for="start_date" class="block text-sm font-medium text-gray-700">Start Date</label>
-                    <input type="date" id="start_date" name="start_date"
-                           value="{{ $startDate ?? \Carbon\Carbon::now()->startOfMonth()->toDateString() }}"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                {{-- Page Title --}}
+                <div class="px-1">
+                    <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-800 tracking-tight">
+                        Profit & Loss Analysis
+                    </h1>
                 </div>
 
-                <div class="w-full">
-                    <label for="end_date" class="block text-sm font-medium text-gray-700">End Date</label>
-                    <input type="date" id="end_date" name="end_date"
-                           value="{{ $endDate ?? \Carbon\Carbon::now()->toDateString() }}"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
-                </div>
+                {{-- Filter Form --}}
+                <form method="GET" action="{{ route('admin.reports.pnl') }}"
+                    class="bg-white p-4 rounded-xl shadow-md grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full">
 
-                <div class="sm:col-span-2 md:col-span-2 w-full">
-                    <button type="submit"
+                    <div class="w-full">
+                        <label class="block text-sm font-medium text-gray-700">Start Date</label>
+                        <input type="date" name="start_date"
+                            value="{{ $startDate ?? \Carbon\Carbon::now()->startOfMonth()->toDateString() }}"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div class="w-full">
+                        <label class="block text-sm font-medium text-gray-700">End Date</label>
+                        <input type="date" name="end_date"
+                            value="{{ $endDate ?? \Carbon\Carbon::now()->toDateString() }}"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div class="w-full sm:col-span-2 md:col-span-2 flex items-end">
+                        <button type="submit"
                             class="w-full rounded-md bg-blue-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
-                        Apply Filter
-                    </button>
+                            Apply Filter
+                        </button>
+                    </div>
+                </form>
+
+                {{-- Cards --}}
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+                    {{-- Card 1 --}}
+                    <div class="bg-white p-4 rounded-xl shadow border-l-4 border-green-500">
+                        <p class="text-xs text-gray-500 font-bold uppercase">Total Revenue</p>
+                        <h2 class="text-xl font-bold text-green-600 truncate">{{ number_format($totalRevenue, 0) }}</h2>
+                    </div>
+                    {{-- Card 2 --}}
+                    <div class="bg-white p-4 rounded-xl shadow border-l-4 border-red-500">
+                        <p class="text-xs text-gray-500 font-bold uppercase">Total Cost</p>
+                        <h2 class="text-xl font-bold text-red-500 truncate">{{ number_format($totalCogs, 0) }}</h2>
+                    </div>
+                    {{-- Card 3 --}}
+                    <div class="bg-white p-4 rounded-xl shadow border-l-4 border-yellow-500">
+                        <p class="text-xs text-gray-500 font-bold uppercase">Total Expenses</p>
+                        <h2 class="text-xl font-bold text-yellow-600 truncate">{{ number_format($totalExpenses, 0) }}</h2>
+                    </div>
+                    {{-- Card 4 --}}
+                    @php $netProfitColor = $totalNetProfit >= 0 ? 'text-green-700' : 'text-red-700'; @endphp
+                    <div class="bg-white p-4 rounded-xl shadow border-l-4 border-green-600">
+                        <p class="text-xs text-gray-500 font-bold uppercase">Net Profit</p>
+                        <h2 class="text-xl font-bold {{ $netProfitColor }} truncate">
+                            {{ number_format($totalNetProfit, 0) }}
+                        </h2>
+                    </div>
                 </div>
 
-            </form>
-
-            {{-- Summary Cards --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
-
-                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-green-500 w-full">
-                    <p class="text-gray-600">Total Revenue</p>
-                    <h2 class="text-2xl font-bold text-green-600">{{ number_format($totalRevenue, 0) }} PKR</h2>
+                {{-- Chart Section --}}
+                {{-- overflow-hidden here prevents the canvas from pushing width out --}}
+                <div class="bg-white p-4 shadow rounded-xl w-full overflow-hidden">
+                    <h3 class="font-semibold mb-4 text-gray-700 text-sm sm:text-base">Weight Analysis</h3>
+                    <div class="relative w-full h-64">
+                        <canvas id="yieldChart"></canvas>
+                    </div>
                 </div>
 
-                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-red-500 w-full">
-                    <p class="text-gray-600">Total Cost (COGS)</p>
-                    <h2 class="text-2xl font-bold text-red-500">{{ number_format($totalCogs, 0) }} PKR</h2>
-                </div>
+                {{-- Table Section --}}
+                <div class="bg-white p-4 shadow rounded-xl w-full flex flex-col">
+                    <h3 class="font-semibold mb-4 text-gray-700 text-sm sm:text-base">Daily Breakdown</h3>
 
-                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-yellow-500 w-full">
-                    <p class="text-gray-600">Total Expenses</p>
-                    <h2 class="text-2xl font-bold text-yellow-600">{{ number_format($totalExpenses, 0) }} PKR</h2>
-                </div>
-
-                @php $netProfitColor = $totalNetProfit >= 0 ? 'text-green-700' : 'text-red-700'; @endphp
-                <div class="bg-white p-4 rounded-xl shadow border-l-4 border-green-600 w-full">
-                    <p class="text-gray-600">NET PROFIT / LOSS</p>
-                    <h2 class="text-2xl font-bold {{ $netProfitColor }}">
-                        {{ number_format($totalNetProfit, 0) }} PKR
-                    </h2>
-                </div>
-
-            </div>
-
-            {{-- Chart --}}
-            <div class="bg-white p-5 shadow rounded-xl w-full">
-                <h3 class="font-semibold mb-3">Total Input vs Output Weight Analysis</h3>
-                <div class="h-56 sm:h-64 w-full">
-                    <canvas id="yieldChart"></canvas>
-                </div>
-            </div>
-
-            {{-- Daily Breakdown Table --}}
-            <div class="bg-white p-5 shadow rounded-xl w-full">
-                <h3 class="font-semibold mb-3">Daily Breakdown ({{ $startDate }} to {{ $endDate }})</h3>
-
-                <div class="overflow-x-auto w-full">
-                    <table class="min-w-full text-xs sm:text-sm border border-gray-200 table-auto">
-                        <thead class="bg-gray-100 border-b">
-                            <tr>
-                                <th class="p-2 text-left">Date</th>
-                                <th class="p-2 text-right">Revenue (PKR)</th>
-                                <th class="p-2 text-right">Cost (PKR)</th>
-                                <th class="p-2 text-right">Expenses (PKR)</th>
-                                <th class="p-2 text-right">Net P/L</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($dailyReport as $day)
-                                @php $rowProfitColor = $day['net_profit'] >= 0 ? 'text-green-600' : 'text-red-500'; @endphp
-                                <tr class="border-b hover:bg-gray-50">
-                                    <td class="p-2 break-words whitespace-normal">{{ \Carbon\Carbon::parse($day['date'])->format('d/m/Y') }}</td>
-                                    <td class="p-2 text-right break-words whitespace-normal">{{ number_format($day['revenue'], 0) }}</td>
-                                    <td class="p-2 text-right text-red-500 break-words whitespace-normal">({{ number_format($day['cost'], 0) }})</td>
-                                    <td class="p-2 text-right text-yellow-600 break-words whitespace-normal">({{ number_format($day['expenses'], 0) }})</td>
-                                    <td class="p-2 text-right font-bold {{ $rowProfitColor }} break-words whitespace-normal">{{ number_format($day['net_profit'], 0) }}</td>
-                                </tr>
-                            @empty
+                    {{-- 
+                        THE FIX:
+                        - ring-1 ring-black ring-opacity-5: Adds a subtle border without adding width.
+                        - overflow-x-auto: Allows scrolling INSIDE this div.
+                        - max-w-full: Ensures it fits in the parent.
+                    --}}
+                    <div class="w-full overflow-x-auto ring-1 ring-black ring-opacity-5 rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-300">
+                            <thead class="bg-gray-50">
                                 <tr>
-                                    <td colspan="5" class="p-4 text-center text-gray-500">No data found.</td>
+                                    <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 whitespace-nowrap">Date</th>
+                                    <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900 whitespace-nowrap">Revenue</th>
+                                    <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900 whitespace-nowrap">Cost</th>
+                                    <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900 whitespace-nowrap">Exp.</th>
+                                    <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900 whitespace-nowrap">Net</th>
                                 </tr>
-                            @endforelse
-                        </tbody>
-                        <tfoot>
-                            <tr class="font-bold bg-gray-100 border-t-2">
-                                <td class="p-2">Grand Totals</td>
-                                <td class="p-2 text-right text-blue-600">{{ number_format($totalRevenue, 0) }}</td>
-                                <td class="p-2 text-right text-red-600">({{ number_format($totalCogs, 0) }})</td>
-                                <td class="p-2 text-right text-yellow-700">({{ number_format($totalExpenses, 0) }})</td>
-                                @php $footerProfitColor = $totalNetProfit >= 0 ? 'text-green-700' : 'text-red-700'; @endphp
-                                <td class="p-2 text-right {{ $footerProfitColor }} text-base sm:text-lg">
-                                    {{ number_format($totalNetProfit, 0) }}
-                                </td>
-                            </tr>
-                        </tfoot>
-                    </table>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 bg-white">
+                                @forelse($dailyReport as $day)
+                                    @php $rowProfitColor = $day['net_profit'] >= 0 ? 'text-green-600' : 'text-red-500'; @endphp
+                                    <tr>
+                                        <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900">
+                                            {{ \Carbon\Carbon::parse($day['date'])->format('d/m/y') }}
+                                        </td>
+                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-right text-gray-500">
+                                            {{ number_format($day['revenue']) }}
+                                        </td>
+                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-right text-red-500">
+                                            ({{ number_format($day['cost']) }})
+                                        </td>
+                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-right text-yellow-600">
+                                            ({{ number_format($day['expenses']) }})
+                                        </td>
+                                        <td class="whitespace-nowrap px-3 py-4 text-sm text-right font-bold {{ $rowProfitColor }}">
+                                            {{ number_format($day['net_profit']) }}
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="p-4 text-center text-sm text-gray-500">No data found.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                            <tfoot class="bg-gray-50 font-bold">
+                                <tr>
+                                    <td class="py-3.5 pl-4 pr-3 text-sm text-gray-900 whitespace-nowrap">Total</td>
+                                    <td class="px-3 py-3.5 text-right text-sm text-blue-600 whitespace-nowrap">{{ number_format($totalRevenue) }}</td>
+                                    <td class="px-3 py-3.5 text-right text-sm text-red-600 whitespace-nowrap">({{ number_format($totalCogs) }})</td>
+                                    <td class="px-3 py-3.5 text-right text-sm text-yellow-700 whitespace-nowrap">({{ number_format($totalExpenses) }})</td>
+                                    @php $footerProfitColor = $totalNetProfit >= 0 ? 'text-green-700' : 'text-red-700'; @endphp
+                                    <td class="px-3 py-3.5 text-right text-sm {{ $footerProfitColor }} whitespace-nowrap">
+                                        {{ number_format($totalNetProfit) }}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
+
             </div>
+        </main>
+    </div>
 
-        </div>
-    </main>
+    @push('scripts')
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const chartLabels = @json($chartLabels);
+                const chartInputData = @json($chartInputData);
+                const chartOutputData = @json($chartOutputData);
 
-</div>
-
-@push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const chartLabels = @json($chartLabels);
-    const chartInputData = @json($chartInputData);
-    const chartOutputData = @json($chartOutputData);
-
-    new Chart(document.getElementById("yieldChart"), {
-        type: "bar",
-        data: {
-            labels: chartLabels,
-            datasets: [
-                {
-                    label: "Input Weight (Purchased)",
-                    backgroundColor: "#3b82f6",
-                    data: chartInputData
-                },
-                {
-                    label: "Output Weight (Estimated Sold)",
-                    backgroundColor: "#ef4444",
-                    data: chartOutputData
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'top' }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: { display: true, text: 'Weight (KG)' }
-                }
-            }
-        }
-    });
-});
-</script>
-@endpush
+                new Chart(document.getElementById("yieldChart"), {
+                    type: "bar",
+                    data: {
+                        labels: chartLabels,
+                        datasets: [
+                            {
+                                label: "Input",
+                                backgroundColor: "#3b82f6",
+                                data: chartInputData,
+                                barPercentage: 0.7,
+                            },
+                            {
+                                label: "Output",
+                                backgroundColor: "#ef4444",
+                                data: chartOutputData,
+                                barPercentage: 0.7,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { 
+                                position: 'top',
+                                labels: { boxWidth: 10, font: { size: 10 } } // Smaller legend for mobile
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { font: { size: 10 } }
+                            },
+                            x: {
+                                ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 45 }
+                            }
+                        }
+                    }
+                });
+            });
+        </script>
+    @endpush
 
 @endsection
