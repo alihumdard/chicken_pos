@@ -18,17 +18,21 @@ class SalesController extends Controller
         $customers = Customer::orderBy('name')->get();
         $dailyRates = DailyRate::latest()->first();
 
+        // 🟢 FIX: Check for standard keys first, then fallback to '_hotel_' keys if missing
         $rates = [
             'wholesale' => [
-                'wholesale_rate' => $dailyRates->wholesale_rate ?? 0.00,
-                'live_chicken_rate' => $dailyRates->live_chicken_rate ?? 0.00,
-                'wholesale_hotel_mix_rate' => $dailyRates->wholesale_hotel_mix_rate ?? 0.00,
-                'wholesale_hotel_chest_rate' => $dailyRates->wholesale_hotel_chest_rate ?? 0.00,
-                'wholesale_hotel_thigh_rate' => $dailyRates->wholesale_hotel_thigh_rate ?? 0.00,
+                'wholesale_rate'                => $dailyRates->wholesale_rate ?? 0.00,
+                'live_chicken_rate'             => $dailyRates->live_chicken_rate ?? 0.00,
+                
+                // Fallback Logic for Mix, Chest, Thigh
+                'wholesale_mix_rate'            => $dailyRates->wholesale_mix_rate ?? $dailyRates->wholesale_hotel_mix_rate ?? 0.00,
+                'wholesale_chest_rate'          => $dailyRates->wholesale_chest_rate ?? $dailyRates->wholesale_hotel_chest_rate ?? 0.00,
+                'wholesale_thigh_rate'          => $dailyRates->wholesale_thigh_rate ?? $dailyRates->wholesale_hotel_thigh_rate ?? 0.00,
+                
                 'wholesale_customer_piece_rate' => $dailyRates->wholesale_customer_piece_rate ?? 0.00,
             ],
             'retail' => [
-                'retail_mix_rate' => $dailyRates->retail_mix_rate ?? 0.00,
+                'retail_mix_rate'   => $dailyRates->retail_mix_rate ?? 0.00,
                 'retail_chest_rate' => $dailyRates->retail_chest_rate ?? 0.00,
                 'retail_thigh_rate' => $dailyRates->retail_thigh_rate ?? 0.00,
                 'retail_piece_rate' => $dailyRates->retail_piece_rate ?? 0.00,
@@ -41,15 +45,14 @@ class SalesController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'rate_channel' => 'required|in:wholesale,retail',
-            'cart_items' => 'required|array|min:1',
+            'customer_id'           => 'required|exists:customers,id',
+            'rate_channel'          => 'required|in:wholesale,retail',
+            'cart_items'            => 'required|array|min:1',
             'cart_items.*.category' => 'required|string|max:50',
-            'cart_items.*.weight' => 'required|numeric|min:0.001',
-            'cart_items.*.rate' => 'required|numeric|min:0',
-            'total_payable' => 'required|numeric|min:0',
-            // 🟢 NEW: Validate Cash Received
-            'cash_received' => 'nullable|numeric|min:0',
+            'cart_items.*.weight'   => 'required|numeric|min:0.001',
+            'cart_items.*.rate'     => 'required|numeric|min:0',
+            'total_payable'         => 'required|numeric|min:0',
+            'cash_received'         => 'nullable|numeric|min:0',
         ]);
 
         DB::beginTransaction();
@@ -89,11 +92,11 @@ class SalesController extends Controller
 
             // 3. Create Sale Record
             $sale = Sale::create([
-                'customer_id' => $customer->id,
-                'total_amount' => $totalAmount,
-                'paid_amount' => $cashReceived, // Ensure your sales table has this, or remove if not needed
+                'customer_id'    => $customer->id,
+                'total_amount'   => $totalAmount,
+                'paid_amount'    => $cashReceived,
                 'payment_status' => $paymentStatus,
-                'sale_channel' => $validated['rate_channel'],
+                'sale_channel'   => $validated['rate_channel'],
             ]);
 
             // 4. Save Sale Items
@@ -102,56 +105,56 @@ class SalesController extends Controller
                 $line_total = $item['weight'] * $item['rate'];
                 $saleItemsData[] = new SaleItem([ 
                     'product_category' => $item['category'],
-                    'weight_kg' => $item['weight'],
-                    'rate_pkr' => $item['rate'],
-                    'line_total' => $line_total,
+                    'weight_kg'        => $item['weight'],
+                    'rate_pkr'         => $item['rate'],
+                    'line_total'       => $line_total,
                 ]);
             }
             $sale->items()->saveMany($saleItemsData);
 
-            // 5. 🟢 UPDATE BALANCE & LEDGER (TRANSACTIONS)
+            // 5. Update Balance & Ledger
             
-            // A. Record the SALE (Debit the customer)
+            // A. Record SALE (Debit)
             $customer->current_balance += $totalAmount;
             $customer->save();
 
             DB::table('transactions')->insert([
                 'customer_id' => $customer->id,
-                'date' => now(),
-                'type' => 'sale',
+                'date'        => now(),
+                'type'        => 'sale',
                 'description' => "Sale #{$sale->id} (" . count($validated['cart_items']) . " items)",
-                'debit' => $totalAmount,
-                'credit' => 0,
-                'balance' => $customer->current_balance,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'debit'       => $totalAmount,
+                'credit'      => 0,
+                'balance'     => $customer->current_balance,
+                'created_at'  => now(),
+                'updated_at'  => now(),
             ]);
 
-            // B. Record the PAYMENT (Credit the customer) if cash received
+            // B. Record PAYMENT (Credit)
             if ($cashReceived > 0) {
                 $customer->current_balance -= $cashReceived;
                 $customer->save();
 
                 DB::table('transactions')->insert([
                     'customer_id' => $customer->id,
-                    'date' => now(),
-                    'type' => 'payment',
+                    'date'        => now(),
+                    'type'        => 'payment',
                     'description' => "Cash Received for Sale #{$sale->id}",
-                    'debit' => 0,
-                    'credit' => $cashReceived,
-                    'balance' => $customer->current_balance,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'debit'       => 0,
+                    'credit'      => $cashReceived,
+                    'balance'     => $customer->current_balance,
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
                 ]);
             }
 
             DB::commit();
 
             return response()->json([
-                'message' => 'Sale confirmed successfully.',
-                'sale_id' => $sale->id,
-                'customer_id' => $customer->id,
-                'customer_name' => $customer->name,
+                'message'         => 'Sale confirmed successfully.',
+                'sale_id'         => $sale->id,
+                'customer_id'     => $customer->id,
+                'customer_name'   => $customer->name,
                 'updated_balance' => number_format($customer->current_balance, 2, '.', ''),
             ], 201);
 

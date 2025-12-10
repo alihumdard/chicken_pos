@@ -116,7 +116,7 @@
 
         {{-- 2. DEDUCTIONS --}}
         <div class="flex flex-col justify-end h-full mt-2 lg:mt-0">
-            <h4 class="font-semibold text-[var(--red-primary)] text-sm mb-2">Deductions (Loss)</h4>
+            <h4 class="font-semibold text-[var(--red-primary)] text-sm mb-2">Deductions (Weight)</h4>
             <div class="py-2 px-3 rounded-xl border h-full flex flex-col justify-center lg:justify-between w-full">
                 {{-- Used Grid here to ensure perfect 3-column split on mobile too --}}
                 <div class="grid grid-cols-3 gap-2 w-full">
@@ -232,12 +232,44 @@
                         @endphp
                         <div class="bg-[var(--blue-primary)] p-3 rounded-xl text-center shadow-md flex flex-col justify-center relative overflow-hidden group min-h-[80px] w-full">
                             <i class="fas fa-calculator absolute -right-2 -bottom-2 text-4xl text-white opacity-10 transform rotate-12 group-hover:scale-110 transition-transform"></i>
-                            <p class="text-blue-100 text-[14px] uppercase tracking-wider font-semibold">Effective Cost</p>
+                            <p class="text-blue-100 text-[20px] uppercase tracking-wider font-semibold">Rate</p>
                             <h1 class="text-2xl font-extrabold text-white leading-none my-1">
                                 <span id="effective_cost_display">0</span><span class="text-sm font-medium opacity-80">/kg</span>
                             </h1>
                             <input type="hidden" name="effective_cost" id="effective_cost" value="0">
-                            <input type="hidden" id="purchase_formula_data" value='@json($formulaData)'>
+                           <input type="hidden" id="purchase_formula_data" value='@json($formulaData)'>
+                            <div class="mt-2 flex justify-center w-full">
+                                <div class=" px-3 py-1.5 text-xs text-white font-mono flex items-center gap-2 shadow-sm backdrop-blur-sm">
+                                    
+                                    <span class="text-blue-200 uppercase tracking-wider font-bold text-[10px]">value:</span>
+                                    
+                                    <div class="flex gap-2">
+                                        <span class="flex items-center" title="Multiply">
+                                            <i class="fas fa-times text-[10px] mr-1 text-yellow-300 opacity-80"></i> 
+                                            {{ $formulaData['multiply'] ?? 1 }}
+                                        </span>
+
+                                        <span class="flex items-center border-l border-white/20 pl-2" title="Divide">
+                                            <i class="fas fa-divide text-[10px] mr-1 text-blue-300 opacity-80"></i> 
+                                            {{ $formulaData['divide'] ?? 1 }}
+                                        </span>
+
+                                        @if(($formulaData['plus'] ?? 0) > 0)
+                                        <span class="flex items-center border-l border-white/20 pl-2" title="Add">
+                                            <i class="fas fa-plus text-[10px] mr-1 text-green-300 opacity-80"></i> 
+                                            {{ $formulaData['plus'] }}
+                                        </span>
+                                        @endif
+
+                                        @if(($formulaData['minus'] ?? 0) > 0)
+                                        <span class="flex items-center border-l border-white/20 pl-2" title="Subtract">
+                                            <i class="fas fa-minus text-[10px] mr-1 text-red-300 opacity-80"></i> 
+                                            {{ $formulaData['minus'] }}
+                                        </span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

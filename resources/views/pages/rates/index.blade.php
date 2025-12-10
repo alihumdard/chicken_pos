@@ -12,7 +12,7 @@
                 {{-- Display error message --}}
                 @if (session('error'))
                     <script>
-                        document.addEventListener('DOMContentLoaded', function() {
+                        document.addEventListener('DOMContentLoaded', function () {
                             Swal.fire({ icon: 'error', title: 'Error', text: "{{ session('error') }}" });
                         });
                     </script>
@@ -24,7 +24,7 @@
 
                 @if (session('success'))
                     <script>
-                        document.addEventListener('DOMContentLoaded', function() {
+                        document.addEventListener('DOMContentLoaded', function () {
                             Swal.fire({ icon: 'success', title: 'Success', text: "{{ session('success') }}" });
                         });
                     </script>
@@ -34,14 +34,16 @@
 
                 <form id="daily-rates-form" method="POST" action="{{ route('admin.rates.store') }}">
                     @csrf
-                    
+
                     {{-- 🟢 CONTROL PANEL: Manual Rate + Actions --}}
-                    <div class="bg-yellow-50 p-6 rounded-2xl shadow-md border border-yellow-300 mb-8 @if($defaultData['is_historical'] ?? false) hidden @endif">
-                        
-                        <h2 class="font-bold text-xl text-gray-800 mb-6 flex items-center gap-2 border-b border-yellow-200 pb-2">
+                    <div
+                        class="bg-yellow-50 p-6 rounded-2xl shadow-md border border-yellow-300 mb-8 @if($defaultData['is_historical'] ?? false) hidden @endif">
+
+                        <h2
+                            class="font-bold text-xl text-gray-800 mb-6 flex items-center gap-2 border-b border-yellow-200 pb-2">
                             <i class="fas fa-sliders-h"></i> Pricing Control & Actions
                         </h2>
-                        
+
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
                             {{-- LEFT SECTION: Manual Override --}}
@@ -56,7 +58,8 @@
                                         min="0" step="0.01"
                                         class="text-xl font-bold w-full p-3 pr-12 border border-green-500 bg-white rounded-lg text-gray-800 focus:border-green-700 focus:ring-green-700 transition-all shadow-sm"
                                         placeholder="Enter manual rate...">
-                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold text-sm">
+                                    <span
+                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold text-sm">
                                         PKR
                                     </span>
                                 </div>
@@ -74,19 +77,19 @@
                                 </h3>
 
                                 <div class="flex flex-col gap-3 h-full justify-center">
-                                    
+
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        
-                                        <button type="submit" 
-                                        class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors flex justify-center items-center gap-2 h-full
-                                        @if($defaultData['is_historical'] ?? false) opacity-50 cursor-not-allowed @endif"
-                                        @if($defaultData['is_historical'] ?? false) disabled @endif>
-                                        <i class="fas fa-save"></i> Active Today's Rates
-                                    </button>
-                                    <a href="{{ route('admin.settings.index') }}" 
-                                       class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors flex justify-center items-center gap-2 text-center h-full">
-                                        <i class="fas fa-calculator"></i> Set/Change Formula's
-                                    </a>
+
+                                        <button type="submit"
+                                            class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors flex justify-center items-center gap-2 h-full
+                                            @if($defaultData['is_historical'] ?? false) opacity-50 cursor-not-allowed @endif"
+                                            @if($defaultData['is_historical'] ?? false) disabled @endif>
+                                            <i class="fas fa-save"></i> Active Today's Rates
+                                        </button>
+                                        <a href="{{ route('admin.settings.index') }}"
+                                            class="bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors flex justify-center items-center gap-2 text-center h-full">
+                                            <i class="fas fa-calculator"></i> Set/Change Formula's
+                                        </a>
                                     </div>
 
                                     <p class="text-xs text-gray-500 text-center mt-2">
@@ -103,10 +106,10 @@
                         value="{{ $defaultData['base_effective_cost'] ?? 0.00 }}">
 
                     <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 mb-8">
-                        
+
                         <div class="flex justify-between items-center mb-6">
-                            <h2 class="font-bold text-xl text-gray-700">
-                                Cost Reference
+                            <h2 class="font-bold text-4xl text-gray-700">
+                                Rate
                                 <span class="text-blue-600 text-sm block md:inline md:ml-2">
                                     @if($defaultData['is_historical'] ?? false) (Saved Rate) @else (Live Calculation) @endif
                                 </span>
@@ -132,11 +135,13 @@
                                 <p class="text-lg font-semibold opacity-90">Net Stock Available</p>
                                 <div class="block text-3xl font-extrabold mt-2">
                                     {{-- 🟢 Wrapped number in a span for JS targeting --}}
-                                    <span id="net-stock-value">{{ number_format($defaultData['net_stock_available'] ?? 0.00, 2) }}</span> 
+                                    <span
+                                        id="net-stock-value">{{ number_format($defaultData['net_stock_available'] ?? 0.00, 2) }}</span>
                                     <span class="text-xl">KG</span>
                                 </div>
                                 {{-- Hidden Input to send updated stock to server if needed --}}
-                                <input type="hidden" name="net_stock_available" id="net_stock_input" value="{{ $defaultData['net_stock_available'] ?? 0.00 }}">
+                                <input type="hidden" name="net_stock_available" id="net_stock_input"
+                                    value="{{ $defaultData['net_stock_available'] ?? 0.00 }}">
                             </div>
                         </div>
 
@@ -165,7 +170,8 @@
                                     $pRateFormulaText = $pRateFormula ? "×{$pRateFormula->multiply} ÷{$pRateFormula->divide} +{$pRateFormula->plus} -{$pRateFormula->minus}" : 'No Formula';
                                     $pTextColor = $pRateFormulaSet ? 'text-green-600' : 'text-red-600';
                                 @endphp
-                                <p class="{{ $pTextColor }} text-xs mt-1" data-margin="0.00" data-formula="{{ htmlspecialchars($pRateFormulaText) }}" data-key="permanent_rate">
+                                <p class="{{ $pTextColor }} text-xs mt-1" data-margin="0.00"
+                                    data-formula="{{ htmlspecialchars($pRateFormulaText) }}" data-key="permanent_rate">
                                     Formula: {{ $pRateFormulaText }}
                                 </p>
                             </div>
@@ -173,10 +179,14 @@
                     </div>
 
                     <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 mb-10 mt-8">
-                        <h2 class="font-bold text-xl text-gray-700 mb-6">Wholesale Rates</h2>
+                        <h2 class="font-bold text-xl text-gray-700 mb-6 flex items-center gap-2">
+                            <i class="fas fa-chart-line text-gray-600 text-2xl"></i>
+                            Wholesale Rates
+                        </h2>
+
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div id="wholesale_rate_container">
-                                <label class="font-semibold text-gray-700 block mb-1">Wholesale Live</label>
+                                <label class="font-semibold text-gray-700 block mb-1"> Live</label>
                                 <div class="flex items-center border border-green-500 rounded-xl p-3 shadow-sm">
                                     <input type="number" name="wholesale_rate" id="wholesale_rate_input"
                                         value="{{ number_format($defaultData['wholesale_rate'] ?? 0.00, 2, '.', '') }}"
@@ -188,18 +198,21 @@
                                     $wRateFormula = $rateFormulas->get('wholesale_rate');
                                     $wRateFormulaText = $wRateFormula ? "×{$wRateFormula->multiply} ÷{$wRateFormula->divide} +{$wRateFormula->plus} -{$wRateFormula->minus}" : 'No Formula';
                                 @endphp
-                                <p class="text-xs mt-1 text-gray-500" data-margin="0.00" data-formula="{{ htmlspecialchars($wRateFormulaText) }}" data-key="wholesale_rate">
+                                <p class="text-xs mt-1 text-gray-500" data-margin="0.00"
+                                    data-formula="{{ htmlspecialchars($wRateFormulaText) }}" data-key="wholesale_rate">
                                     Formula: ( value {{ $wRateFormulaText }} )
                                 </p>
                             </div>
+                            
                             @php
                                 $wholesales = [
-                                    ['label' => 'Hotel Mix', 'name' => 'wholesale_hotel_mix_rate'],
-                                    ['label' => 'Hotel Chest', 'name' => 'wholesale_hotel_chest_rate'],
-                                    ['label' => 'Hotel Thigh', 'name' => 'wholesale_hotel_thigh_rate'],
-                                    ['label' => 'Customer Piece', 'name' => 'wholesale_customer_piece_rate'],
+                                    ['label' => 'Hotel Mix',   'name' => 'wholesale_mix_rate'],    
+                                    ['label' => 'Hotel Chest', 'name' => 'wholesale_chest_rate'],  
+                                    ['label' => 'Hotel Thigh', 'name' => 'wholesale_thigh_rate'],  
+                                    ['label' => 'Chicken Piece', 'name' => 'wholesale_customer_piece_rate'],
                                 ];
                             @endphp
+                            
                             @foreach($wholesales as $item)
                                 <div>
                                     <label class="font-semibold text-gray-700 block mb-1">{{ $item['label'] }}</label>
@@ -214,7 +227,8 @@
                                         $formula = $rateFormulas->get($item['name']);
                                         $formulaText = $formula ? "×{$formula->multiply} ÷{$formula->divide} +{$formula->plus} -{$formula->minus}" : 'No Formula';
                                     @endphp
-                                    <p class="text-xs mt-1 text-gray-500" data-margin="0.00" data-formula="{{ htmlspecialchars($formulaText) }}" data-key="{{ $item['name'] }}">
+                                    <p class="text-xs mt-1 text-gray-500" data-margin="0.00"
+                                        data-formula="{{ htmlspecialchars($formulaText) }}" data-key="{{ $item['name'] }}">
                                         Formula: (value {{ $formulaText }})
                                     </p>
                                 </div>
@@ -223,7 +237,10 @@
                     </div>
 
                     <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 mb-10">
-                        <h2 class="font-bold text-xl text-gray-700 mb-6">Shop Retail Rates (Purchun)</h2>
+                        <h2 class="font-bold text-xl text-gray-700 mb-6 flex items-center gap-2">
+                            <i class="fas fa-chart-line text-gray-600 text-2xl pr-2"></i>
+                            Shop Retail Rates (Purchun)
+                        </h2>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             @php
                                 $retails = [
@@ -248,7 +265,8 @@
                                         $formula = $rateFormulas->get($item['name']);
                                         $formulaText = $formula ? "×{$formula->multiply} ÷{$formula->divide} +{$formula->plus} -{$formula->minus}" : 'No Formula';
                                     @endphp
-                                    <p class="text-xs mt-1 text-gray-500" data-margin="0.00" data-formula="{{ htmlspecialchars($formulaText) }}" data-key="{{ $item['name'] }}">
+                                    <p class="text-xs mt-1 text-gray-500" data-margin="0.00"
+                                        data-formula="{{ htmlspecialchars($formulaText) }}" data-key="{{ $item['name'] }}">
                                         Formula: (value {{ $formulaText }})
                                     </p>
                                 </div>
@@ -282,7 +300,8 @@
                 const isHistorical = {{ json_encode($defaultData['is_historical'] ?? false) }};
                 if (isHistorical) return;
 
-                const formulaMapBase64 = '{{ base64_encode(json_encode($rateFormulas->map(function ($f) { return ["multiply" => $f->multiply, "divide" => $f->divide, "plus" => $f->plus, "minus" => $f->minus]; }))) }}';
+                const formulaMapBase64 = '{{ base64_encode(json_encode($rateFormulas->map(function ($f) {
+        return ["multiply" => $f->multiply, "divide" => $f->divide, "plus" => $f->plus, "minus" => $f->minus]; }))) }}';
                 const rateFormulas = JSON.parse(atob(formulaMapBase64));
 
                 const form = document.getElementById('daily-rates-form');
@@ -291,7 +310,7 @@
                 const baseCostBox = document.getElementById('base-cost-box');
                 const manualBaseCostInput = document.getElementById('manual_base_cost');
                 const applyOverrideButton = document.getElementById('apply-rate-override');
-                
+
                 // 🟢 STOCK ELEMENTS
                 const adjustStockBtn = document.getElementById('adjust-stock-btn');
                 const netStockValueEl = document.getElementById('net-stock-value');
@@ -352,7 +371,7 @@
                 calculateAndApplyRatesClient({});
 
                 // 🟢 STOCK DEDUCTION LOGIC
-                if(adjustStockBtn) {
+                if (adjustStockBtn) {
                     adjustStockBtn.addEventListener('click', async () => {
                         const { value: weightToRemove } = await Swal.fire({
                             title: 'Add Shrink Stock',
@@ -376,9 +395,9 @@
 
                             // 2. Calculation
                             let newStock = currentStock - removeAmount;
-                            
+
                             // Prevent negative stock visually (optional)
-                            if(newStock < 0) newStock = 0;
+                            if (newStock < 0) newStock = 0;
 
                             // 3. Update UI
                             netStockValueEl.innerText = formatNumber(newStock);

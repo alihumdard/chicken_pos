@@ -9,9 +9,9 @@ class RateFormulaSeeder extends Seeder
     private const RATE_KEYS = [
         'wholesale_rate',
         'live_chicken_rate',
-        'wholesale_hotel_mix_rate',
-        'wholesale_hotel_chest_rate',
-        'wholesale_hotel_thigh_rate',
+        'wholesale_mix_rate',
+        'wholesale_chest_rate',
+        'wholesale_thigh_rate',
         'wholesale_customer_piece_rate',
         'retail_mix_rate',
         'retail_chest_rate',

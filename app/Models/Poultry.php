@@ -9,7 +9,7 @@ class Poultry extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
+   protected $fillable = [
         'entry_date',
         'batch_no',
         'quantity',
