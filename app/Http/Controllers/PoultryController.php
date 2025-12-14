@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Poultry;
 use Illuminate\Http\Request;
+use Exception;
 
 class PoultryController extends Controller
 {
@@ -15,19 +16,28 @@ class PoultryController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        // 1. Validate Input
+        $data = $request->validate([
             'entry_date'   => 'required|date',
             'batch_no'     => 'nullable|string|max:50',
-            'quantity'     => 'required|integer|min:1',
+            'quantity'     => 'nullable|integer|min:0',
             'total_weight' => 'required|numeric|min:0',
             'cost_price'   => 'required|numeric|min:0',
             'description'  => 'nullable|string',
         ]);
 
         try {
-            Poultry::create($validated);
+            // 🟢 Fix: Agar Quantity null/empty ho to 0 set karein
+            if (!isset($data['quantity']) || $data['quantity'] === null) {
+                $data['quantity'] = 0;
+            }
+
+            // 2. Create Record
+            Poultry::create($data);
+
             return response()->json(['success' => true, 'message' => 'Added successfully!'], 201);
-        } catch (\Exception $e) {
+
+        } catch (Exception $e) {
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
@@ -45,10 +55,10 @@ class PoultryController extends Controller
     // 🟢 UPDATE DATA
     public function update(Request $request, $id)
     {
-        $validated = $request->validate([
+        $data = $request->validate([
             'entry_date'   => 'required|date',
             'batch_no'     => 'nullable|string|max:50',
-            'quantity'     => 'required|integer|min:1',
+            'quantity'     => 'nullable|integer|min:0',
             'total_weight' => 'required|numeric|min:0',
             'cost_price'   => 'required|numeric|min:0',
             'description'  => 'nullable|string',
@@ -56,17 +66,28 @@ class PoultryController extends Controller
 
         try {
             $poultry = Poultry::findOrFail($id);
-            $poultry->update($validated);
+
+            // 🟢 Fix: Update mein bhi agar quantity empty ho to 0 karein
+            if (!isset($data['quantity']) || $data['quantity'] === null) {
+                $data['quantity'] = 0;
+            }
+
+            $poultry->update($data);
 
             return response()->json(['success' => true, 'message' => 'Updated successfully!']);
-        } catch (\Exception $e) {
+
+        } catch (Exception $e) {
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
 
     public function destroy($id)
     {
-        Poultry::destroy($id);
-        return response()->json(['success' => true, 'message' => 'Deleted successfully']);
+        try {
+            Poultry::findOrFail($id)->delete();
+            return response()->json(['success' => true, 'message' => 'Deleted successfully']);
+        } catch (Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error deleting record'], 500);
+        }
     }
 }

@@ -17,9 +17,9 @@ class RateController extends Controller
     private const RATE_MARGINS = [
         'wholesale_rate'                => 10.00, 
         'live_chicken_rate'             => 20.00,
-        'wholesale_hotel_mix_rate'      => 25.00,
-        'wholesale_hotel_chest_rate'    => 125.00,
-        'wholesale_hotel_thigh_rate'    => 75.00,
+        'wholesale_mix_rate'      => 25.00,
+        'wholesale_chest_rate'    => 125.00,
+        'wholesale_thigh_rate'    => 75.00,
         'wholesale_customer_piece_rate' => 0.00,
         'retail_mix_rate'               => 50.00,
         'retail_chest_rate'             => 150.00,
@@ -33,9 +33,9 @@ class RateController extends Controller
     private const RATE_FRIENDLY_NAMES = [
         'wholesale_rate'                => 'Wholesale Live',
         'live_chicken_rate'             => 'Retail Live Chicken',
-        'wholesale_hotel_mix_rate'      => 'Wholesale Hotel Mix',
-        'wholesale_hotel_chest_rate'    => 'Wholesale Hotel Chest',
-        'wholesale_hotel_thigh_rate'    => 'Wholesale Hotel Thigh',
+        'wholesale_mix_rate'      => 'Wholesale Mix',
+        'wholesale_chest_rate'    => 'Wholesale Chest',
+        'wholesale_thigh_rate'    => 'Wholesale Thigh',
         'wholesale_customer_piece_rate' => 'Wholesale Customer Piece',
         'retail_mix_rate'               => 'Retail Mix',
         'retail_chest_rate'             => 'Retail Chest',
@@ -66,9 +66,9 @@ class RateController extends Controller
                 'retail_thigh_rate'             => 0.00,
                 'retail_piece_rate'             => 0.00,
                 'live_chicken_rate'             => 0.00,
-                'wholesale_hotel_mix_rate'      => 0.00,
-                'wholesale_hotel_chest_rate'    => 0.00,
-                'wholesale_hotel_thigh_rate'    => 0.00,
+                'wholesale_mix_rate'      => 0.00,
+                'wholesale_chest_rate'    => 0.00,
+                'wholesale_thigh_rate'    => 0.00,
                 'wholesale_customer_piece_rate' => 0.00,
                 'is_historical'                 => false,
             ];
@@ -90,9 +90,9 @@ class RateController extends Controller
                 // Load ALL individual rates directly from the saved activeRate object
                 $defaultData['wholesale_rate']                = (float)$activeRate->wholesale_rate;
                 $defaultData['live_chicken_rate']             = (float)$activeRate->live_chicken_rate;
-                $defaultData['wholesale_hotel_mix_rate']      = (float)$activeRate->wholesale_hotel_mix_rate;
-                $defaultData['wholesale_hotel_chest_rate']    = (float)$activeRate->wholesale_hotel_chest_rate;
-                $defaultData['wholesale_hotel_thigh_rate']    = (float)$activeRate->wholesale_hotel_thigh_rate;
+                $defaultData['wholesale_mix_rate']      = (float)$activeRate->wholesale_mix_rate;
+                $defaultData['wholesale_chest_rate']    = (float)$activeRate->wholesale_chest_rate;
+                $defaultData['wholesale_thigh_rate']    = (float)$activeRate->wholesale_thigh_rate;
                 $defaultData['wholesale_customer_piece_rate'] = (float)$activeRate->wholesale_customer_piece_rate;
                 $defaultData['retail_mix_rate']               = (float)$activeRate->retail_mix_rate;
                 $defaultData['retail_chest_rate']             = (float)$activeRate->retail_chest_rate;
@@ -140,6 +140,7 @@ class RateController extends Controller
      */
     public function store(Request $request)
     {
+        
         $data = $request->validate([
             'supplier_id'                   => ['nullable', 'exists:suppliers,id'],
             'base_effective_cost'           => ['required', 'numeric', 'min:0'],
@@ -147,9 +148,9 @@ class RateController extends Controller
             'wholesale_rate'                => ['required', 'numeric', 'min:0'],
             'permanent_rate'                => ['required', 'numeric', 'min:0'], 
             'live_chicken_rate'             => ['required', 'numeric', 'min:0'], 
-            'wholesale_hotel_mix_rate'      => ['required', 'numeric', 'min:0'], 
-            'wholesale_hotel_chest_rate'    => ['required', 'numeric', 'min:0'], 
-            'wholesale_hotel_thigh_rate'    => ['required', 'numeric', 'min:0'], 
+            'wholesale_mix_rate'            => ['required', 'numeric', 'min:0'], 
+            'wholesale_chest_rate'          => ['required', 'numeric', 'min:0'], 
+            'wholesale_thigh_rate'          => ['required', 'numeric', 'min:0'], 
             'wholesale_customer_piece_rate' => ['required', 'numeric', 'min:0'], 
             'retail_mix_rate'               => ['required', 'numeric', 'min:0'],
             'retail_chest_rate'             => ['required', 'numeric', 'min:0'],

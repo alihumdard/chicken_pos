@@ -1,10 +1,7 @@
 @extends('layouts.main')
 
 @section('content')
-    {{-- 
-    1. max-w-[100vw] & overflow-x-hidden: Prevents the whole page from sliding left/right on mobile.
-    2. min-h-screen: Ensures the background covers the full device height.
-    --}}
+
     <div class="w-full max-w-[100vw] min-h-screen overflow-x-hidden bg-gray-100 flex flex-col pt-5 sm:pt-0">
 
         <div class="flex-1 p-3 sm:p-6 lg:p-8">
@@ -43,7 +40,7 @@
                                     Avg Weight</th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                                    Total Cost</th>
+                                    Rate</th>
                                 <th
                                     class="px-4 sm:px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                                     Action</th>
@@ -161,7 +158,7 @@
                                             required>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Total Cost
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Rate
                                             (PKR)</label>
                                         <input type="number" step="0.01" name="cost_price" id="cost_price"
                                             placeholder="0.00"
@@ -174,8 +171,7 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Quantity (Birds)</label>
                                     <input type="number" name="quantity" id="quantity" placeholder="0"
-                                        class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        required>
+                                        class="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none">
                                 </div>
 
                                 {{-- Description --}}

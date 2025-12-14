@@ -83,9 +83,9 @@
                     {{-- Categories --}}
                     @php
                         $allCategories = [
-                            'Chest' => ['rate_field' => 'wholesale_hotel_chest_rate', 'image' => asset('assets/images/chest.png')],
-                            'Thigh' => ['rate_field' => 'wholesale_hotel_thigh_rate', 'image' => asset('assets/images/thigh.png')],
-                            'Mix' => ['rate_field' => 'wholesale_hotel_mix_rate', 'image' => asset('assets/images/mix.png')],
+                            'Chest' => ['rate_field' => 'wholesale_chest_rate', 'image' => asset('assets/images/chest.png')],
+                            'Thigh' => ['rate_field' => 'wholesale_thigh_rate', 'image' => asset('assets/images/thigh.png')],
+                            'Mix' => ['rate_field' => 'wholesale_mix_rate', 'image' => asset('assets/images/mix.png')],
                             'Piece' => ['rate_field' => 'wholesale_customer_piece_rate', 'image' => asset('assets/images/piece.png')],
                             'Live' => ['rate_field' => 'live_chicken_rate', 'image' => asset('assets/images/live.png')],
                             'live' => ['rate_field' => 'wholesale_rate', 'image' => asset('assets/images/live.png')],
@@ -233,7 +233,7 @@
         </div>
     </div>
 
-    <script>
+   <script>
     const STORE_CONTACT_URL = "{{ route('admin.contacts.store') }}"; 
     
     function openModal() {
@@ -288,15 +288,16 @@
         const wholesaleCheckbox = document.getElementById('wholesale-channel-checkbox');
         const retailCheckbox = document.getElementById('retail-channel-checkbox');
         
-        // 🟢 NEW DOM ELEMENTS
+        // NEW DOM ELEMENTS
         const cashReceivedInput = document.getElementById('cash-received-input');
         const netBalanceChangeDisplay = document.getElementById('net-balance-change');
 
         const FETCH_RATES_ROUTE = "{{ route('admin.sales.fetch-rates') }}";
+        
         const retailRateMap = {
-            'wholesale_hotel_mix_rate': 'retail_mix_rate',
-            'wholesale_hotel_chest_rate': 'retail_chest_rate',
-            'wholesale_hotel_thigh_rate': 'retail_thigh_rate',
+            'wholesale_mix_rate': 'retail_mix_rate',
+            'wholesale_chest_rate': 'retail_chest_rate',
+            'wholesale_thigh_rate': 'retail_thigh_rate',
             'wholesale_customer_piece_rate': 'retail_piece_rate',
             'wholesale_rate': 'retail_mix_rate',
         };
@@ -311,16 +312,23 @@
             updateAddItemButton();
         };
 
+        // ... (getRateByChannel function same as before) ...
         const getRateByChannel = (channel, wholesaleKey) => {
             let rate = 0.00;
+            if (!ACTIVE_RATES) return 0.00;
+
             if (channel === 'wholesale') {
-                if (ACTIVE_RATES.wholesale.hasOwnProperty(wholesaleKey)) rate = ACTIVE_RATES.wholesale[wholesaleKey];
-            } else if (channel === 'retail') {
+                if (ACTIVE_RATES.wholesale[wholesaleKey] !== undefined) rate = ACTIVE_RATES.wholesale[wholesaleKey];
+                else if (ACTIVE_RATES.wholesale[wholesaleKey.replace('_', '_hotel_')] !== undefined) {
+                    rate = ACTIVE_RATES.wholesale[wholesaleKey.replace('_', '_hotel_')];
+                }
+            } 
+            else if (channel === 'retail') {
                 if (wholesaleKey === 'live_chicken_rate') {
-                    if (ACTIVE_RATES.wholesale.hasOwnProperty('live_chicken_rate')) rate = ACTIVE_RATES.wholesale.live_chicken_rate;
+                    rate = ACTIVE_RATES.wholesale.live_chicken_rate ?? 0;
                 } else {
                     const retailKey = retailRateMap[wholesaleKey];
-                    if (retailKey && ACTIVE_RATES.retail.hasOwnProperty(retailKey)) rate = ACTIVE_RATES.retail[retailKey];
+                    if (retailKey && ACTIVE_RATES.retail[retailKey] !== undefined) rate = ACTIVE_RATES.retail[retailKey];
                 }
             }
             return parseFloat(rate) || 0.00;
@@ -345,9 +353,11 @@
             addItemBtn.disabled = !(selectedCustomerId && selectedCategory && weight > 0 && rate > 0);
         };
 
+        // 🟢 UPDATE: Cart Display Logic
         const updateCartDisplay = () => {
             let grandTotal = 0;
             cartContainer.innerHTML = '';
+            
             if (cartItems.length === 0) {
                 cartContainer.innerHTML = '<div class="text-gray-500 text-center py-4">Empty</div>';
                 confirmSaleBtn.disabled = true;
@@ -355,17 +365,32 @@
                 cartItems.forEach((item, index) => {
                     const lineTotal = item.weight * item.rate;
                     grandTotal += lineTotal;
+                    
+                    // Channel Label Color Logic
+                    const channelBadgeClass = item.channel === 'Wholesale' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
+                    const channelLabel = `<span class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${channelBadgeClass}">${item.channel}</span>`;
+
                     const itemDiv = document.createElement('div');
-                    itemDiv.className = 'flex justify-between text-gray-700 py-1 border-b';
+                    itemDiv.className = 'flex justify-between text-gray-700 py-2 border-b items-center';
                     itemDiv.innerHTML = `
                         <div class="flex items-center space-x-2">
-                            <button type="button" data-index="${index}" class="remove-item-btn text-red-500 hover:text-red-700 text-sm"><i class="fa-solid fa-times-circle"></i></button>
+                            <button type="button" data-index="${index}" class="remove-item-btn text-red-500 hover:text-red-700 text-sm p-1"><i class="fa-solid fa-times-circle text-lg"></i></button>
+                            
+                            {{-- Hidden Inputs for Backend --}}
                             <input type="hidden" name="cart_items[${index}][category]" value="${item.category}">
                             <input type="hidden" name="cart_items[${index}][weight]" value="${item.weight.toFixed(3)}">
                             <input type="hidden" name="cart_items[${index}][rate]" value="${item.rate.toFixed(2)}">
-                            <span>${index + 1}. ${item.category} - ${item.weight.toFixed(3)}kg @ ${item.rate.toFixed(2)}</span>
+                            
+                            <div class="flex flex-col leading-tight">
+                                <span class="font-bold text-gray-800 text-sm">
+                                    ${item.category} ${channelLabel}
+                                </span>
+                                <span class="text-xs text-gray-500">
+                                    ${item.weight.toFixed(3)}kg @ ${item.rate.toFixed(2)}
+                                </span>
+                            </div>
                         </div>
-                        <span>${formatCurrency(lineTotal)}</span>
+                        <span class="font-bold text-gray-800">${formatCurrency(lineTotal)}</span>
                     `;
                     cartContainer.appendChild(itemDiv);
                 });
@@ -373,10 +398,9 @@
             }
             totalPayableDisplay.textContent = formatCurrency(grandTotal);
             finalTotalPayableInput.value = grandTotal.toFixed(2);
-            calculateNetBalanceChange(); // Update calculations
+            calculateNetBalanceChange();
         };
 
-        // 🟢 CALCULATE NET BALANCE
         const calculateNetBalanceChange = () => {
             const total = parseFloat(finalTotalPayableInput.value) || 0;
             const received = parseFloat(cashReceivedInput.value) || 0;
@@ -397,7 +421,6 @@
 
         cashReceivedInput.addEventListener('input', calculateNetBalanceChange);
 
-        // Event Handlers
         const handleChannelChange = (e) => {
             const checked = e.target.checked;
             if (checked) {
@@ -442,9 +465,21 @@
         weightInput.addEventListener('input', calculateLineTotal);
         rateInput.addEventListener('input', calculateLineTotal);
 
+        // 🟢 UPDATE: Add Item Logic (Using unshift for reverse order)
         addItemBtn.addEventListener('click', function () {
             if (selectedCustomerId && selectedCategory && parseFloat(weightInput.value) > 0 && parseFloat(rateInput.value) > 0) {
-                cartItems.push({ category: selectedCategory, weight: parseFloat(weightInput.value), rate: parseFloat(rateInput.value) });
+                
+                // Determine display label for channel
+                const channelLabel = selectedChannel.charAt(0).toUpperCase() + selectedChannel.slice(1); // "Wholesale" or "Retail"
+
+                // 🟢 UNSHIFT use kiya hai taake naya item sab se uper aye
+                cartItems.unshift({ 
+                    category: selectedCategory, 
+                    channel: channelLabel, // Save Channel Name
+                    weight: parseFloat(weightInput.value), 
+                    rate: parseFloat(rateInput.value) 
+                });
+
                 weightInput.value = 0;
                 calculateLineTotal();
                 updateCartDisplay();
@@ -454,6 +489,7 @@
             }
         });
 
+        // ... (Baqi Customer Add aur Sale Submit ka code same rahega) ...
         document.getElementById('contactForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('saveContactBtn');
@@ -461,10 +497,45 @@
             try {
                 const res = await fetch(STORE_CONTACT_URL, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: new FormData(e.target) });
                 if (!res.ok) throw new Error('Failed');
+                const data = await res.json(); 
                 closeModal();
-                Swal.fire({ icon: 'success', title: 'Saved!', showConfirmButton: false, timer: 1000 }).then(() => window.location.reload());
+                Swal.fire({ icon: 'success', title: 'Saved!', showConfirmButton: false, timer: 1000 });
+
+                const customerList = document.getElementById('customer-list');
+                const noCustomerMsg = document.getElementById('no-customer-placeholder');
+                if(noCustomerMsg) noCustomerMsg.remove();
+
+                const balanceVal = parseFloat(data.opening_balance || 0);
+                const formattedBal = balanceVal.toFixed(2);
+                const displayBal = Math.floor(balanceVal).toLocaleString();
+
+                const li = document.createElement('li');
+                li.className = 'customer-item px-3 rounded cursor-pointer text-base lg:text-lg font-bold transition-colors';
+                li.setAttribute('data-id', data.id);
+                li.setAttribute('data-name', data.name);
+                li.setAttribute('data-balance', formattedBal);
+                li.innerHTML = `${data.name} <br><span class="text-xs lg:text-sm text-gray-700 balance-text">(Bal: ${displayBal} PKR)</span>`;
+
+                li.addEventListener('click', function () {
+                    document.querySelectorAll('.customer-item').forEach(i => i.classList.remove('bg-yellow-200'));
+                    this.classList.add('bg-yellow-200');
+                    selectedCustomerId = this.dataset.id;
+                    customerIdInput.value = selectedCustomerId;
+                    customerNameDisplay.textContent = this.dataset.name;
+                    customerBalanceDisplay.textContent = formatCurrency(this.dataset.balance);
+                    updateAddItemButton();
+                    if (cartItems.length > 0) confirmSaleBtn.disabled = false;
+                });
+
+                const hr = document.createElement('hr');
+                customerList.insertBefore(hr, customerList.firstChild);
+                customerList.insertBefore(li, customerList.firstChild);
+                li.click(); 
+                li.scrollIntoView({ behavior: 'smooth', block: 'center' });
             } catch (err) {
+                console.error(err);
                 Swal.fire('Error', 'Failed to save', 'error');
+            } finally {
                 btn.disabled = false; btn.textContent = 'Save Customer';
             }
         });
@@ -494,7 +565,6 @@
             }
         });
         
-        // Initial setup
         const init = () => {
             if(selectedChannel === 'wholesale') { wholesaleGrid.classList.remove('hidden'); retailGrid.classList.add('hidden'); }
             const liveTab = document.querySelector('#wholesale-category-grid .category-tab[data-category="live"]') || document.querySelector('#wholesale-category-grid .category-tab');
