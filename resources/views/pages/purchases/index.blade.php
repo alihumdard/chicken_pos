@@ -188,7 +188,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch w-full">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch w-full">
                         {{-- 1. Buying Rate --}}
                         <div class="bg-gray-700 p-3 rounded-xl flex flex-col justify-center w-full">
                             <label for="buying_rate" class="text-gray-300 text-xs mb-1 font-medium">Buying Rate (Per Kg)</label>
@@ -198,13 +198,16 @@
                             </div>
                         </div>
 
-                        {{-- 2. Total Payable --}}
-                        <div class="bg-gray-900 p-3 rounded-xl flex flex-col justify-center border border-gray-700 w-full">
-                            <label class="text-gray-400 text-xs mb-1 font-medium">Total Payable Amount</label>
-                            <input type="text" name="total_payable_display" id="total_payable_display" value="Rs 0" readonly class="min-w-0 w-full p-2.5 bg-gray-800 text-white font-mono text-lg font-bold rounded-lg focus:outline-none cursor-not-allowed border border-gray-700">
-                            <input type="hidden" name="total_payable" id="total_payable" value="0">
+                        {{-- 3. Total kharch --}}
+                        <div class="bg-gray-700 p-3 rounded-xl flex flex-col justify-center border border-gray-600 w-full">
+                            <label for="total_kharch" class="text-green-300 text-xs mb-1 font-bold">Total Kharch</label>
+                            <div class="relative w-full">
+                                <input type="number" name="total_kharch" id="total_kharch" value="0" min="0" 
+                                    class="min-w-0 w-full p-2.5 pr-10 text-black font-bold rounded-lg focus:outline-none text-sm focus:ring-2 focus:ring-green-400 transition-all">
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 text-xs font-bold">Rs</span>
+                            </div>
                         </div>
-                        
+
                         {{-- 3. CASH PAID --}}
                         <div class="bg-gray-700 p-3 rounded-xl flex flex-col justify-center border border-gray-600 w-full">
                             <label for="cash_paid" class="text-green-300 text-xs mb-1 font-bold">Cash Paid</label>
@@ -215,7 +218,15 @@
                             </div>
                             <p class="text-[10px] text-gray-400 mt-1 text-right">Remaining: <span id="remaining_balance_display" class="text-red-300">0</span></p>
                         </div>
+                        
 
+                        {{-- 2. Total Payable --}}
+                        <div class="bg-gray-900 p-3 rounded-xl flex flex-col justify-center border border-gray-700 w-full">
+                            <label class="text-gray-400 text-xs mb-1 font-medium">Total Payable Amount</label>
+                            <input type="text" name="total_payable_display" id="total_payable_display" value="Rs 0" readonly class="min-w-0 w-full p-2.5 bg-gray-800 text-white font-mono text-lg font-bold rounded-lg focus:outline-none cursor-not-allowed border border-gray-700">
+                            <input type="hidden" name="total_payable" id="total_payable" value="0">
+                        </div>
+                        
                         {{-- 4. Effective Cost --}}
                         @php
                             $defaultFormula = ['multiply' => 1.0, 'divide' => 1.0, 'plus' => 0.0, 'minus' => 0.0];
@@ -285,10 +296,11 @@
                                 <tr>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">ID</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Supplier</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Gross Wgt</th>
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Net Wgt</th>
-                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Rate</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Buying Rate</th>
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Payable</th>
-                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Cost/Kg</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Cost Rate/Kg</th>
                                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Action</th>
                                 </tr>
                             </thead>
@@ -300,6 +312,7 @@
                                             <div class="font-semibold">{{ $purchase->supplier_name ?? 'N/A' }}</div>
                                             <div class="text-xs text-gray-500">{{ $purchase->created_at_human }}</div>
                                         </td>
+                                        <td class="px-4 py-3 text-sm text-right font-semibold text-[var(--green-primary)] whitespace-nowrap">{{ number_format($purchase->gross_weight, 2) }}</td>
                                         <td class="px-4 py-3 text-sm text-right font-semibold text-[var(--green-primary)] whitespace-nowrap">{{ number_format($purchase->net_live_weight, 2) }}</td>
                                         <td class="px-4 py-3 text-sm text-right text-gray-700 whitespace-nowrap">{{ number_format($purchase->buying_rate, 2) }}</td>
                                         <td class="px-4 py-3 text-sm text-right font-extrabold text-[var(--text-dark)] whitespace-nowrap">{{ number_format($purchase->total_payable, 0) }}</td>
@@ -386,6 +399,7 @@
                 shrink_loss: document.getElementById('shrink_loss'),
                 buying_rate: document.getElementById('buying_rate'),
                 cash_paid: document.getElementById('cash_paid'),
+                total_kharch: document.getElementById('total_kharch'),
             };
 
             const outputs = {
@@ -408,20 +422,21 @@
                 const shrink = parseInput(inputs.shrink_loss);
                 const rate = parseInput(inputs.buying_rate);
                 const cash = parseInput(inputs.cash_paid);
+                const total_kharch = parseInput(inputs.total_kharch);
+                
 
                 let net = Math.max(0, gross - dead - shrink);
-                const total = net * rate;
+                const total = gross * rate;
                 
                 // Effective Cost Formula
-                let base = (net > 0) ? (total / net) : 0;
+                let base = (total+total_kharch)/net;
                 let effective = base * purchaseFormula.multiply / purchaseFormula.divide + purchaseFormula.plus - purchaseFormula.minus;
 
-                outputs.net_live_weight.value = net.toFixed(2);
-                outputs.total_payable.value = total.toFixed(2);
+                outputs.net_live_weight.value = Math.max(0, net).toFixed(2);
+                outputs.total_payable.value = Math.max(0, total).toFixed(2);
                 outputs.total_payable_display.value = `Rs ${formatCurrency(total)}`;
                 outputs.effective_cost.value = Math.max(0, effective).toFixed(2);
-                outputs.effective_cost_display.textContent = Math.max(0, effective).toFixed(0);
-
+                outputs.effective_cost_display.textContent = (Math.floor(Math.max(0, effective) * 100) / 100).toFixed(2);
                 // REMAINING BALANCE CALCULATION
                 const remaining = total - cash;
                 outputs.remaining_balance_display.textContent = formatCurrency(remaining);
