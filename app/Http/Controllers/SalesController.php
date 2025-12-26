@@ -18,23 +18,27 @@ class SalesController extends Controller
         $customers = Customer::orderBy('name')->get();
         $dailyRates = DailyRate::latest()->first();
 
-        // 🟢 FIX: Check for standard keys first, then fallback to '_hotel_' keys if missing
+        // MATCHING YOUR DATABASE COLUMNS EXACTLY
         $rates = [
             'wholesale' => [
                 'wholesale_rate'                => $dailyRates->wholesale_rate ?? 0.00,
                 'live_chicken_rate'             => $dailyRates->live_chicken_rate ?? 0.00,
                 
-                // Fallback Logic for Mix, Chest, Thigh
-                'wholesale_mix_rate'            => $dailyRates->wholesale_mix_rate ?? $dailyRates->wholesale_hotel_mix_rate ?? 0.00,
-                'wholesale_chest_rate'          => $dailyRates->wholesale_chest_rate ?? $dailyRates->wholesale_hotel_chest_rate ?? 0.00,
-                'wholesale_thigh_rate'          => $dailyRates->wholesale_thigh_rate ?? $dailyRates->wholesale_hotel_thigh_rate ?? 0.00,
+                // IDs 3, 4, 5 from your DB
+                'wholesale_mix_rate'            => $dailyRates->wholesale_mix_rate ?? 0.00,
+                'wholesale_chest_rate'          => $dailyRates->wholesale_chest_rate ?? 0.00,
+                'wholesale_thigh_rate'          => $dailyRates->wholesale_thigh_rate ?? 0.00,
                 
+                // ID 6 from your DB
                 'wholesale_customer_piece_rate' => $dailyRates->wholesale_customer_piece_rate ?? 0.00,
             ],
             'retail' => [
+                // IDs 7, 8, 9 from your DB
                 'retail_mix_rate'   => $dailyRates->retail_mix_rate ?? 0.00,
                 'retail_chest_rate' => $dailyRates->retail_chest_rate ?? 0.00,
                 'retail_thigh_rate' => $dailyRates->retail_thigh_rate ?? 0.00,
+                
+                // ID 10 from your DB (This was the mismatch cause!)
                 'retail_piece_rate' => $dailyRates->retail_piece_rate ?? 0.00,
             ]
         ];
@@ -42,12 +46,16 @@ class SalesController extends Controller
         return view('pages.sales.index', compact('customers', 'rates'));
     }
 
+    // ... (Your store method remains the same) ...
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'customer_id'           => 'required|exists:customers,id',
-            'rate_channel'          => 'required|in:wholesale,retail',
-            'cart_items'            => 'required|array|min:1',
+        // ... (Keep existing store logic) ...
+        // I am omitting it here to save space since it was correct.
+        // Let me know if you need the full store method again.
+         $validated = $request->validate([
+            'customer_id'       => 'required|exists:customers,id',
+            'rate_channel'      => 'required|in:wholesale,retail',
+            'cart_items'        => 'required|array|min:1',
             'cart_items.*.category' => 'required|string|max:50',
             'cart_items.*.weight'   => 'required|numeric|min:0.001',
             'cart_items.*.rate'     => 'required|numeric|min:0',
