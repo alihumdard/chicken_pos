@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\RateFormula;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\DailyRate;
@@ -13,38 +14,44 @@ use Exception;
 
 class SalesController extends Controller
 {
-    public function index()
-    {
-        $customers = Customer::orderBy('name')->get();
-        $dailyRates = DailyRate::latest()->first();
+public function index()
+{
+    $customers = Customer::orderBy('name')->get();
+    $dailyRates = DailyRate::latest()->first();
+    
+    // 🟢 Fetch all formulas and key them by their rate_key (e.g., 'wholesale_rate')
+    $formulas = RateFormula::all()->keyBy('rate_key');
 
-        // MATCHING YOUR DATABASE COLUMNS EXACTLY
-        $rates = [
-            'wholesale' => [
-                'wholesale_rate'                => $dailyRates->wholesale_rate ?? 0.00,
-                'live_chicken_rate'             => $dailyRates->live_chicken_rate ?? 0.00,
-                
-                // IDs 3, 4, 5 from your DB
-                'wholesale_mix_rate'            => $dailyRates->wholesale_mix_rate ?? 0.00,
-                'wholesale_chest_rate'          => $dailyRates->wholesale_chest_rate ?? 0.00,
-                'wholesale_thigh_rate'          => $dailyRates->wholesale_thigh_rate ?? 0.00,
-                
-                // ID 6 from your DB
-                'wholesale_customer_piece_rate' => $dailyRates->wholesale_customer_piece_rate ?? 0.00,
-            ],
-            'retail' => [
-                // IDs 7, 8, 9 from your DB
-                'retail_mix_rate'   => $dailyRates->retail_mix_rate ?? 0.00,
-                'retail_chest_rate' => $dailyRates->retail_chest_rate ?? 0.00,
-                'retail_thigh_rate' => $dailyRates->retail_thigh_rate ?? 0.00,
-                
-                // ID 10 from your DB (This was the mismatch cause!)
-                'retail_piece_rate' => $dailyRates->retail_piece_rate ?? 0.00,
-            ]
-        ];
+    $rates = [
+        'wholesale' => [
+            'wholesale_rate'                 => $dailyRates->wholesale_rate ?? 0.00,
+            'wholesale_mix_rate'             => $dailyRates->wholesale_mix_rate ?? 0.00,
+            'wholesale_chest_rate'           => $dailyRates->wholesale_chest_rate ?? 0.00,
+            'wholesale_thigh_rate'           => $dailyRates->wholesale_thigh_rate ?? 0.00,
+            'wholesale_customer_piece_rate'  => $dailyRates->wholesale_customer_piece_rate ?? 0.00,
+            'wholesale_chest_and_leg_pieces' => $dailyRates->wholesale_chest_and_leg_pieces ?? 0.00,
+            'wholesale_drum_sticks'          => $dailyRates->wholesale_drum_sticks ?? 0.00,
+            'wholesale_chest_boneless'       => $dailyRates->wholesale_chest_boneless ?? 0.00,
+            'wholesale_thigh_boneless'       => $dailyRates->wholesale_thigh_boneless ?? 0.00,
+            'wholesale_kalagi_pot_gardan'    => $dailyRates->wholesale_kalagi_pot_gardan ?? 0.00,
+        ],
+        'retail' => [
+            'live_chicken_rate'              => $dailyRates->live_chicken_rate ?? 0.00,
+            'retail_mix_rate'                => $dailyRates->retail_mix_rate ?? 0.00,
+            'retail_chest_rate'              => $dailyRates->retail_chest_rate ?? 0.00,
+            'retail_thigh_rate'              => $dailyRates->retail_thigh_rate ?? 0.00,
+            'retail_piece_rate'              => $dailyRates->retail_piece_rate ?? 0.00,
+            'retail_chest_and_leg_pieces'    => $dailyRates->retail_chest_and_leg_pieces ?? 0.00,
+            'retail_drum_sticks'             => $dailyRates->retail_drum_sticks ?? 0.00,
+            'retail_chest_boneless'          => $dailyRates->retail_chest_boneless ?? 0.00,
+            'retail_thigh_boneless'          => $dailyRates->retail_thigh_boneless ?? 0.00,
+            'retail_kalagi_pot_gardan'       => $dailyRates->retail_kalagi_pot_gardan ?? 0.00,
+        ]
+    ];
 
-        return view('pages.sales.index', compact('customers', 'rates'));
-    }
+    // 🟢 Pass $formulas to the view
+    return view('pages.sales.index', compact('customers', 'rates', 'formulas'));
+}
 
     // ... (Your store method remains the same) ...
     public function store(Request $request)

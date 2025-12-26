@@ -21,6 +21,7 @@ class Purchase extends Model
         'buying_rate',
         'total_payable',
         'effective_cost',
+        'total_kharch'
     ];
     
     // Define relationship to get supplier name

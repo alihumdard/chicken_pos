@@ -163,6 +163,7 @@ class PurchaseController extends Controller
             'dead_weight'     => 'nullable|numeric|min:0',
             'shrink_loss'     => 'nullable|numeric|min:0',
             'buying_rate'     => 'required|numeric|min:0',
+            'total_kharch'    => 'nullable|numeric|min:0',
             'net_live_weight' => 'required|numeric|min:0',
             'total_payable'   => 'required|numeric|min:0',
             'effective_cost'  => 'required|numeric|min:0',
@@ -183,6 +184,7 @@ class PurchaseController extends Controller
             'shrink_loss'     => (float)$purchase->shrink_loss,
             'net_live_weight' => (float)$purchase->net_live_weight,
             'buying_rate'     => (float)$purchase->buying_rate,
+            'total_kharch'     => (float)$purchase->total_kharch,
             'total_payable'   => (float)$purchase->total_payable,
             'effective_cost'  => (float)$purchase->effective_cost,
         ];

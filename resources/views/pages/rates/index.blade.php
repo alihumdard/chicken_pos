@@ -205,17 +205,17 @@
                             </div>
                             
                             @php
-                                $wholesales = [
-                                    ['label' => 'Mix (No. 34)',   'name' => 'wholesale_mix_rate'],    
-                                    ['label' => 'Mix (No. 35)', 'name' => 'wholesale_chest_rate'],  
-                                    ['label' => 'Mix (No. 36)', 'name' => 'wholesale_thigh_rate'],  
-                                    ['label' => 'Mix (No. 37)', 'name' => 'wholesale_customer_piece_rate'],
-                                    ['label' => 'Chest and Leg Pieces (No. 38)', 'name' => 'wholesale_chest_and_leg_pieces'],
-                                    ['label' => 'Drum Sticks', 'name' => 'wholesale_drum_sticks'],
-                                    ['label' => 'Chest Boneless', 'name' => 'wholesale_chest_boneless'],
-                                    ['label' => 'Thigh Boneless', 'name' => 'wholesale_kalagi_pot_gardan'],
-                                    ['label' => 'Kalagi Pot Gardan', 'name' => 'wholesale_kalagi_pot_gardan'],
-                                ];
+                              $wholesales = [
+                                ['label' => 'Mix (No. 34)', 'name' => 'wholesale_mix_rate'],
+                                ['label' => 'Mix (No. 35)', 'name' => 'wholesale_chest_rate'],
+                                ['label' => 'Mix (No. 36)', 'name' => 'wholesale_thigh_rate'],
+                                ['label' => 'Mix (No. 37)', 'name' => 'wholesale_customer_piece_rate'],
+                                ['label' => 'Chest & Leg (No. 38)', 'name' => 'wholesale_chest_and_leg_pieces'],
+                                ['label' => 'Drum Sticks', 'name' => 'wholesale_drum_sticks'],
+                                ['label' => 'Chest Boneless', 'name' => 'wholesale_chest_boneless'],
+                                ['label' => 'Thigh Boneless', 'name' => 'wholesale_thigh_boneless'], // Fixed name here
+                                ['label' => 'Kalagi Pot Gardan', 'name' => 'wholesale_kalagi_pot_gardan'],
+                            ];
                             @endphp
 
                             @foreach($wholesales as $item)
@@ -248,13 +248,18 @@
                         </h2>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             @php
-                                $retails = [
-                                    ['label' => 'Retail Live',   'name' => 'live_chicken_rate'],
-                                    ['label' => 'Mix (No. 34)',  'name' => 'retail_mix_rate'],
-                                    ['label' => 'Mix (No. 35)', 'name'  => 'retail_chest_rate'],
-                                    ['label' => 'Mix (No. 36)', 'name' => 'retail_thigh_rate'],
-                                    ['label' => 'Mix (No. 37)',  'name' => 'retail_piece_rate'],
-                                ];
+                               $retails = [
+                                ['label' => 'Retail Live', 'name' => 'live_chicken_rate'],
+                                ['label' => 'Mix (No. 34)', 'name' => 'retail_mix_rate'],
+                                ['label' => 'Mix (No. 35)', 'name' => 'retail_chest_rate'],
+                                ['label' => 'Mix (No. 36)', 'name' => 'retail_thigh_rate'],
+                                ['label' => 'Mix (No. 37)', 'name' => 'retail_piece_rate'],
+                                ['label' => 'Chest & Leg (No. 38)', 'name' => 'retail_chest_and_leg_pieces'], // Added
+                                ['label' => 'Drum Sticks', 'name' => 'retail_drum_sticks'],                   // Added
+                                ['label' => 'Chest Boneless', 'name' => 'retail_chest_boneless'],             // Added
+                                ['label' => 'Thigh Boneless', 'name' => 'retail_thigh_boneless'],             // Added
+                                ['label' => 'Kalagi Pot Gardan', 'name' => 'retail_kalagi_pot_gardan'],       // Added
+                            ];
                             @endphp
                             @foreach($retails as $item)
                                 <div>
@@ -323,7 +328,8 @@
 
                 function formatNumber(number) { return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number); }
 
-                const rateInputs = document.querySelectorAll('input[type="number"][name$="_rate"]:not(#manual_base_cost)');
+                // const rateInputs = document.querySelectorAll('input[type="number"][name$="_rate"]:not(#manual_base_cost)');
+                const rateInputs = document.querySelectorAll('input[type="number"]:not(#manual_base_cost):not(#net_stock_input)');
                 const rateInputElements = {};
                 const userEditedInputs = {};
 
