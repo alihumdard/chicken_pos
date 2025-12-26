@@ -27,21 +27,45 @@ class RateController extends Controller
         'retail_piece_rate'             => -10.00,
         // 🟢 NEW: Key for Purchase Effective Cost
         'purchase_effective_cost'       => 0.00, 
+        'wholesale_chest_and_leg_pieces'=> 0.00,
+        'wholesale_drum_sticks'         => 0.00,
+        'wholesale_chest_boneless'      => 0.00,
+        'wholesale_thigh_boneless'      => 0.00,
+        'wholesale_kalagi_pot_gardan'   => 0.00,
+        
+        // Add Retail versions if needed too
+        'retail_chest_and_leg_pieces'   => 0.00,
+        'retail_drum_sticks'            => 0.00,
+        'retail_chest_boneless'         => 0.00,
+        'retail_thigh_boneless'         => 0.00,
+        'retail_kalagi_pot_gardan'      => 0.00,
     ];
     
     // 🟢 Define friendly names for the settings page dropdown
     private const RATE_FRIENDLY_NAMES = [
         'wholesale_rate'                => 'Wholesale Live',
-        'live_chicken_rate'             => 'Retail Live Chicken',
-        'wholesale_mix_rate'      => 'Wholesale Mix',
-        'wholesale_chest_rate'    => 'Wholesale Chest',
-        'wholesale_thigh_rate'    => 'Wholesale Thigh',
-        'wholesale_customer_piece_rate' => 'Wholesale Customer Piece',
-        'retail_mix_rate'               => 'Retail Mix',
-        'retail_chest_rate'             => 'Retail Chest',
-        'retail_thigh_rate'             => 'Retail Thigh',
-        'retail_piece_rate'             => 'Retail Piece',
-        'purchase_effective_cost'       => 'Purchase Effective Cost', 
+        'wholesale_mix_rate'            => 'Mix (No. 34)',
+        'wholesale_chest_rate'          => 'Mix (No. 35)',
+        'wholesale_thigh_rate'          => 'Mix (No. 36)',
+        'wholesale_customer_piece_rate' => 'Mix (No. 37)',
+        'wholesale_chest_and_leg_pieces'=> 'Chest and Leg Pieces (No. 38)',
+        'wholesale_drum_sticks'         => 'Drum Sticks',
+        'wholesale_chest_boneless'      => 'Chest Boneless',
+        'wholesale_thigh_boneless'      => 'Thigh Boneless',
+        'wholesale_kalagi_pot_gardan'   => 'Kalagi Pot Gardan',
+        
+        'live_chicken_rate'             => 'Retail Live',
+        'retail_mix_rate'               => 'Mix (No. 34)',
+        'retail_chest_rate'             => 'Mix (No. 35)',
+        'retail_thigh_rate'             => 'Mix (No. 36)',
+        'retail_piece_rate'             => 'Mix (No. 37)', 
+        // 'purchase_effective_cost'       => 'Base Rate',
+        'retail_chest_and_leg_pieces'   => 'Chest and Leg Pieces (No. 38)',
+        'retail_drum_sticks'            => 'Drum Sticks',
+        'retail_chest_boneless'         => 'Chest Boneless',
+        'retail_thigh_boneless'         => 'Thigh Boneless',
+        'retail_kalagi_pot_gardan'      => 'Kalagi Pot Gardan',
+        
     ];
     
     /**
@@ -66,6 +90,10 @@ class RateController extends Controller
                 'retail_thigh_rate'             => 0.00,
                 'retail_piece_rate'             => 0.00,
                 'live_chicken_rate'             => 0.00,
+                'wholesale_chest_and_leg_pieces'=> 0.00,
+                'wholesale_drum_sticks'         => 0.00,
+                'wholesale_chest_boneless'      => 0.00,
+                'wholesale_kalagi_pot_gardan'   => 0.00,
                 'wholesale_mix_rate'      => 0.00,
                 'wholesale_chest_rate'    => 0.00,
                 'wholesale_thigh_rate'    => 0.00,
@@ -94,6 +122,12 @@ class RateController extends Controller
                 $defaultData['wholesale_chest_rate']    = (float)$activeRate->wholesale_chest_rate;
                 $defaultData['wholesale_thigh_rate']    = (float)$activeRate->wholesale_thigh_rate;
                 $defaultData['wholesale_customer_piece_rate'] = (float)$activeRate->wholesale_customer_piece_rate;
+                $defaultData['wholesale_chest_and_leg_pieces'] = (float)$activeRate->wholesale_chest_and_leg_pieces;
+                $defaultData['wholesale_drum_sticks']         = (float)$activeRate->wholesale_drum_sticks;
+                $defaultData['wholesale_chest_boneless']      = (float)$activeRate->wholesale_chest_boneless; // <--- FIXED
+                $defaultData['wholesale_thigh_boneless']      = (float)$activeRate->wholesale_thigh_boneless; // Don't forget this one too!
+                $defaultData['wholesale_kalagi_pot_gardan']   = (float)$activeRate->wholesale_kalagi_pot_gardan;
+                
                 $defaultData['retail_mix_rate']               = (float)$activeRate->retail_mix_rate;
                 $defaultData['retail_chest_rate']             = (float)$activeRate->retail_chest_rate;
                 $defaultData['retail_thigh_rate']             = (float)$activeRate->retail_thigh_rate;
@@ -156,6 +190,11 @@ class RateController extends Controller
             'retail_chest_rate'             => ['required', 'numeric', 'min:0'],
             'retail_thigh_rate'             => ['required', 'numeric', 'min:0'],
             'retail_piece_rate'             => ['required', 'numeric', 'min:0'],
+            'wholesale_chest_and_leg_pieces' => ['required', 'numeric', 'min:0'],
+            'wholesale_drum_sticks'          => ['required', 'numeric', 'min:0'],
+            'wholesale_chest_boneless'       => ['required', 'numeric', 'min:0'],
+            'wholesale_thigh_boneless'       => ['required', 'numeric', 'min:0'],
+            'wholesale_kalagi_pot_gardan'    => ['required', 'numeric', 'min:0'],
         ]);
         
         if (empty($data['supplier_id'])) {
@@ -175,7 +214,8 @@ class RateController extends Controller
             if ($request->ajax() || $request->wantsJson()) {
                 
                 // Determine the base cost for recalculating all rates for the display
-                $baseCost = (float)($data['manual_base_cost'] ?? $data['base_effective_cost']);
+                
+                $baseCost = (float)($data['manual_base_cost'] ?: $data['base_effective_cost']);
                 // Fetch active formulas for recalculation
                 $rateFormulas = RateFormula::all()->keyBy('rate_key');
 
@@ -329,7 +369,7 @@ class RateController extends Controller
     {
         $data = $request->validate([
             // Validate the key against ALL keys, including the new one
-            'rate_key' => ['required', 'string', 'in:' . implode(',', array_keys(self::RATE_MARGINS))], 
+            'rate_key' => ['required', 'string'], 
             'multiply' => ['nullable', 'numeric', 'min:0'],
             'divide'   => ['nullable', 'numeric', 'min:0.0001'], 
             'plus'     => ['nullable', 'numeric'],

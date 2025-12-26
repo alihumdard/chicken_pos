@@ -39,7 +39,7 @@
                     @endphp
 
                     <div>
-                        <h2 class="font-bold text-lg sm:text-xl text-gray-800 mb-4 px-1">1. Wholesale Sales (Truck-to-Truck)</h2>
+                        <h2 class="font-bold text-lg sm:text-xl text-gray-800 mb-4 px-1">1. Wholesale Sales (Broker)</h2>
                         
                         <div class="block w-full">
                             <table class="w-full text-sm border-collapse table-auto">
@@ -115,7 +115,7 @@
                     <div class="border-t border-gray-200 my-6"></div>
 
                     <div>
-                        <h2 class="font-bold text-lg sm:text-xl text-gray-800 mb-4 px-1">2. Hotel/Permanent Sales</h2>
+                        <h2 class="font-bold text-lg sm:text-xl text-gray-800 mb-4 px-1">2. Permanent Customer Sales</h2>
 
                         <div class="block w-full">
                             <table class="w-full text-sm border-collapse table-auto">

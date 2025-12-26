@@ -206,13 +206,18 @@
                             
                             @php
                                 $wholesales = [
-                                    ['label' => 'Hotel Mix',   'name' => 'wholesale_mix_rate'],    
-                                    ['label' => 'Hotel Chest', 'name' => 'wholesale_chest_rate'],  
-                                    ['label' => 'Hotel Thigh', 'name' => 'wholesale_thigh_rate'],  
-                                    ['label' => 'Chicken Piece', 'name' => 'wholesale_customer_piece_rate'],
+                                    ['label' => 'Mix (No. 34)',   'name' => 'wholesale_mix_rate'],    
+                                    ['label' => 'Mix (No. 35)', 'name' => 'wholesale_chest_rate'],  
+                                    ['label' => 'Mix (No. 36)', 'name' => 'wholesale_thigh_rate'],  
+                                    ['label' => 'Mix (No. 37)', 'name' => 'wholesale_customer_piece_rate'],
+                                    ['label' => 'Chest and Leg Pieces (No. 38)', 'name' => 'wholesale_chest_and_leg_pieces'],
+                                    ['label' => 'Drum Sticks', 'name' => 'wholesale_drum_sticks'],
+                                    ['label' => 'Chest Boneless', 'name' => 'wholesale_chest_boneless'],
+                                    ['label' => 'Thigh Boneless', 'name' => 'wholesale_kalagi_pot_gardan'],
+                                    ['label' => 'Kalagi Pot Gardan', 'name' => 'wholesale_kalagi_pot_gardan'],
                                 ];
                             @endphp
-                            
+
                             @foreach($wholesales as $item)
                                 <div>
                                     <label class="font-semibold text-gray-700 block mb-1">{{ $item['label'] }}</label>
@@ -244,11 +249,11 @@
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             @php
                                 $retails = [
-                                    ['label' => 'Retail Live', 'name' => 'live_chicken_rate'],
-                                    ['label' => 'Mix', 'name' => 'retail_mix_rate'],
-                                    ['label' => 'Chest', 'name' => 'retail_chest_rate'],
-                                    ['label' => 'Thigh', 'name' => 'retail_thigh_rate'],
-                                    ['label' => 'Piece', 'name' => 'retail_piece_rate'],
+                                    ['label' => 'Retail Live',   'name' => 'live_chicken_rate'],
+                                    ['label' => 'Mix (No. 34)',  'name' => 'retail_mix_rate'],
+                                    ['label' => 'Mix (No. 35)', 'name'  => 'retail_chest_rate'],
+                                    ['label' => 'Mix (No. 36)', 'name' => 'retail_thigh_rate'],
+                                    ['label' => 'Mix (No. 37)',  'name' => 'retail_piece_rate'],
                                 ];
                             @endphp
                             @foreach($retails as $item)
@@ -287,9 +292,9 @@
             const plus = parseFloat(formula.plus) || 0.0;
             const minus = parseFloat(formula.minus) || 0.0;
             let finalRate = baseRate;
+            finalRate += plus;
             finalRate *= multiply;
             if (divide !== 0 && divide !== 1) { finalRate /= divide; }
-            finalRate += plus;
             finalRate -= minus;
             return Math.max(0.00, finalRate);
         }

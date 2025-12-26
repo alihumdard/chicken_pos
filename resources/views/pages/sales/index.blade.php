@@ -83,15 +83,21 @@
                     {{-- Categories --}}
                     @php
                         $allCategories = [
-                            'Chest' => ['rate_field' => 'wholesale_chest_rate', 'image' => asset('assets/images/chest.png')],
-                            'Thigh' => ['rate_field' => 'wholesale_thigh_rate', 'image' => asset('assets/images/thigh.png')],
-                            'Mix' => ['rate_field' => 'wholesale_mix_rate', 'image' => asset('assets/images/mix.png')],
-                            'Piece' => ['rate_field' => 'wholesale_customer_piece_rate', 'image' => asset('assets/images/piece.png')],
-                            'Live' => ['rate_field' => 'live_chicken_rate', 'image' => asset('assets/images/live.png')],
                             'live' => ['rate_field' => 'wholesale_rate', 'image' => asset('assets/images/live.png')],
+                            
+                            // ðŸŸ¢ THESE KEYS MUST MATCH YOUR DATABASE WHOLESALE KEYS EXACTLY
+                            'Mix (No.35)' => ['rate_field' => 'wholesale_chest_rate', 'image' => asset('assets/images/chest.png')],
+                            'Mix (No.36)' => ['rate_field' => 'wholesale_thigh_rate', 'image' => asset('assets/images/thigh.png')],
+                            'Mix (No.34)' => ['rate_field' => 'wholesale_mix_rate', 'image' => asset('assets/images/mix.png')],
+                            
+                            // ID 6 in your DB is wholesale_customer_piece_rate
+                            'Mix (No.37)' => ['rate_field' => 'wholesale_customer_piece_rate', 'image' => asset('assets/images/piece.png')],
+                            
+                            'Live' => ['rate_field' => 'live_chicken_rate', 'image' => asset('assets/images/live.png')],
+
                         ];
-                        $wholesaleGroup = ['live', 'Chest', 'Thigh', 'Mix', 'Piece'];
-                        $retailGroup = ['Live', 'Mix', 'Chest', 'Thigh', 'Piece']; 
+                        $wholesaleGroup = ['live', 'Mix (No.34)', 'Mix (No.35)', 'Mix (No.36)', 'Mix (No.37)'];
+                        $retailGroup = ['Live', 'Mix (No.34)', 'Mix (No.35)', 'Mix (No.36)', 'Mix (No.37)']; 
                     @endphp
 
                     <div id="category-tabs-wrapper" class="mb-6">
@@ -168,7 +174,6 @@
 
                     <hr class="my-4">
 
-                    {{-- ðŸŸ¢ CASH RECEIVED SECTION --}}
                     <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-lg lg:text-xl font-bold">Total Bill:</span>
@@ -288,19 +293,8 @@
         const wholesaleCheckbox = document.getElementById('wholesale-channel-checkbox');
         const retailCheckbox = document.getElementById('retail-channel-checkbox');
         
-        // NEW DOM ELEMENTS
         const cashReceivedInput = document.getElementById('cash-received-input');
         const netBalanceChangeDisplay = document.getElementById('net-balance-change');
-
-        const FETCH_RATES_ROUTE = "{{ route('admin.sales.fetch-rates') }}";
-        
-        const retailRateMap = {
-            'wholesale_mix_rate': 'retail_mix_rate',
-            'wholesale_chest_rate': 'retail_chest_rate',
-            'wholesale_thigh_rate': 'retail_thigh_rate',
-            'wholesale_customer_piece_rate': 'retail_piece_rate',
-            'wholesale_rate': 'retail_mix_rate',
-        };
 
         const formatCurrency = (value) => parseFloat(value).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' PKR';
         const formatCurrencyNoDecimal = (value) => parseFloat(value).toLocaleString('en-PK', { maximumFractionDigits: 0 });
@@ -312,23 +306,53 @@
             updateAddItemButton();
         };
 
-        // ... (getRateByChannel function same as before) ...
+        // ðŸŸ¢ 1. FIXED MAPPING (Matches your DB IDs)
+        const retailRateMap = {
+            'wholesale_mix_rate':            'retail_mix_rate',
+            'wholesale_chest_rate':          'retail_chest_rate',
+            'wholesale_thigh_rate':          'retail_thigh_rate',      
+            'wholesale_customer_piece_rate': 'retail_piece_rate', 
+            'wholesale_rate':                'retail_mix_rate',      
+        };
+
+        // ðŸŸ¢ 2. FIXED LOOKUP LOGIC
         const getRateByChannel = (channel, wholesaleKey) => {
+            console.log(`\n--- ðŸ”„ LOOKUP REQUEST: ${channel} | ${wholesaleKey} ---`);
+
             let rate = 0.00;
-            if (!ACTIVE_RATES) return 0.00;
+            if (!ACTIVE_RATES || (!ACTIVE_RATES.wholesale && !ACTIVE_RATES.retail)) { 
+                console.error("âŒ Critical: ACTIVE_RATES is empty.");
+                return 0.00; 
+            }
 
             if (channel === 'wholesale') {
-                if (ACTIVE_RATES.wholesale[wholesaleKey] !== undefined) rate = ACTIVE_RATES.wholesale[wholesaleKey];
-                else if (ACTIVE_RATES.wholesale[wholesaleKey.replace('_', '_hotel_')] !== undefined) {
-                    rate = ACTIVE_RATES.wholesale[wholesaleKey.replace('_', '_hotel_')];
+                if (ACTIVE_RATES.wholesale[wholesaleKey] !== undefined) {
+                    rate = ACTIVE_RATES.wholesale[wholesaleKey];
+                    console.log("âœ… Found Wholesale Direct:", rate);
+                } else {
+                    console.warn("âšï¸ Wholesale Key NOT found:", wholesaleKey);
                 }
             } 
             else if (channel === 'retail') {
-                if (wholesaleKey === 'live_chicken_rate') {
-                    rate = ACTIVE_RATES.wholesale.live_chicken_rate ?? 0;
+                // Special case fallback
+                if (wholesaleKey === 'live_chicken_rate' || wholesaleKey === 'wholesale_rate') {
+                     rate = ACTIVE_RATES.wholesale.live_chicken_rate ?? 0;
+                     console.log("â„¹ï¸ Using Live Fallback:", rate);
                 } else {
+
+                    // Check the Map
                     const retailKey = retailRateMap[wholesaleKey];
-                    if (retailKey && ACTIVE_RATES.retail[retailKey] !== undefined) rate = ACTIVE_RATES.retail[retailKey];
+                    console.log(`ðŸ—ºï¸ Mapped '${wholesaleKey}' to '${retailKey}'`);
+                    
+                    if (!retailKey) {
+                        console.error("âŒ ERROR: No mapping found in retailRateMap for this key!");
+                    } else if (ACTIVE_RATES.retail[retailKey] !== undefined) {
+                        rate = ACTIVE_RATES.retail[retailKey];
+                        console.log("âœ… Found Retail Rate:", rate);
+                    } else {
+                        console.error(`âŒ ERROR: Key '${retailKey}' exists in Map, but is MISSING from ACTIVE_RATES.retail data!`);
+                        console.log("Available Retail Keys:", Object.keys(ACTIVE_RATES.retail));
+                    }
                 }
             }
             return parseFloat(rate) || 0.00;
@@ -353,7 +377,6 @@
             addItemBtn.disabled = !(selectedCustomerId && selectedCategory && weight > 0 && rate > 0);
         };
 
-        // ðŸŸ¢ UPDATE: Cart Display Logic
         const updateCartDisplay = () => {
             let grandTotal = 0;
             cartContainer.innerHTML = '';
@@ -366,7 +389,6 @@
                     const lineTotal = item.weight * item.rate;
                     grandTotal += lineTotal;
                     
-                    // Channel Label Color Logic
                     const channelBadgeClass = item.channel === 'Wholesale' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
                     const channelLabel = `<span class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${channelBadgeClass}">${item.channel}</span>`;
 
@@ -376,7 +398,6 @@
                         <div class="flex items-center space-x-2">
                             <button type="button" data-index="${index}" class="remove-item-btn text-red-500 hover:text-red-700 text-sm p-1"><i class="fa-solid fa-times-circle text-lg"></i></button>
                             
-                            {{-- Hidden Inputs for Backend --}}
                             <input type="hidden" name="cart_items[${index}][category]" value="${item.category}">
                             <input type="hidden" name="cart_items[${index}][weight]" value="${item.weight.toFixed(3)}">
                             <input type="hidden" name="cart_items[${index}][rate]" value="${item.rate.toFixed(2)}">
@@ -465,17 +486,12 @@
         weightInput.addEventListener('input', calculateLineTotal);
         rateInput.addEventListener('input', calculateLineTotal);
 
-        // ðŸŸ¢ UPDATE: Add Item Logic (Using unshift for reverse order)
         addItemBtn.addEventListener('click', function () {
             if (selectedCustomerId && selectedCategory && parseFloat(weightInput.value) > 0 && parseFloat(rateInput.value) > 0) {
-                
-                // Determine display label for channel
-                const channelLabel = selectedChannel.charAt(0).toUpperCase() + selectedChannel.slice(1); // "Wholesale" or "Retail"
-
-                // ðŸŸ¢ UNSHIFT use kiya hai taake naya item sab se uper aye
+                const channelLabel = selectedChannel.charAt(0).toUpperCase() + selectedChannel.slice(1);
                 cartItems.unshift({ 
                     category: selectedCategory, 
-                    channel: channelLabel, // Save Channel Name
+                    channel: channelLabel, 
                     weight: parseFloat(weightInput.value), 
                     rate: parseFloat(rateInput.value) 
                 });
@@ -489,7 +505,6 @@
             }
         });
 
-        // ... (Baqi Customer Add aur Sale Submit ka code same rahega) ...
         document.getElementById('contactForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('saveContactBtn');
