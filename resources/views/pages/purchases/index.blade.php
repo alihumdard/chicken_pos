@@ -298,6 +298,7 @@
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Supplier</th>
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Gross Wgt</th>
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Net Wgt</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-blue-600 uppercase whitespace-nowrap">Kharch</th>
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Buying Rate</th>
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Payable</th>
                                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Cost Rate/Kg</th>
@@ -314,6 +315,9 @@
                                         </td>
                                         <td class="px-4 py-3 text-sm text-right font-semibold text-[var(--green-primary)] whitespace-nowrap">{{ number_format($purchase->gross_weight, 2) }}</td>
                                         <td class="px-4 py-3 text-sm text-right font-semibold text-[var(--green-primary)] whitespace-nowrap">{{ number_format($purchase->net_live_weight, 2) }}</td>
+                                        <td class="px-4 py-3 text-sm text-right font-bold text-blue-600 whitespace-nowrap">
+                                            {{ number_format($purchase->total_kharch, 0) }}
+                                        </td>
                                         <td class="px-4 py-3 text-sm text-right text-gray-700 whitespace-nowrap">{{ number_format($purchase->buying_rate, 2) }}</td>
                                         <td class="px-4 py-3 text-sm text-right font-extrabold text-[var(--text-dark)] whitespace-nowrap">{{ number_format($purchase->total_payable, 0) }}</td>
                                         <td class="px-4 py-3 text-sm text-center text-[var(--blue-primary)] font-bold whitespace-nowrap">{{ number_format($purchase->effective_cost, 0) }}</td>
@@ -322,7 +326,7 @@
                                                 data-id="{{ $purchase->id }}" data-supplier="{{ $purchase->supplier_id }}" 
                                                 data-gross="{{ $purchase->gross_weight }}" data-dead-qty="{{ $purchase->dead_qty }}" 
                                                 data-dead-wgt="{{ $purchase->dead_weight }}" data-shrink="{{ $purchase->shrink_loss }}" 
-                                                data-rate="{{ $purchase->buying_rate }}" data-driver="{{ $purchase->driver_no }}"
+                                                data-rate="{{ $purchase->buying_rate }}" data-driver="{{ $purchase->driver_no }}"data-kharch="{{ $purchase->total_kharch }}"
                                                 class="text-blue-600 hover:text-blue-900 mr-3"><i class="fa-solid fa-pen-to-square"></i></button>
                                             <button type="button" onclick="deletePurchase({{ $purchase->id }})" class="text-[var(--red-primary)] hover:text-red-700"><i class="fa-solid fa-trash-alt"></i></button>
                                         </td>
@@ -429,7 +433,8 @@
                 const total = gross * rate;
                 
                 // Effective Cost Formula
-                let base = (total+total_kharch)/net;
+                const kharch = parseFloat(document.getElementById('total_kharch').value) || 0;
+           let base = net > 0 ? (total + kharch) / net : 0;
                 let effective = base * purchaseFormula.multiply / purchaseFormula.divide + purchaseFormula.plus - purchaseFormula.minus;
 
                 outputs.net_live_weight.value = Math.max(0, net).toFixed(2);

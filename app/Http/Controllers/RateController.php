@@ -14,34 +14,33 @@ use Exception;
 class RateController extends Controller
 {
     // 🟢 RESTORING ORIGINAL FIXED MARGINS (This ensures the base rates behave as they did originally)
-    private const RATE_MARGINS = [
-        'wholesale_rate'                => 10.00, 
-        'live_chicken_rate'             => 20.00,
-        'wholesale_mix_rate'      => 25.00,
-        'wholesale_chest_rate'    => 125.00,
-        'wholesale_thigh_rate'    => 75.00,
-        'wholesale_customer_piece_rate' => 0.00,
-        'retail_mix_rate'               => 50.00,
-        'retail_chest_rate'             => 150.00,
-        'retail_thigh_rate'             => 100.00,
-        'retail_piece_rate'             => -10.00,
-        // 🟢 NEW: Key for Purchase Effective Cost
-        'purchase_effective_cost'       => 0.00, 
-        'wholesale_chest_and_leg_pieces'=> 0.00,
-        'wholesale_drum_sticks'         => 0.00,
-        'wholesale_chest_boneless'      => 0.00,
-        'wholesale_thigh_boneless'      => 0.00,
-        'wholesale_kalagi_pot_gardan'   => 0.00,
-        
-        // Add Retail versions if needed too
-        'retail_chest_and_leg_pieces'   => 0.00,
-        'retail_drum_sticks'            => 0.00,
-        'retail_chest_boneless'         => 0.00,
-        'retail_thigh_boneless'         => 0.00,
-        'retail_kalagi_pot_gardan'      => 0.00,
-    ];
+   private const RATE_MARGINS = [
+    'wholesale_rate'                => 10.00, 
+    'live_chicken_rate'             => 20.00,
+    'wholesale_mix_rate'            => 25.00,
+    'wholesale_chest_rate'          => 125.00,
+    'wholesale_thigh_rate'          => 75.00,
+    'wholesale_customer_piece_rate' => 0.00,
+    'retail_mix_rate'               => 50.00,
+    'retail_chest_rate'             => 150.00,
+    'retail_thigh_rate'             => 100.00,
+    'retail_piece_rate'             => -10.00,
+    'purchase_effective_cost'       => 0.00, 
     
-    // 🟢 Define friendly names for the settings page dropdown
+    // NEW FIELDS MARGINS
+    'wholesale_chest_and_leg_pieces'=> 130.00,
+    'wholesale_drum_sticks'         => 140.00,
+    'wholesale_chest_boneless'      => 250.00,
+    'wholesale_thigh_boneless'      => 200.00,
+    'wholesale_kalagi_pot_gardan'   => 15.00,
+    
+    'retail_chest_and_leg_pieces'   => 160.00,
+    'retail_drum_sticks'            => 170.00,
+    'retail_chest_boneless'         => 300.00,
+    'retail_thigh_boneless'         => 240.00,
+    'retail_kalagi_pot_gardan'      => 25.00,
+];
+    
     private const RATE_FRIENDLY_NAMES = [
         'wholesale_rate'                => 'Wholesale Live',
         'wholesale_mix_rate'            => 'Mix (No. 34)',
@@ -175,27 +174,36 @@ class RateController extends Controller
     public function store(Request $request)
     {
         
-        $data = $request->validate([
-            'supplier_id'                   => ['nullable', 'exists:suppliers,id'],
-            'base_effective_cost'           => ['required', 'numeric', 'min:0'],
-            'manual_base_cost'              => ['nullable', 'numeric', 'min:0'], 
-            'wholesale_rate'                => ['required', 'numeric', 'min:0'],
-            'permanent_rate'                => ['required', 'numeric', 'min:0'], 
-            'live_chicken_rate'             => ['required', 'numeric', 'min:0'], 
-            'wholesale_mix_rate'            => ['required', 'numeric', 'min:0'], 
-            'wholesale_chest_rate'          => ['required', 'numeric', 'min:0'], 
-            'wholesale_thigh_rate'          => ['required', 'numeric', 'min:0'], 
-            'wholesale_customer_piece_rate' => ['required', 'numeric', 'min:0'], 
-            'retail_mix_rate'               => ['required', 'numeric', 'min:0'],
-            'retail_chest_rate'             => ['required', 'numeric', 'min:0'],
-            'retail_thigh_rate'             => ['required', 'numeric', 'min:0'],
-            'retail_piece_rate'             => ['required', 'numeric', 'min:0'],
-            'wholesale_chest_and_leg_pieces' => ['required', 'numeric', 'min:0'],
-            'wholesale_drum_sticks'          => ['required', 'numeric', 'min:0'],
-            'wholesale_chest_boneless'       => ['required', 'numeric', 'min:0'],
-            'wholesale_thigh_boneless'       => ['required', 'numeric', 'min:0'],
-            'wholesale_kalagi_pot_gardan'    => ['required', 'numeric', 'min:0'],
-        ]);
+       $data = $request->validate([
+        'supplier_id'                   => ['nullable', 'exists:suppliers,id'],
+        'base_effective_cost'           => ['required', 'numeric', 'min:0'],
+        'manual_base_cost'              => ['nullable', 'numeric', 'min:0'], 
+        'wholesale_rate'                => ['required', 'numeric', 'min:0'],
+        'permanent_rate'                => ['required', 'numeric', 'min:0'], 
+        'live_chicken_rate'             => ['required', 'numeric', 'min:0'], 
+        
+        // Wholesale Extended
+        'wholesale_mix_rate'            => ['required', 'numeric', 'min:0'], 
+        'wholesale_chest_rate'          => ['required', 'numeric', 'min:0'], 
+        'wholesale_thigh_rate'          => ['required', 'numeric', 'min:0'], 
+        'wholesale_customer_piece_rate' => ['required', 'numeric', 'min:0'], 
+        'wholesale_chest_and_leg_pieces'=> ['required', 'numeric', 'min:0'],
+        'wholesale_drum_sticks'         => ['required', 'numeric', 'min:0'],
+        'wholesale_chest_boneless'      => ['required', 'numeric', 'min:0'],
+        'wholesale_thigh_boneless'      => ['required', 'numeric', 'min:0'],
+        'wholesale_kalagi_pot_gardan'   => ['required', 'numeric', 'min:0'],
+
+        // Retail Extended
+        'retail_mix_rate'               => ['required', 'numeric', 'min:0'],
+        'retail_chest_rate'             => ['required', 'numeric', 'min:0'],
+        'retail_thigh_rate'             => ['required', 'numeric', 'min:0'],
+        'retail_piece_rate'             => ['required', 'numeric', 'min:0'],
+        'retail_chest_and_leg_pieces'   => ['required', 'numeric', 'min:0'],
+        'retail_drum_sticks'            => ['required', 'numeric', 'min:0'],
+        'retail_chest_boneless'         => ['required', 'numeric', 'min:0'],
+        'retail_thigh_boneless'         => ['required', 'numeric', 'min:0'],
+        'retail_kalagi_pot_gardan'      => ['required', 'numeric', 'min:0'],
+    ]);
         
         if (empty($data['supplier_id'])) {
              $data['supplier_id'] = Supplier::first()->id ?? 1;

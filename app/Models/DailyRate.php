@@ -11,21 +11,35 @@ class DailyRate extends Model
 
     protected $fillable = [
         'supplier_id',
-        'base_effective_cost', // The cost from the selected purchase that day
-        'wholesale_rate',
-        'permanent_rate',
-        'retail_mix_rate',
-        'retail_chest_rate',
-        'retail_thigh_rate',
-        'retail_piece_rate',
-        'is_active', // Flag to mark this as the currently active rate
-
+        'base_effective_cost',
         'manual_base_cost', 
-        'live_chicken_rate',
+        'is_active',
+
+        // Wholesale Rates
+        'wholesale_rate',
         'wholesale_mix_rate',
         'wholesale_chest_rate',
         'wholesale_thigh_rate',
         'wholesale_customer_piece_rate',
+        'wholesale_chest_and_leg_pieces',
+        'wholesale_drum_sticks',
+        'wholesale_chest_boneless',
+        'wholesale_thigh_boneless',
+        'wholesale_kalagi_pot_gardan',
+
+        // Retail Rates
+        'live_chicken_rate',
+        'retail_mix_rate',
+        'retail_chest_rate',
+        'retail_thigh_rate',
+        'retail_piece_rate',
+        'retail_chest_and_leg_pieces',
+        'retail_drum_sticks',
+        'retail_chest_boneless',
+        'retail_thigh_boneless',
+        'retail_kalagi_pot_gardan',
+        
+        'permanent_rate',
     ];
 
     protected $casts = [
