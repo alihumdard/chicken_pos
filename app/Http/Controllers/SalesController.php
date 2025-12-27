@@ -56,20 +56,19 @@ public function index()
     // ... (Your store method remains the same) ...
     public function store(Request $request)
     {
-        // ... (Keep existing store logic) ...
-        // I am omitting it here to save space since it was correct.
-        // Let me know if you need the full store method again.
-         $validated = $request->validate([
-            'customer_id'       => 'required|exists:customers,id',
-            'rate_channel'      => 'required|in:wholesale,retail',
-            'cart_items'        => 'required|array|min:1',
-            'cart_items.*.category' => 'required|string|max:50',
-            'cart_items.*.weight'   => 'required|numeric|min:0.001',
-            'cart_items.*.rate'     => 'required|numeric|min:0',
-            'total_payable'         => 'required|numeric|min:0',
-            'cash_received'         => 'nullable|numeric|min:0',
-        ]);
-
+   $validated = $request->validate([
+    'customer_id'    => 'required|exists:customers,id',
+    'rate_channel'   => 'required|in:wholesale,retail',
+    'cart_items'     => 'required|array|min:1', // Yeh ab pass ho jayega
+    'cart_items.*.category' => 'required|string',
+    'cart_items.*.weight'   => 'required|numeric',
+    'cart_items.*.rate'     => 'required|numeric',
+    'total_payable'  => 'required|numeric',
+    'cash_received'  => 'nullable|numeric',
+    'extra_charges'  => 'nullable|numeric',
+    'discount'       => 'nullable|numeric',
+    'note'           => 'nullable|string|max:255',
+]);
         DB::beginTransaction();
 
         try {

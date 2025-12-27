@@ -14,7 +14,9 @@ class Supplier extends Model
         'name',
         'type',
         'current_balance', 
-        // Add other columns like 'phone', 'address', etc., if they exist on your table
+        'phone',
+        'address',
+        'current_balance',
     ];
     
     /**

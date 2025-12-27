@@ -50,12 +50,20 @@ Route::middleware('auth')->group(function () {
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
         Route::patch('/users/{id}/restore', [UserController::class, 'restore'])->name('users.restore');
 
-        // 2. Supplier & Customer Management
-        Route::get('contacts', [SupplierCustomerController::class, 'index'])->name('contacts.index');
-        Route::post('contacts', [SupplierCustomerController::class, 'store'])->name('contacts.store');
-        Route::delete('contacts/{contact}', [SupplierCustomerController::class, 'destroy'])->name('contacts.destroy');
-        Route::get('contacts/create', [SupplierCustomerController::class, 'create'])->name('contacts.create');
+        Route::prefix('contacts')->name('contacts.')->group(function () {
+            Route::get('/', [SupplierCustomerController::class, 'index'])->name('index');
+            Route::post('/', [SupplierCustomerController::class, 'store'])->name('store');
 
+            // 🟢 Yeh Edit/Update ke liye zaroori hai
+            Route::put('/{id}', [SupplierCustomerController::class, 'update'])->name('update');
+
+            // 🔴 Delete route
+            Route::delete('/{id}', [SupplierCustomerController::class, 'destroy'])->name('destroy');
+
+            Route::get('/create', [SupplierCustomerController::class, 'create'])->name('create');
+        });
+        Route::put('ledger/{id}', [SupplierCustomerController::class, 'updateLedger'])->name('admin.ledger.update');
+        Route::delete('ledger/{id}', [SupplierCustomerController::class, 'destroyLedger'])->name('admin.ledger.destroy');
         // 3. Purchase (Daily Batches)
         Route::get('purchases', [PurchaseController::class, 'index'])->name('purchases.index');
         Route::get('purchases/create', [PurchaseController::class, 'create'])->name('purchases.create');

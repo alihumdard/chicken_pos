@@ -1,11 +1,10 @@
 <?php
-
 namespace App\Http\Controllers;
 
+use App\Models\Purchase;
+use App\Models\Supplier;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use App\Models\Supplier;
-use App\Models\Purchase;
 use Illuminate\Support\Facades\DB;
 
 class PurchaseController extends Controller
@@ -24,7 +23,7 @@ class PurchaseController extends Controller
             ->latest()
             ->get()
             ->map(function ($purchase) {
-                $purchase->supplier_name = $purchase->supplier->name ?? 'N/A';
+                $purchase->supplier_name    = $purchase->supplier->name ?? 'N/A';
                 $purchase->created_at_human = $purchase->created_at->diffForHumans();
                 return $purchase;
             });
@@ -35,78 +34,74 @@ class PurchaseController extends Controller
     /**
      * Store a newly created purchase.
      */
-    public function store(Request $request)
-    {
-        // 1. Validate
-        $validatedData = $this->validatePurchase($request);
-        
-        // Add specific validation for cash_paid
-        $request->validate([
-            'cash_paid' => 'nullable|numeric|min:0'
+public function store(Request $request)
+{
+    // 1. Validate
+    $validatedData = $this->validatePurchase($request);
+
+    $request->validate([
+        'cash_received' => 'nullable|numeric|min:0', // Ya cash_paid jo bhi aap use kar rahe hain
+    ]);
+
+    try {
+        DB::beginTransaction();
+
+        $purchaseData = collect($validatedData)->except(['cash_paid'])->map(function ($value, $key) {
+            if (in_array($key, ['dead_qty', 'dead_weight', 'shrink_loss', 'total_kharch']) && ($value === null || $value === '')) {
+                return 0;
+            }
+            return $value;
+        })->toArray();
+
+        // 2. Create Purchase Record
+        $purchase = Purchase::create($purchaseData);
+
+        $supplier     = Supplier::findOrFail($request->supplier_id);
+        $totalPayable = (float) $request->total_payable;
+        // Ensure variable name matches your form input (cash_paid or cash_received)
+        $cashPaid     = (float) ($request->cash_paid ?? $request->cash_received ?? 0);
+
+        // 3. Update Supplier Balance (Net Effect)
+        $netEffect = $totalPayable - $cashPaid;
+        $supplier->current_balance += $netEffect;
+        $supplier->save();
+
+        // 🟢 4. SINGLE TRANSACTION ENTRY (Strictly Only One)
+        // Yahan sirf aik INSERT hoga jo Ledger ki aik row banayega
+        DB::table('transactions')->insert([
+            'supplier_id'     => $supplier->id,
+            'date'            => now(),
+            'type'            => 'purchase',
+            'description'     => "Purchase #{$purchase->id}" . ($purchase->driver_no ? " ({$purchase->driver_no})" : ""),
+            'gross_weight'    => $request->gross_weight,
+            'dead_weight'     => $request->dead_weight,
+            'shrink_loss'     => $request->shrink_loss,
+            'net_live_weight' => $request->net_live_weight,
+            'total_kharch'    => $request->total_kharch,
+            'buying_rate'     => $request->rate,
+            'debit'           => $cashPaid,     // Cash paid moke par (DEBIT)
+            'credit'          => $totalPayable, // Total Bill (CREDIT)
+            'balance'         => $supplier->current_balance,
+            'created_at'      => now(),
+            'updated_at'      => now(),
         ]);
 
-        try {
-            DB::beginTransaction();
+        // ❌ Yahan pehle aik 'if ($cashPaid > 0)' wala block tha jo dusri entry insert karta tha.
+        // Wo maine HATA diya hai taake second line na banay.
 
-            // 2. Create Purchase Record
-            // Exclude cash_paid from Purchase model creation if it's not in the table
-            $purchaseData = collect($validatedData)->except(['cash_paid'])->toArray();
-            $purchase = Purchase::create($purchaseData);
-            
-            $supplier = Supplier::findOrFail($request->supplier_id);
-            $totalPayable = $request->total_payable;
-            $cashPaid = $request->input('cash_paid', 0);
+        $purchase->load('supplier:id,name');
+        DB::commit();
 
-            // 3. Update Supplier Balance & Ledger (Purchase Entry)
-            // Logic: We bought goods, so we owe the supplier (Credit Increase)
-            $supplier->current_balance += $totalPayable;
-            $supplier->save();
+        return response()->json([
+            'message'  => 'Purchase saved successfully in single row!',
+            'purchase' => $this->formatPurchaseForJson($purchase),
+        ], 200);
 
-            DB::table('transactions')->insert([
-                'supplier_id' => $supplier->id,
-                'date' => now(),
-                'type' => 'purchase', // Matches your ledger logic
-                'description' => "Purchase #{$purchase->id} (Driver: {$purchase->driver_no})",
-                'debit' => 0,
-                'credit' => $totalPayable,
-                'balance' => $supplier->current_balance,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            // 4. Update Supplier Balance & Ledger (Payment Entry)
-            // Logic: We paid cash, so we owe less (Debit Increase)
-            if ($cashPaid > 0) {
-                $supplier->current_balance -= $cashPaid;
-                $supplier->save();
-
-                DB::table('transactions')->insert([
-                    'supplier_id' => $supplier->id,
-                    'date' => now(),
-                    'type' => 'payment', // Matches your ledger logic
-                    'description' => "Cash Paid for Purchase #{$purchase->id}",
-                    'debit' => $cashPaid,
-                    'credit' => 0,
-                    'balance' => $supplier->current_balance,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-            
-            $purchase->load('supplier:id,name');
-
-            DB::commit();
-
-            return response()->json([
-                'message' => 'Purchase saved successfully!',
-                'purchase' => $this->formatPurchaseForJson($purchase),
-            ], 200);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['message' => 'Error saving purchase: ' . $e->getMessage()], 500);
-        }
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json(['message' => 'Error: ' . $e->getMessage()], 500);
     }
+}
 
     /**
      * Update the specified purchase.
@@ -117,20 +112,26 @@ class PurchaseController extends Controller
 
         try {
             $purchase = Purchase::findOrFail($id);
-            
+
             DB::beginTransaction();
-            
-            // Note: Editing accounting entries is complex. 
-            // Currently, this updates the Purchase record but does NOT auto-adjust 
+
+            // Note: Editing accounting entries is complex.
+            // Currently, this updates the Purchase record but does NOT auto-adjust
             // the historical ledger to avoid data corruption.
-            
-            $purchase->update($validatedData);
+            $updateData = collect($validatedData)->map(function ($value, $key) {
+                if (in_array($key, ['dead_qty', 'dead_weight', 'shrink_loss', 'total_kharch']) && ($value === null || $value === '')) {
+                    return 0;
+                }
+                return $value;
+            })->toArray();
+
+            $purchase->update($updateData);
             $purchase->load('supplier:id,name');
 
             DB::commit();
 
             return response()->json([
-                'message' => 'Purchase updated successfully!',
+                'message'  => 'Purchase updated successfully!',
                 'purchase' => $this->formatPurchaseForJson($purchase),
             ], 200);
 
@@ -173,20 +174,20 @@ class PurchaseController extends Controller
     private function formatPurchaseForJson($purchase)
     {
         return [
-            'id'              => $purchase->id,
-            'created_at_human'=> $purchase->created_at->diffForHumans(),
-            'supplier_id'     => $purchase->supplier_id,
-            'supplier_name'   => optional($purchase->supplier)->name ?? 'N/A',
-            'driver_no'       => $purchase->driver_no,
-            'gross_weight'    => (float)$purchase->gross_weight,
-            'dead_qty'        => (int)$purchase->dead_qty,
-            'dead_weight'     => (float)$purchase->dead_weight,
-            'shrink_loss'     => (float)$purchase->shrink_loss,
-            'net_live_weight' => (float)$purchase->net_live_weight,
-            'buying_rate'     => (float)$purchase->buying_rate,
-            'total_kharch'     => (float)$purchase->total_kharch,
-            'total_payable'   => (float)$purchase->total_payable,
-            'effective_cost'  => (float)$purchase->effective_cost,
+            'id'               => $purchase->id,
+            'created_at_human' => $purchase->created_at->diffForHumans(),
+            'supplier_id'      => $purchase->supplier_id,
+            'supplier_name'    => optional($purchase->supplier)->name ?? 'N/A',
+            'driver_no'        => $purchase->driver_no,
+            'gross_weight'     => (float) $purchase->gross_weight,
+            'dead_qty'         => (int) $purchase->dead_qty,
+            'dead_weight'      => (float) $purchase->dead_weight,
+            'shrink_loss'      => (float) $purchase->shrink_loss,
+            'net_live_weight'  => (float) $purchase->net_live_weight,
+            'buying_rate'      => (float) $purchase->buying_rate,
+            'total_kharch'     => (float) $purchase->total_kharch,
+            'total_payable'    => (float) $purchase->total_payable,
+            'effective_cost'   => (float) $purchase->effective_cost,
         ];
     }
 }

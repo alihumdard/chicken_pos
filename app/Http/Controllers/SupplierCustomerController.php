@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
@@ -7,7 +6,6 @@ use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Validation\Rule;
 
 class SupplierCustomerController extends Controller
 {
@@ -29,53 +27,64 @@ class SupplierCustomerController extends Controller
     {
         try {
             // 1. Determine Type & Model
-            $isSupplier = $request->type === 'supplier';
-            $tableName = $isSupplier ? 'suppliers' : 'customers';
+            // Agar input 'supplier' hai to Supplier table, varna Customer table
+            $inputType  = $request->type;
+            $isSupplier = ($inputType === 'supplier');
+            $tableName  = $isSupplier ? 'suppliers' : 'customers';
             $modelClass = $isSupplier ? Supplier::class : Customer::class;
 
             // 2. Validate
             $validated = $request->validate([
                 'name'            => 'required|string|max:255',
-                'type'            => 'required|in:supplier,customer',
+                'type'            => 'required|string|max:50',
                 'opening_balance' => 'nullable|numeric',
                 'phone'           => "nullable|string|max:20|unique:$tableName,phone",
                 'address'         => 'nullable|string|max:255',
             ]);
 
-            $openingBal = $validated['opening_balance'] ?? 0;
+            $openingBal = (float) ($validated['opening_balance'] ?? 0);
 
-            DB::beginTransaction(); // Start Transaction
+            DB::beginTransaction();
 
             // 3. Create Contact
             $contact = $modelClass::create([
                 'name'            => $validated['name'],
+                'type'            => $validated['type'], // Custom types (broker, shop_retail etc)
                 'phone'           => $validated['phone'] ?? null,
                 'address'         => $validated['address'] ?? null,
                 'current_balance' => $openingBal,
             ]);
 
             // 4. Add Opening Balance to Ledger (Transactions Table)
+            // Opening balance ko hamesha pehli transaction ke taur par record karna chahiye
             if ($openingBal != 0) {
-                $debit = 0;
+                $debit  = 0;
                 $credit = 0;
 
-                // Logic:
-                // Supplier: Positive Balance = Credit (Udhaar/Payable)
-                // Customer: Positive Balance = Debit (Lena hai/Receivable)
                 if ($isSupplier) {
-                    if ($openingBal > 0) $credit = $openingBal;
-                    else $debit = abs($openingBal);
+                    // Supplier ke liye: Positive Balance = Humne dena hai (Credit)
+                    // Negative Balance = Advance diya hua hai (Debit)
+                    if ($openingBal > 0) {
+                        $credit = $openingBal;
+                    } else {
+                        $debit = abs($openingBal);
+                    }
                 } else {
-                    if ($openingBal > 0) $debit = $openingBal;
-                    else $credit = abs($openingBal);
+                    // Customer ke liye: Positive Balance = Usne dena hai (Debit)
+                    // Negative Balance = Uska advance aaya hua hai (Credit)
+                    if ($openingBal > 0) {
+                        $debit = $openingBal;
+                    } else {
+                        $credit = abs($openingBal);
+                    }
                 }
 
                 DB::table('transactions')->insert([
                     'supplier_id' => $isSupplier ? $contact->id : null,
-                    'customer_id' => !$isSupplier ? $contact->id : null,
+                    'customer_id' => ! $isSupplier ? $contact->id : null,
                     'date'        => now(),
                     'type'        => 'opening_balance',
-                    'description' => 'Opening Balance',
+                    'description' => 'Opening Balance Entry',
                     'debit'       => $debit,
                     'credit'      => $credit,
                     'balance'     => $openingBal,
@@ -84,28 +93,42 @@ class SupplierCustomerController extends Controller
                 ]);
             }
 
-            DB::commit(); // Save changes
+            DB::commit();
 
-            // 🟢 JSON Response tailored for your AJAX Frontend
             if ($request->ajax()) {
                 return response()->json([
                     'success' => true,
-                    'message' => ucfirst($validated['type']) . ' added successfully!',
-                    // Returning these direct keys for your JS logic:
-                    'id'              => $contact->id,
-                    'name'            => $contact->name,
-                    'opening_balance' => $contact->current_balance
+                    'message' => 'Contact added successfully!',
+                    'contact' => [
+                        'id'              => $contact->id,
+                        'name'            => $contact->name,
+                        'type'            => $contact->type,
+                        'current_balance' => $contact->current_balance,
+                    ],
                 ], 201);
             }
 
-            return redirect()->back()->with('success', 'Contact added successfully');
+            return redirect()->back()->with('success', 'Added successfully');
 
-        } catch (ValidationException $e) {
-            DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Validation failed', 'errors' => $e->errors()], 422);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Server Error: ' . $e->getMessage()], 500);
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Server Error: ' . $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -116,7 +139,7 @@ class SupplierCustomerController extends Controller
     {
         try {
             $isSupplier = $request->type === 'supplier';
-            $tableName = $isSupplier ? 'suppliers' : 'customers';
+            $tableName  = $isSupplier ? 'suppliers' : 'customers';
             $modelClass = $isSupplier ? Supplier::class : Customer::class;
 
             // 1. Validate
@@ -138,7 +161,7 @@ class SupplierCustomerController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => ucfirst($validated['type']) . ' updated successfully!',
-                'contact' => $contact
+                'contact' => $contact,
             ]);
 
         } catch (ValidationException $e) {
@@ -154,28 +177,25 @@ class SupplierCustomerController extends Controller
     public function destroy(Request $request, string $id)
     {
         try {
-            $type = $request->input('type');
-            $modelClass = ($type === 'supplier') ? Supplier::class : (($type === 'customer') ? Customer::class : null);
+            $type       = $request->input('type');
+            $modelClass = ($type === 'supplier') ? Supplier::class : Customer::class;
+            $foreignKey = ($type === 'supplier') ? 'supplier_id' : 'customer_id';
 
-            if (!$modelClass) {
-                return response()->json(['success' => false, 'message' => 'Invalid type.'], 400);
-            }
+            DB::beginTransaction();
 
-            // Optional: Check if transactions exist before deleting
-            $hasTransactions = DB::table('transactions')
-                ->where($type === 'supplier' ? 'supplier_id' : 'customer_id', $id)
-                ->exists();
+            // 1. Pehle is contact se judi sari transactions delete karein
+            DB::table('transactions')->where($foreignKey, $id)->delete();
 
-            if ($hasTransactions) {
-                return response()->json(['success' => false, 'message' => 'Cannot delete: This contact has transaction history.'], 403);
-            }
-
+            // 2. Ab contact ko delete karein
             $contact = $modelClass::findOrFail($id);
             $contact->delete();
 
-            return response()->json(['success' => true, 'message' => ucfirst($type) . ' deleted successfully!']);
+            DB::commit();
+
+            return response()->json(['success' => true, 'message' => ucfirst($type) . ' and its history deleted successfully!']);
 
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Delete failed: ' . $e->getMessage()], 500);
         }
     }
@@ -184,7 +204,32 @@ class SupplierCustomerController extends Controller
 
     public function getSupplierLedger($id)
     {
-        return $this->getLedger($id, 'supplier_id', Supplier::class);
+        $supplier = Supplier::findOrFail($id);
+
+        // 🟢 Join purchases table to get weight and rate details
+        $transactions = DB::table('transactions')
+            ->leftJoin('purchases', function ($join) {
+
+                $join->on(DB::raw("SUBSTRING_INDEX(transactions.description, '#', -1)"), '=', DB::raw("purchases.id"))
+                    ->where('transactions.type', '=', 'purchase');
+            })
+            ->where('transactions.supplier_id', $id)
+            ->select(
+                'transactions.*',
+                'purchases.gross_weight',
+                'purchases.dead_weight',
+                'purchases.shrink_loss',
+                'purchases.buying_rate',
+                'purchases.total_kharch',
+                'purchases.net_live_weight'
+            )
+            ->orderBy('transactions.date', 'asc')
+            ->get();
+
+        return response()->json([
+            'current_balance' => $supplier->current_balance,
+            'transactions'    => $transactions,
+        ]);
     }
 
     public function getCustomerLedger($id)
@@ -199,7 +244,7 @@ class SupplierCustomerController extends Controller
     {
         try {
             $contact = $modelClass::findOrFail($id);
-            
+
             $transactions = DB::table('transactions')
                 ->where($foreignKey, $id)
                 ->orderBy('date', 'desc')
@@ -208,9 +253,9 @@ class SupplierCustomerController extends Controller
                 ->get();
 
             return response()->json([
-                'success' => true,
+                'success'         => true,
                 'current_balance' => $contact->current_balance ?? 0,
-                'transactions' => $transactions
+                'transactions'    => $transactions,
             ]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Error fetching ledger'], 500);
@@ -232,10 +277,10 @@ class SupplierCustomerController extends Controller
 
         if ($request->has('supplier_id')) {
             $rules['supplier_id'] = 'required|exists:suppliers,id';
-            $isSupplier = true;
+            $isSupplier           = true;
         } elseif ($request->has('customer_id')) {
             $rules['customer_id'] = 'required|exists:customers,id';
-            $isSupplier = false;
+            $isSupplier           = false;
         } else {
             return response()->json(['message' => 'Customer or Supplier ID required'], 422);
         }
@@ -244,20 +289,20 @@ class SupplierCustomerController extends Controller
 
         DB::beginTransaction();
         try {
-            $amount = $validated['amount'];
-            $desc = $validated['description'];
+            $amount  = $validated['amount'];
+            $desc    = $validated['description'];
             $txnType = $validated['type'];
-            
+
             // Get Model
             if ($isSupplier) {
-                $contact = Supplier::lockForUpdate()->find($validated['supplier_id']); // Lock row to prevent race conditions
+                $contact    = Supplier::lockForUpdate()->find($validated['supplier_id']); // Lock row to prevent race conditions
                 $foreignKey = ['supplier_id' => $contact->id];
             } else {
-                $contact = Customer::lockForUpdate()->find($validated['customer_id']);
+                $contact    = Customer::lockForUpdate()->find($validated['customer_id']);
                 $foreignKey = ['customer_id' => $contact->id];
             }
 
-            $debit = 0;
+            $debit  = 0;
             $credit = 0;
 
             // Logic Determination
@@ -266,28 +311,40 @@ class SupplierCustomerController extends Controller
                 if ($txnType === 'payment') {
                     // We pay Supplier -> Balance decreases (Debit Transaction in Ledger, but logically we are paying debt)
                     // Usually in Accounting: Supplier Dr (Debit) | Cash Cr (Credit)
-                    $debit = $amount; 
+                    $debit = $amount;
                     $contact->decrement('current_balance', $amount);
-                    if (!$desc) $desc = "Cash Payment to Supplier";
+                    if (! $desc) {
+                        $desc = "-";
+                    }
+
                 } elseif ($txnType === 'opening_balance' || $txnType === 'adjustment') {
                     // We owe more -> Balance increases
-                    $credit = $amount; 
+                    $credit = $amount;
                     $contact->increment('current_balance', $amount);
-                    if (!$desc) $desc = "Balance Adjustment (Credit)";
+                    if (! $desc) {
+                        $desc = "-";
+                    }
+
                 }
             } else {
                 // CUSTOMER LOGIC
                 if ($txnType === 'payment') {
                     // Customer pays Us -> Balance decreases
                     // Usually: Cash Dr | Customer Cr
-                    $credit = $amount; 
+                    $credit = $amount;
                     $contact->decrement('current_balance', $amount);
-                    if (!$desc) $desc = "Cash Received from Customer";
+                    if (! $desc) {
+                        $desc = "-";
+                    }
+
                 } elseif ($txnType === 'opening_balance' || $txnType === 'adjustment') {
                     // Customer owes more -> Balance increases
-                    $debit = $amount; 
+                    $debit = $amount;
                     $contact->increment('current_balance', $amount);
-                    if (!$desc) $desc = "Balance Adjustment (Debit)";
+                    if (! $desc) {
+                        $desc = "-";
+                    }
+
                 }
             }
 
@@ -310,14 +367,112 @@ class SupplierCustomerController extends Controller
             DB::commit();
 
             return response()->json([
-                'success' => true,
-                'message' => 'Transaction added successfully',
-                'new_balance' => $newBalance
+                'success'     => true,
+                'message'     => 'Transaction added successfully',
+                'new_balance' => $newBalance,
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
+
+
+    // 1. Ledger Entry Update Method
+    public function updateLedger(Request $request, $id)
+    {
+        try {
+            DB::beginTransaction();
+
+            // Transaction dhoondein
+            $transaction = DB::table('transactions')->where('id', $id)->first();
+            if (! $transaction) {
+                return response()->json(['success' => false, 'message' => 'Transaction not found'], 404);
+            }
+
+            // Purane values calculate karein balance update ke liye
+            $oldDebit  = (float) $transaction->debit;
+            $oldCredit = (float) $transaction->credit;
+
+            // Naye values
+            $newDebit  = (float) $request->debit;
+            $newCredit = (float) $request->credit;
+
+            // Transaction Update karein
+            DB::table('transactions')->where('id', $id)->update([
+                'date'        => $request->date,
+                'description' => $request->description,
+                'debit'       => $newDebit,
+                'credit'      => $newCredit,
+                'updated_at'  => now(),
+            ]);
+
+            // 🟢 Balance Recalculation Logic (Har row ke liye)
+            $this->recalculateBalance($transaction->customer_id, $transaction->supplier_id);
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Ledger updated successfully']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+// 2. Ledger Entry Delete Method
+    public function destroyLedger($id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $transaction = DB::table('transactions')->where('id', $id)->first();
+            if (! $transaction) {
+                return response()->json(['success' => false, 'message' => 'Record not found'], 404);
+            }
+
+            $customerId = $transaction->customer_id;
+            $supplierId = $transaction->supplier_id;
+
+            // Delete karein
+            DB::table('transactions')->where('id', $id)->delete();
+
+            // 🟢 Balance Recalculation
+            $this->recalculateBalance($customerId, $supplierId);
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Transaction deleted and balance updated']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+/**
+ * 🟢 Private function jo balance ko dobara calculate karegi
+ * Isme DB::selectRaw (Fixed syntax) use kiya gaya hai
+ */
+    private function recalculateBalance($customerId, $supplierId)
+    {
+        if ($customerId) {
+            // Customer balance logic: Total Debits - Total Credits
+            $totals = DB::table('transactions')
+                ->where('customer_id', $customerId)
+                ->select(DB::raw('SUM(debit) as total_debit, SUM(credit) as total_credit'))
+                ->first();
+
+            $newBalance = ($totals->total_debit ?? 0) - ($totals->total_credit ?? 0);
+            DB::table('customers')->where('id', $customerId)->update(['current_balance' => $newBalance]);
+        } elseif ($supplierId) {
+            // Supplier balance logic: Total Credits - Total Debits
+            $totals = DB::table('transactions')
+                ->where('supplier_id', $supplierId)
+                ->select(DB::raw('SUM(debit) as total_debit, SUM(credit) as total_credit'))
+                ->first();
+
+            $newBalance = ($totals->total_credit ?? 0) - ($totals->total_debit ?? 0);
+            DB::table('suppliers')->where('id', $supplierId)->update(['current_balance' => $newBalance]);
         }
     }
 }
