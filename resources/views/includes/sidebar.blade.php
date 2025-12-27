@@ -234,6 +234,11 @@
                     Stock Report
                 </a>
 
+                  <a href="{{ route('admin.reports.pnl') }}" class="dropdown-link {{ request()->routeIs('admin.reports.pnl') ? 'active-sub' : '' }}">
+                    <i class="fas fa-clipboard-list pr-2"></i>
+                    p & L Report
+                </a>
+
             </div>
         </div>
 

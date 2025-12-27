@@ -174,6 +174,9 @@ class SupplierCustomerController extends Controller
     /**
      * Remove the specified resource from storage.
      */
+    /**
+     * Remove the specified resource from storage.
+     */
     public function destroy(Request $request, string $id)
     {
         try {
@@ -183,85 +186,115 @@ class SupplierCustomerController extends Controller
 
             DB::beginTransaction();
 
-            // 1. Pehle is contact se judi sari transactions delete karein
+            // 1. Delete Ledger Transactions
             DB::table('transactions')->where($foreignKey, $id)->delete();
 
-            // 2. Ab contact ko delete karein
+            // 2. Specific Logic for Customers (Delete Sales and Items)
+            if ($type === 'customer' || $type === 'broker' || $type === 'shop_retail') {
+                // Find all sales for this customer
+                $saleIds = DB::table('sales')->where('customer_id', $id)->pluck('id');
+
+                // Delete items belonging to those sales
+                DB::table('sale_items')->whereIn('sale_id', $saleIds)->delete();
+
+                // Delete the sales records themselves
+                DB::table('sales')->where('customer_id', $id)->delete();
+            }
+
+            // 3. Delete the contact
             $contact = $modelClass::findOrFail($id);
             $contact->delete();
 
             DB::commit();
 
-            return response()->json(['success' => true, 'message' => ucfirst($type) . ' and its history deleted successfully!']);
+            return response()->json([
+                'success' => true,
+                'message' => ucfirst($type) . ' and all related history/sales deleted successfully!',
+            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Delete failed: ' . $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Delete failed: ' . $e->getMessage(),
+            ], 500);
         }
     }
 
     // --- Ledger Methods ---
 
-    public function getSupplierLedger($id)
-    {
-        $supplier = Supplier::findOrFail($id);
+   public function getSupplierLedger($id)
+{
+    $supplier = Supplier::findOrFail($id);
 
-        // 🟢 Join purchases table to get weight and rate details
+    $transactions = DB::table('transactions')
+        ->leftJoin('purchases', function ($join) {
+            $join->on(DB::raw("SUBSTRING_INDEX(transactions.description, '#', -1)"), '=', DB::raw("purchases.id"))
+                ->where('transactions.type', '=', 'purchase');
+        })
+        ->where('transactions.supplier_id', $id)
+        ->select(
+            DB::raw("CASE 
+                WHEN transactions.description LIKE '%Purchase #%' THEN SUBSTRING_INDEX(transactions.description, '#', -1)
+                ELSE transactions.id 
+            END as group_key"),
+            DB::raw('MIN(transactions.date) as date'),
+            DB::raw('MAX(transactions.description) as description'),
+            DB::raw('SUM(transactions.debit) as debit'),
+            DB::raw('SUM(transactions.credit) as credit'),
+            'purchases.gross_weight',
+            'purchases.net_live_weight',
+            'purchases.buying_rate',
+            'purchases.total_kharch'
+        )
+        ->groupBy('group_key', 'purchases.gross_weight', 'purchases.net_live_weight', 'purchases.buying_rate', 'purchases.total_kharch')
+        ->orderBy('date', 'asc')
+        ->get();
+
+    return response()->json([
+        'current_balance' => $supplier->current_balance,
+        'transactions'    => $transactions,
+    ]);
+}
+
+    public function getCustomerLedger($id)
+{
+    try {
+        $contact = Customer::findOrFail($id);
+
+        /**
+         * 🟢 UPDATED LOGIC:
+         * 1. Hum description mein se '#' ke baad wala number nikaalte hain.
+         * 2. Hum grouping ko hamesha 'group_key' par karte hain.
+         * 3. Agar description mein '#' nahi milta (jaise opening balance), toh unique ID use karte hain.
+         */
         $transactions = DB::table('transactions')
-            ->leftJoin('purchases', function ($join) {
-
-                $join->on(DB::raw("SUBSTRING_INDEX(transactions.description, '#', -1)"), '=', DB::raw("purchases.id"))
-                    ->where('transactions.type', '=', 'purchase');
-            })
-            ->where('transactions.supplier_id', $id)
+            ->where('customer_id', $id)
             ->select(
-                'transactions.*',
-                'purchases.gross_weight',
-                'purchases.dead_weight',
-                'purchases.shrink_loss',
-                'purchases.buying_rate',
-                'purchases.total_kharch',
-                'purchases.net_live_weight'
+                DB::raw("CASE 
+                    WHEN description LIKE '%#%' THEN SUBSTRING_INDEX(SUBSTRING_INDEX(description, '#', -1), ' ', 1)
+                    ELSE CAST(id AS CHAR) 
+                END as group_key"),
+                DB::raw('MIN(date) as date'),
+                DB::raw('MAX(description) as description'),
+                DB::raw('SUM(debit) as debit'),
+                DB::raw('SUM(credit) as credit'),
+                DB::raw('MIN(id) as sort_id')
             )
-            ->orderBy('transactions.date', 'asc')
+            ->groupBy('group_key')
+            ->orderBy('date', 'asc')
+            ->orderBy('sort_id', 'asc')
             ->get();
 
         return response()->json([
-            'current_balance' => $supplier->current_balance,
+            'success'         => true,
+            'current_balance' => $contact->current_balance ?? 0,
             'transactions'    => $transactions,
         ]);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
     }
-
-    public function getCustomerLedger($id)
-    {
-        return $this->getLedger($id, 'customer_id', Customer::class);
-    }
-
-    /**
-     * Helper function to reduce code duplication in ledger fetching
-     */
-    private function getLedger($id, $foreignKey, $modelClass)
-    {
-        try {
-            $contact = $modelClass::findOrFail($id);
-
-            $transactions = DB::table('transactions')
-                ->where($foreignKey, $id)
-                ->orderBy('date', 'desc')
-                ->orderBy('id', 'desc')
-                ->limit(100) // Increased limit slightly
-                ->get();
-
-            return response()->json([
-                'success'         => true,
-                'current_balance' => $contact->current_balance ?? 0,
-                'transactions'    => $transactions,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error fetching ledger'], 500);
-        }
-    }
-
+}
     /**
      * Store Payment / Adjust Balance
      */
@@ -377,7 +410,6 @@ class SupplierCustomerController extends Controller
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
-
 
     // 1. Ledger Entry Update Method
     public function updateLedger(Request $request, $id)

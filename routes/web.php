@@ -131,3 +131,5 @@ Route::resource('admin/purchases', App\Http\Controllers\PurchaseController::clas
 Route::get('/admin/suppliers/{id}/ledger', [SupplierCustomerController::class, 'getSupplierLedger']);
 Route::get('/admin/customers/{id}/ledger', [SupplierCustomerController::class, 'getCustomerLedger']);
 Route::post('/admin/customers/payment', [SupplierCustomerController::class, 'storePayment']);
+Route::get('/admin/reports/sell-monthly', [ReportController::class, 'monthlySalesReport'])->name('admin.reports.sell.monthly');
+Route::get('/admin/reports/profit-loss', [ReportController::class, 'profitLossReport'])->name('admin.reports.pnl');

@@ -580,39 +580,59 @@
         const paymentTypeSelect = document.getElementById('paymentTypeSelect');
         const customerActionsEl = document.getElementById('customerActions');
 
+        /**
+    * 🟢 UPDATED: Open Ledger with proper reset
+    */
+        /**
+    * 🟢 FIXED: Open Ledger Function
+    */
         function openLedger(id, name, phone, type) {
-            ledgerModal.classList.remove('hidden');
-            ledgerTitleEl.textContent = name;
-            paymentContactIdEl.value = id;
-            paymentContactTypeEl.value = type;
-            paymentContactPhoneEl.value = phone;
+            // Elements ko function ke andar fetch karein taake 'null' error na aaye
+            const tableBody = document.getElementById('ledgerTableBody');
+            const balanceDisplay = document.getElementById('ledgerCurrentBalance');
+            const titleDisplay = document.getElementById('ledgerTitle');
+            const modal = document.getElementById('ledgerModal');
 
-            ledgerTableBody.innerHTML =
-                '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500"><i class="fas fa-spinner fa-spin text-2xl"></i><br>Loading records...</td></tr>';
+            // Check karein ke elements mil gaye hain ya nahi
+            if (!tableBody || !modal) {
+                console.error("Critical UI elements missing!");
+                return;
+            }
 
+            // 1. Reset State
+            tableBody.innerHTML = '<tr><td colspan="11" class="px-6 py-10 text-center text-gray-500"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><br>Loading fresh records...</td></tr>';
+            if (balanceDisplay) balanceDisplay.textContent = "0";
+            if (titleDisplay) titleDisplay.textContent = name;
+
+            // 2. Show Modal
+            modal.classList.remove('hidden');
+
+            // 3. Update Hidden Inputs
+            document.getElementById('paymentContactId').value = id;
+            document.getElementById('paymentContactType').value = type;
+            document.getElementById('paymentContactPhone').value = phone;
+
+            // 4. Update Table Headers based on Type
             const thDebit = document.getElementById('thDebit');
             const thCredit = document.getElementById('thCredit');
+            const actions = document.getElementById('customerActions');
+            const typeSelect = document.getElementById('paymentTypeSelect');
 
             if (type === 'supplier') {
-                customerActionsEl.classList.add('hidden');
-                thDebit.innerHTML = "Debit <span class='text-[10px] lowercase font-normal'>(Paid)</span>";
-                thCredit.innerHTML = "Credit <span class='text-[10px] lowercase font-normal'>(Purchase)</span>";
-                paymentTypeSelect.innerHTML = `
-                                                                                                                                <option value="payment">Payment (Cash Given to Supplier)</option>
-                                                                                                                                <option value="opening_balance">Opening Balance Adjustment</option>
-                                                                                                                            `;
+                if (actions) actions.classList.add('hidden');
+                if (thDebit) thDebit.innerHTML = "Debit <span class='text-[10px] lowercase font-normal'>(Paid)</span>";
+                if (thCredit) thCredit.innerHTML = "Credit <span class='text-[10px] lowercase font-normal'>(Purchase)</span>";
+                typeSelect.innerHTML = `<option value="payment">Payment (Cash Given to Supplier)</option><option value="opening_balance">Opening Balance Adjustment</option>`;
             } else {
-                customerActionsEl.classList.remove('hidden');
-                thDebit.innerHTML = "Debit <span class='text-[10px] lowercase font-normal'>(Sale/Due)</span>";
-                thCredit.innerHTML = "Credit <span class='text-[10px] lowercase font-normal'>(Received)</span>";
-                paymentTypeSelect.innerHTML = `
-                                                                                                                                <option value="payment">Payment (Cash Received from Customer)</option>
-                                                                                                                                <option value="opening_balance">Opening Balance Adjustment</option>
-                                                                                                                            `;
+                if (actions) actions.classList.remove('hidden');
+                if (thDebit) thDebit.innerHTML = "Debit <span class='text-[10px] lowercase font-normal'>(Sale/Due)</span>";
+                if (thCredit) thCredit.innerHTML = "Credit <span class='text-[10px] lowercase font-normal'>(Received)</span>";
+                typeSelect.innerHTML = `<option value="payment">Payment (Cash Received from Customer)</option><option value="opening_balance">Opening Balance Adjustment</option>`;
             }
+
+            // 5. Data Fetch karein
             fetchLedgerData(id, type);
         }
-
         function sendWhatsAppReminder() {
             const phone = paymentContactPhoneEl.value;
             const name = ledgerTitleEl.textContent;
@@ -644,142 +664,146 @@
             }, 1000);
         }
 
-       async function fetchLedgerData(id, type) {
-    try {
-        const endpoint = (type === 'supplier') ? 'suppliers' : 'customers';
-        const url = `/admin/${endpoint}/${id}/ledger`;
+        async function fetchLedgerData(id, type) {
+            // 🟢 RE-SELECT ELEMENTS to prevent "Cannot set properties of null" errors
+            const tableBody = document.getElementById('ledgerTableBody');
+            const balanceDisplay = document.getElementById('ledgerCurrentBalance');
+            const thead = document.querySelector('#ledgerModal thead');
+            const scrollContainer = document.querySelector('#ledgerModal .overflow-y-auto');
 
-        const response = await fetch(url, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
+            // Safety check: if elements are missing, don't proceed
+            if (!tableBody || !thead) return;
 
-        if (!response.ok) throw new Error("Failed to fetch data");
+            try {
+                const endpoint = (type === 'supplier') ? 'suppliers' : 'customers';
+                const url = `/admin/${endpoint}/${id}/ledger`;
 
-        const data = await response.json();
-        
-        // Modal ke top par total balance update
-        ledgerBalanceEl.textContent = parseFloat(data.current_balance).toLocaleString();
-
-        const thead = document.querySelector('#ledgerModal thead');
-        
-        // 1. Dynamic Table Header (Supplier vs Customer)
-        if (type === 'supplier') {
-            thead.innerHTML = `
-                <tr class="bg-gray-100">
-                    <th class="px-2 py-3 text-[10px] font-bold uppercase">Date</th>
-                    <th class="px-2 py-3 text-[10px] font-bold uppercase">Description</th>
-                    <th class="px-2 py-3 text-right text-[10px] font-bold uppercase">Gross</th>
-                    <th class="px-2 py-3 text-right text-[10px] font-bold uppercase">Ded.</th>
-                    <th class="px-2 py-3 text-right text-[10px] font-bold uppercase">Net</th>
-                    <th class="px-2 py-3 text-right text-[10px] font-bold uppercase">Kharch</th>
-                    <th class="px-2 py-3 text-right text-[10px] font-bold uppercase">Rate</th>
-                    <th class="px-2 py-3 text-right text-[10px] font-bold uppercase text-red-600">Debit (Paid)</th>
-                    <th class="px-2 py-3 text-right text-[10px] font-bold uppercase text-green-600">Credit (Remaning)</th>
-                    <th class="px-2 py-3 text-right text-[10px] font-bold uppercase">Balance</th>
-                    <th class="px-2 py-3 text-center text-[10px] font-bold uppercase">Action</th>
-                </tr>`;
-        } else {
-            thead.innerHTML = `
-                <tr class="bg-gray-100">
-                    <th class="px-4 py-3 text-left text-xs font-bold uppercase">Date</th>
-                    <th class="px-4 py-3 text-left text-xs font-bold uppercase">Description</th>
-                    <th class="px-4 py-3 text-right text-xs font-bold uppercase text-red-600">Debit (Sale)</th>
-                    <th class="px-4 py-3 text-right text-xs font-bold uppercase text-green-600">Credit (Recv)</th>
-                    <th class="px-4 py-3 text-right text-xs font-bold uppercase">Balance</th>
-                    <th class="px-4 py-3 text-center text-xs font-bold uppercase">Action</th>
-                </tr>`;
-        }
-
-        if (!data.transactions || data.transactions.length === 0) {
-            ledgerTableBody.innerHTML = `<tr><td colspan="11" class="px-6 py-10 text-center text-gray-500">No transactions found.</td></tr>`;
-            return;
-        }
-
-        // 🟢 2. SORTING LOGIC: Oldest to Newest (Old records top, Newest bottom)
-        const sortedTransactions = data.transactions.sort((a, b) => {
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
-            if (dateA - dateB !== 0) return dateA - dateB;
-            return a.id - b.id; // Agar date same ho to ID (Entry order) se sort karein
-        });
-
-        let html = '';
-        let runningBalance = 0;
-
-        sortedTransactions.forEach(txn => {
-            let debitVal = parseFloat(txn.debit) || 0;
-            let creditVal = parseFloat(txn.credit) || 0;
-
-            // Running Balance Logic
-            if (type === 'supplier') {
-                runningBalance += (creditVal - debitVal);
-            } else {
-                runningBalance += (debitVal - creditVal);
-            }
-
-            let descriptionText = txn.description || '';
-
-            if (type === 'supplier') {
-                // Supplier specific columns
-                let gross = txn.gross_weight || '-';
-                let net = txn.net_live_weight || '-';
-                let rate = txn.buying_rate || '-';
-                let kharch = txn.total_kharch ? parseFloat(txn.total_kharch).toLocaleString() : '-';
-                let ded = (parseFloat(txn.dead_weight || 0) + parseFloat(txn.shrink_loss || 0)).toFixed(2);
-
-                html += `
-                <tr id="ledger-row-${txn.id}" class="border-b hover:bg-gray-50 text-[11px]">
-                    <td class="px-2 py-3 whitespace-nowrap row-date">${txn.date}</td>
-                    <td class="px-2 py-3 row-desc"><span>${descriptionText}</span></td>
-                    <td class="px-2 py-3 text-right">${gross}</td>
-                    <td class="px-2 py-3 text-right text-red-500">${ded == "0.00" ? '-' : ded}</td>
-                    <td class="px-2 py-3 text-right font-bold text-green-700">${net}</td>
-                    <td class="px-2 py-3 text-right">${kharch}</td>
-                    <td class="px-2 py-3 text-right">${rate}</td>
-                    
-                    <td class="px-2 py-3 text-right font-bold text-red-600 row-debit">${debitVal > 0 ? debitVal.toLocaleString() : '-'}</td>
-                    <td class="px-2 py-3 text-right font-bold text-green-600 row-credit">${creditVal > 0 ? creditVal.toLocaleString() : '-'}</td>
-                    
-                    <td class="px-2 py-3 text-right font-extrabold text-blue-700">${runningBalance.toLocaleString()}</td>
-                    <td class="px-2 py-3 text-center whitespace-nowrap">
-                        <button onclick="toggleLedgerEdit('${txn.id}', '${type}')" class="text-blue-600 mx-1"><i class="fas fa-edit"></i></button>
-                        <button onclick="deleteLedgerEntry('${txn.id}', '${type}')" class="text-red-600 mx-1"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>`;
-            } else {
-                // Customer row
-                html += `
-                <tr id="ledger-row-${txn.id}" class="border-b hover:bg-gray-50 text-sm">
-                    <td class="px-4 py-3 whitespace-nowrap row-date">${txn.date}</td>
-                    <td class="px-4 py-3 row-desc"><span>${descriptionText}</span></td>
-                    <td class="px-4 py-3 text-right font-bold text-red-600 row-debit">${debitVal > 0 ? debitVal.toLocaleString() : '-'}</td>
-                    <td class="px-4 py-3 text-right font-bold text-green-600 row-credit">${creditVal > 0 ? creditVal.toLocaleString() : '-'}</td>
-                    <td class="px-4 py-3 text-right font-extrabold text-blue-700">${runningBalance.toLocaleString()}</td>
-                    <td class="px-4 py-3 text-center whitespace-nowrap">
-                        <button onclick="toggleLedgerEdit('${txn.id}', '${type}')" class="text-blue-600 mx-1"><i class="fas fa-edit"></i></button>
-                        <button onclick="deleteLedgerEntry('${txn.id}', '${type}')" class="text-red-600 mx-1"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>`;
-            }
-        });
-
-        ledgerTableBody.innerHTML = html;
-
-        const scrollContainer = document.querySelector('#ledgerModal .overflow-y-auto');
-        if (scrollContainer) {
-            setTimeout(() => {
-                scrollContainer.scrollTo({
-                    top: scrollContainer.scrollHeight,
-                    behavior: 'auto'
+                const response = await fetch(url, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
-            }, 50);
-        }
 
-    } catch (error) {
-        console.error("Ledger Fetch Error:", error);
-        ledgerTableBody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-red-500">Error loading data.</td></tr>';
-    }
-}
+                if (!response.ok) throw new Error("Failed to fetch data from server");
+
+                const data = await response.json();
+
+                // Modal balance update
+                if (balanceDisplay) {
+                    balanceDisplay.textContent = parseFloat(data.current_balance || 0).toLocaleString();
+                }
+
+                // 1. Dynamic Headers Logic based on Contact Type
+                if (type === 'supplier') {
+                    thead.innerHTML = `
+                    <tr class="bg-gray-100 text-[10px] font-bold uppercase text-gray-600">
+                        <th class="px-2 py-3">Date</th>
+                        <th class="px-2 py-3 text-left">Description</th>
+                        <th class="px-2 py-3 text-right">Gross</th>
+                        <th class="px-2 py-3 text-right text-red-500">Ded.</th>
+                        <th class="px-2 py-3 text-right">Net</th>
+                        <th class="px-2 py-3 text-right text-blue-600">Kharch</th>
+                        <th class="px-2 py-3 text-right">Rate</th>
+                        <th class="px-2 py-3 text-right text-red-600">Debit (Paid)</th>
+                        <th class="px-2 py-3 text-right text-green-600">Credit (Bill)</th>
+                        <th class="px-2 py-3 text-right">Balance</th>
+                        <th class="px-2 py-3 text-center">Action</th>
+                    </tr>`;
+                } else {
+                    thead.innerHTML = `
+                    <tr class="bg-gray-100 text-xs font-bold uppercase text-gray-600">
+                        <th class="px-4 py-3 text-left">Date</th>
+                        <th class="px-4 py-3 text-left">Description</th>
+                        <th class="px-4 py-3 text-right text-red-600">Debit (Sale)</th>
+                        <th class="px-4 py-3 text-right text-green-600">Credit (Recv)</th>
+                        <th class="px-4 py-3 text-right">Balance</th>
+                        <th class="px-4 py-3 text-center">Action</th>
+                    </tr>`;
+                }
+
+                if (!data.transactions || data.transactions.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="11" class="px-6 py-10 text-center text-gray-400 font-medium italic">No transaction history found.</td></tr>`;
+                    return;
+                }
+
+                let html = '';
+                let runningBalance = 0;
+
+                // Backend returns data grouped by Sale/Purchase ID in ASC order
+                data.transactions.forEach(txn => {
+                    let debitVal = parseFloat(txn.debit) || 0;
+                    let creditVal = parseFloat(txn.credit) || 0;
+
+                    // Running Balance Logic
+                    if (type === 'supplier') {
+                        runningBalance += (creditVal - debitVal);
+                    } else {
+                        runningBalance += (debitVal - creditVal);
+                    }
+
+                    let descriptionText = txn.description || '-';
+                    const rowId = txn.group_key || txn.id;
+
+                    if (type === 'supplier') {
+                        // Supplier Formatting
+                        let gross = txn.gross_weight || '-';
+                        let net = txn.net_live_weight || '-';
+                        let rate = txn.buying_rate || '-';
+                        let kharch = txn.total_kharch ? parseFloat(txn.total_kharch).toLocaleString() : '-';
+                        let ded = (parseFloat(txn.dead_weight || 0) + parseFloat(txn.shrink_loss || 0)).toFixed(net !== '-' ? 2 : 0);
+
+                        html += `
+                    <tr id="ledger-row-${rowId}" class="border-b hover:bg-gray-50 text-[11px] transition-all">
+                        <td class="px-2 py-3 whitespace-nowrap row-date text-gray-500 font-medium">${txn.date}</td>
+                        <td class="px-2 py-3 row-desc font-bold text-gray-700"><span>${descriptionText}</span></td>
+                        <td class="px-2 py-3 text-right text-gray-600">${gross}</td>
+                        <td class="px-2 py-3 text-right text-red-400">${ded == "0" || ded == "0.00" ? '-' : ded}</td>
+                        <td class="px-2 py-3 text-right font-bold text-green-700">${net}</td>
+                        <td class="px-2 py-3 text-right text-blue-600 font-medium">${kharch}</td>
+                        <td class="px-2 py-3 text-right text-gray-600">${rate}</td>
+                        <td class="px-2 py-3 text-right font-black text-red-600 row-debit bg-red-50/20">${debitVal > 0 ? debitVal.toLocaleString() : '-'}</td>
+                        <td class="px-2 py-3 text-right font-black text-green-600 row-credit bg-green-50/20">${creditVal > 0 ? creditVal.toLocaleString() : '-'}</td>
+                        <td class="px-2 py-3 text-right font-extrabold text-blue-800 bg-gray-50/50">${runningBalance.toLocaleString()}</td>
+                        <td class="px-2 py-3 text-center whitespace-nowrap">
+                            <div class="flex items-center justify-center gap-1">
+                                <button onclick="toggleLedgerEdit('${rowId}', '${type}')" class="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteLedgerEntry('${rowId}', '${type}')" class="p-1.5 text-red-400 hover:bg-red-50 rounded"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>`;
+                    } else {
+                        // Customer Formatting
+                        html += `
+                    <tr id="ledger-row-${rowId}" class="border-b hover:bg-gray-50 text-sm transition-all">
+                        <td class="px-4 py-3 whitespace-nowrap row-date text-gray-500 font-medium">${txn.date}</td>
+                        <td class="px-4 py-3 row-desc font-bold text-gray-700"><span>${descriptionText}</span></td>
+                        <td class="px-4 py-3 text-right font-black text-red-600 row-debit bg-red-50/20">${debitVal > 0 ? debitVal.toLocaleString() : '-'}</td>
+                        <td class="px-4 py-3 text-right font-black text-green-600 row-credit bg-green-50/20">${creditVal > 0 ? creditVal.toLocaleString() : '-'}</td>
+                        <td class="px-4 py-3 text-right font-extrabold text-blue-800 bg-gray-50/50">${runningBalance.toLocaleString()}</td>
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <div class="flex items-center justify-center gap-2">
+                                <button onclick="toggleLedgerEdit('${rowId}', '${type}')" class="p-2 text-blue-500 hover:bg-blue-50 rounded"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteLedgerEntry('${rowId}', '${type}')" class="p-2 text-red-400 hover:bg-red-50 rounded"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>`;
+                    }
+                });
+
+                tableBody.innerHTML = html;
+
+                // Smooth Auto-scroll to latest entry
+                if (scrollContainer) {
+                    setTimeout(() => {
+                        scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'smooth' });
+                    }, 100);
+                }
+
+            } catch (error) {
+                console.error("Ledger Fetch Error:", error);
+                if (tableBody) {
+                    tableBody.innerHTML = `<tr><td colspan="11" class="px-6 py-10 text-center text-red-500 font-bold bg-red-50 rounded-lg">Error: ${error.message}</td></tr>`;
+                }
+            }
+        }
         // 🟢 FIXED INLINE EDIT LOGIC
         function toggleLedgerEdit(txnId, contactType) {
             const row = document.getElementById(`ledger-row-${txnId}`);
@@ -798,10 +822,10 @@
 
             // Buttons badlein
             row.querySelector('td:last-child').innerHTML = `
-                <div class="flex gap-2 justify-center">
-                    <button onclick="saveLedgerEdit('${txnId}', '${contactType}')" class="text-green-600 hover:text-green-800"><i class="fas fa-check-circle text-xl"></i></button>
-                    <button onclick="fetchLedgerData('${paymentContactIdEl.value}', '${contactType}')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times-circle text-xl"></i></button>
-                </div>`;
+                                        <div class="flex gap-2 justify-center">
+                                            <button onclick="saveLedgerEdit('${txnId}', '${contactType}')" class="text-green-600 hover:text-green-800"><i class="fas fa-check-circle text-xl"></i></button>
+                                            <button onclick="fetchLedgerData('${paymentContactIdEl.value}', '${contactType}')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times-circle text-xl"></i></button>
+                                        </div>`;
         }
 
         async function saveLedgerEdit(txnId, contactType) {
@@ -868,7 +892,7 @@
                 }
             }
         }
-       
+
         document.getElementById('addPaymentForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
@@ -923,6 +947,8 @@
 
         function closeLedger() {
             ledgerModal.classList.add('hidden');
+            // Clear content on close to ensure next open starts fresh
+            ledgerTableBody.innerHTML = '';
         }
     </script>
 @endsection
