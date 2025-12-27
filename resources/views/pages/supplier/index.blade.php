@@ -49,7 +49,8 @@
                                         class="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-50">
                                         <i class="fas fa-ellipsis-h"></i>
                                     </button>
-                                    <div class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-10">
+                                    <div
+                                        class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-10">
                                         <div class="py-1" role="menu">
                                             <a href="#"
                                                 onclick="openEditModal('{{ $supplier->id }}', '{{ addslashes($supplier->name) }}', '{{ $supplier->phone ?? '' }}', '{{ addslashes($supplier->address ?? '') }}', 'supplier')"
@@ -108,7 +109,8 @@
                                         class="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-50">
                                         <i class="fas fa-ellipsis-h"></i>
                                     </button>
-                                    <div class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-10">
+                                    <div
+                                        class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-10">
                                         <div class="py-1" role="menu">
                                             <a href="#"
                                                 onclick="openEditModal('{{ $customer->id }}', '{{ addslashes($customer->name) }}', '{{ $customer->phone ?? '' }}', '{{ addslashes($customer->address ?? '') }}', 'customer')"
@@ -137,12 +139,12 @@
     </div>
 
     {{-- 🟢 ADD/EDIT CONTACT MODAL --}}
-    <div id="contactModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog"
-        aria-modal="true">
+    <div id="contactModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="fixed inset-0 bg-gray-900 bg-opacity-40 transition-opacity backdrop-blur-sm" onclick="closeModal()">
         </div>
         <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 w-full max-w-sm sm:max-w-md border border-gray-100">
+            <div
+                class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 w-full max-w-sm sm:max-w-md border border-gray-100">
                 <div class="bg-white px-6 py-4 border-b border-gray-100 flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-gray-800" id="modalTitle">Add New Contact</h3>
                     <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors"><i
@@ -152,48 +154,50 @@
                     @csrf
                     <input type="hidden" id="editContactId" name="id" value="">
 
+                    {{-- 🟢 Hidden input jo backend ko final type bhejega --}}
+                    <input type="hidden" name="type" id="finalType">
+
                     <div class="px-6 py-6 space-y-5">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
                             <input type="text" name="name" id="contactName" required
-                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 outline-none"
-                                placeholder="e.g. Ali Poultry">
+                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 outline-none">
                             <p id="nameError" class="text-xs text-red-500 mt-1 hidden"></p>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                            <input type="text" name="phone"
-                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 outline-none"
-                                placeholder="e.g. 923001234567">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Address <span
-                                    class="text-gray-400 font-normal text-xs">(Optional)</span></label>
-                            <textarea name="address" rows="2"
-                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 outline-none resize-none"
-                                placeholder="e.g. Street 1, Lahore"></textarea>
-                        </div>
-                        <div id="typeFieldContainer">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+
+                        {{-- 🟢 Customer Sub-types --}}
+                        <div id="customerTypeContainer" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Customer Category</label>
                             <div class="relative">
-                                <select name="type" id="typeSelect" required
+                                <select id="customerSubtypeSelect"
                                     class="w-full appearance-none px-4 py-2.5 rounded-lg border border-gray-300 bg-white">
-                                    <option value="" selected>Select Type</option>
-                                    <option value="supplier">Supplier (Truck)</option>
-                                    <option value="customer">Permanent Customer (Hotel/Shop)</option>
+                                    <option value="customer">Permanent Customer</option>
+                                    <option value="broker">Broker</option>
+                                    <option value="shop_retail">Shop Retail</option>
                                 </select>
                                 <div
                                     class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
                                     <i class="fas fa-chevron-down text-xs"></i>
                                 </div>
                             </div>
-                            <p id="typeError" class="text-xs text-red-500 mt-1 hidden"></p>
                         </div>
+
                         <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                            <input type="text" name="phone"
+                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 outline-none">
+                        </div>
+
+                        <div id="openingBalanceDiv">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Opening Balance</label>
                             <input type="number" name="opening_balance" id="openingBalance" value="0"
                                 class="w-full px-4 py-2.5 rounded-lg border border-gray-300 outline-none">
-                            <p class="text-xs text-gray-400 mt-1">Positive = They owe us. Negative = We owe them.</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                            <textarea name="address" rows="2"
+                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 outline-none resize-none"></textarea>
                         </div>
                     </div>
 
@@ -208,7 +212,6 @@
             </div>
         </div>
     </div>
-
     {{-- 🟢 UNIFIED LEDGER MODAL (Fully Responsive) --}}
     <div id="ledgerModal" class="fixed inset-0 z-50 hidden" style="z-index: 60;">
         <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity backdrop-blur-sm" onclick="closeLedger()">
@@ -216,10 +219,12 @@
 
         <div class="flex min-h-full items-end sm:items-center justify-center p-0 sm:p-4">
             {{-- h-[90vh] ensures modal height is contained on mobile --}}
-            <div class="relative w-full max-w-7xl bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col h-[95vh] sm:h-[90vh]">
+            <div
+                class="relative w-full max-w-7xl bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col h-[95vh] sm:h-[90vh]">
 
                 {{-- Header --}}
-                <div class="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-50 rounded-t-2xl gap-4">
+                <div
+                    class="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-50 rounded-t-2xl gap-4">
                     <div class="flex-1 w-full flex justify-between sm:block">
                         <div>
                             <h3 class="text-xl sm:text-2xl font-bold text-gray-800" id="ledgerTitle">Contact Name</h3>
@@ -258,15 +263,16 @@
                 <div class="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50/50">
 
                     {{-- Payment Form --}}
-                    <div id="paymentFormContainer" class="bg-white p-4 sm:p-5 rounded-xl border border-blue-100 shadow-sm mb-6 sm:mb-8">
+                    <div id="paymentFormContainer"
+                        class="bg-white p-4 sm:p-5 rounded-xl border border-blue-100 shadow-sm mb-6 sm:mb-8">
                         <h4 class="font-bold text-gray-800 text-md mb-4 flex items-center gap-2">
                             <i class="fas fa-coins text-yellow-500"></i> Add Manual Transaction
                         </h4>
-                        
-                        {{-- 
-                            Responsive Form: 
-                            - flex-col on mobile (stack vertically)
-                            - lg:flex-row on desktop (side-by-side)
+
+                        {{--
+                        Responsive Form:
+                        - flex-col on mobile (stack vertically)
+                        - lg:flex-row on desktop (side-by-side)
                         --}}
                         <form id="addPaymentForm" class="flex flex-col lg:flex-row gap-3 sm:gap-4 items-end">
                             <input type="hidden" id="paymentContactId" name="contact_id">
@@ -312,24 +318,35 @@
 
                     {{-- Ledger Table --}}
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden w-full">
-                        <div class="px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                        <div
+                            class="px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                             <h4 class="font-bold text-gray-700 text-lg">Transaction History</h4>
                         </div>
-                        
-                        {{-- 
-                             overflow-x-auto allows table scrolling internally on mobile 
-                             without breaking the page width 
+
+                        {{--
+                        overflow-x-auto allows table scrolling internally on mobile
+                        without breaking the page width
                         --}}
                         <div class="overflow-x-auto w-full">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-100">
                                     <tr>
                                         {{-- whitespace-nowrap keeps headers on one line --}}
-                                        <th class="px-4 sm:px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap w-[15%]">Date</th>
-                                        <th class="px-4 sm:px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap w-[35%]">Description</th>
-                                        <th id="thDebit" class="px-4 sm:px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap w-[15%]">Debit</th>
-                                        <th id="thCredit" class="px-4 sm:px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap w-[15%]">Credit</th>
-                                        <th class="px-4 sm:px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap w-[20%]">Balance</th>
+                                        <th
+                                            class="px-4 sm:px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap w-[15%]">
+                                            Date</th>
+                                        <th
+                                            class="px-4 sm:px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap w-[35%]">
+                                            Description</th>
+                                        <th id="thDebit"
+                                            class="px-4 sm:px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap w-[15%]">
+                                            Debit</th>
+                                        <th id="thCredit"
+                                            class="px-4 sm:px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap w-[15%]">
+                                            Credit</th>
+                                        <th
+                                            class="px-4 sm:px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap w-[20%]">
+                                            Balance</th>
                                     </tr>
                                 </thead>
                                 <tbody id="ledgerTableBody" class="bg-white divide-y divide-gray-200 text-sm">
@@ -352,17 +369,17 @@
         const STORE_URL = "{{ route('admin.contacts.store') }}";
 
         // --- SEARCH LOGIC ---
-        document.getElementById('searchSupplier').addEventListener('keyup', function() {
+        document.getElementById('searchSupplier').addEventListener('keyup', function () {
             let filter = this.value.toLowerCase();
-            document.querySelectorAll('.supplier-item').forEach(function(item) {
+            document.querySelectorAll('.supplier-item').forEach(function (item) {
                 let name = item.querySelector('.supplier-name').textContent.toLowerCase();
                 item.style.display = name.includes(filter) ? "" : "none";
             });
         });
 
-        document.getElementById('searchCustomer').addEventListener('keyup', function() {
+        document.getElementById('searchCustomer').addEventListener('keyup', function () {
             let filter = this.value.toLowerCase();
-            document.querySelectorAll('.customer-item').forEach(function(item) {
+            document.querySelectorAll('.customer-item').forEach(function (item) {
                 let name = item.querySelector('.customer-name').textContent.toLowerCase();
                 item.style.display = name.includes(filter) ? "" : "none";
             });
@@ -371,49 +388,57 @@
         // --- ADD / EDIT CONTACT MODAL LOGIC ---
         function openAddModal(type) {
             const modal = document.getElementById('contactModal');
-            const title = document.getElementById('modalTitle');
-            const select = document.getElementById('typeSelect');
+            const finalTypeInput = document.getElementById('finalType'); // Hidden field jo backend ko data bhejti hai
+            const customerTypeContainer = document.getElementById('customerTypeContainer');
+            const customerSubtypeSelect = document.getElementById('customerSubtypeSelect');
             const form = document.getElementById('contactForm');
-            const typeContainer = document.getElementById('typeFieldContainer');
 
             form.reset();
             document.getElementById('editContactId').value = '';
-
-            document.getElementById('statusMessage').classList.add('hidden');
-            document.getElementById('nameError').classList.add('hidden');
-            document.getElementById('typeError').classList.add('hidden');
             modal.classList.remove('hidden');
 
             if (type === 'supplier') {
-                title.textContent = 'Add New Supplier';
-                select.value = 'supplier';
-                typeContainer.classList.add('hidden');
-            } else if (type === 'customer') {
-                title.textContent = 'Add New Customer';
-                select.value = 'customer';
-                typeContainer.classList.add('hidden');
+                document.getElementById('modalTitle').textContent = 'Add New Supplier';
+                finalTypeInput.value = 'supplier'; // Supplier ke liye seedha value set karein
+                customerTypeContainer.classList.add('hidden');
             } else {
-                title.textContent = 'Add New Contact';
-                select.value = '';
-                typeContainer.classList.remove('hidden');
+                document.getElementById('modalTitle').textContent = 'Add New Customer';
+                customerTypeContainer.classList.remove('hidden');
+
+                // Default subtype set karein
+                finalTypeInput.value = customerSubtypeSelect.value;
+
+                // Jab user dropdown change kare to hidden field update ho
+                customerSubtypeSelect.onchange = function () {
+                    finalTypeInput.value = this.value;
+                };
             }
         }
 
         function openEditModal(id, name, phone, address, type) {
             const modal = document.getElementById('contactModal');
-            const title = document.getElementById('modalTitle');
-            const typeContainer = document.getElementById('typeFieldContainer');
+            const finalTypeInput = document.getElementById('finalType');
+            const customerTypeContainer = document.getElementById('customerTypeContainer');
+            const balanceDiv = document.getElementById('openingBalanceDiv'); // Ensure this ID exists on the balance container
 
             document.getElementById('editContactId').value = id;
-            document.querySelector('input[name="name"]').value = name;
+            document.getElementById('contactName').value = name;
             document.querySelector('input[name="phone"]').value = phone;
             document.querySelector('textarea[name="address"]').value = address;
 
-            const select = document.getElementById('typeSelect');
-            select.value = type;
-            typeContainer.classList.add('hidden');
+            // Hide opening balance during edit to prevent accounting errors
+            if (balanceDiv) balanceDiv.classList.add('hidden');
 
-            title.textContent = 'Edit ' + (type.charAt(0).toUpperCase() + type.slice(1));
+            finalTypeInput.value = type;
+
+            if (type === 'supplier') {
+                customerTypeContainer.classList.add('hidden');
+            } else {
+                customerTypeContainer.classList.remove('hidden');
+                document.getElementById('customerSubtypeSelect').value = type;
+            }
+
+            document.getElementById('modalTitle').textContent = 'Edit Contact';
             modal.classList.remove('hidden');
         }
 
@@ -430,78 +455,75 @@
             dropdown.classList.toggle('hidden');
         }
 
-        window.addEventListener('click', function(e) {
+        window.addEventListener('click', function (e) {
             if (!e.target.closest('button')) {
                 document.querySelectorAll('.relative > div.origin-top-right').forEach(d => d.classList.add('hidden'));
             }
         });
 
         // --- FORM SUBMISSION ---
-        document.getElementById('contactForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const formData = new FormData(e.target);
+        document.getElementById('contactForm').addEventListener('submit', async function (e) {
+            e.preventDefault(); // Stop the page from reloading
+
             const submitBtn = document.getElementById('saveContactBtn');
             const nameError = document.getElementById('nameError');
-            const typeError = document.getElementById('typeError');
             const editId = document.getElementById('editContactId').value;
+            const formData = new FormData(this);
 
+            // Reset UI
             nameError.classList.add('hidden');
-            typeError.classList.add('hidden');
             submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
 
-            let url = STORE_URL;
+            // Determine URL (Store vs Update)
+            let url = "/admin/contacts"; // Make sure this matches your route
             if (editId) {
                 url = `/admin/contacts/${editId}`;
                 formData.append('_method', 'PUT');
-                submitBtn.textContent = 'Updating...';
-            } else {
-                submitBtn.textContent = 'Saving...';
             }
 
             try {
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value
                     },
                     body: formData
                 });
+
                 const result = await response.json();
 
-                if (!response.ok) {
-                    if (response.status === 422 && result.errors) {
+                if (response.ok) {
+                    // Success! 
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: result.message,
+                        timer: 1500
+                    });
+                    setTimeout(() => location.reload(), 1500); // Reload to show new customer
+                } else {
+                    // Validation Errors
+                    if (response.status === 422) {
                         if (result.errors.name) {
                             nameError.textContent = result.errors.name[0];
                             nameError.classList.remove('hidden');
                         }
-                        if (result.errors.type) {
-                            typeError.textContent = result.errors.type[0];
-                            typeError.classList.remove('hidden');
-                        }
+                        // Log other errors to console for debugging
+                        console.error("Validation Errors:", result.errors);
                     } else {
-                        Swal.fire('Error', result.message || 'Server Error', 'error');
+                        Swal.fire('Error', result.message || 'Something went wrong', 'error');
                     }
-                    return;
                 }
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success',
-                    text: result.message,
-                    showConfirmButton: false,
-                    timer: 1500
-                });
-                setTimeout(() => location.reload(), 1000);
-
             } catch (error) {
-                console.error(error);
-                Swal.fire('Error', 'Network error.', 'error');
+                console.error("Fetch Error:", error);
+                Swal.fire('Error', 'Server connection failed', 'error');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Save Contact';
             }
         });
-
         function confirmDelete(id, type) {
             Swal.fire({
                 title: 'Are you sure?',
@@ -518,26 +540,29 @@
         async function deleteContact(id, type) {
             try {
                 const response = await fetch(`/admin/contacts/${id}`, {
-                    method: 'POST',
+                    method: 'POST', // We use POST with _method spoofing
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-HTTP-Method-Override': 'DELETE'
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
                     body: JSON.stringify({
                         type: type,
-                        _method: 'DELETE'
+                        _method: 'DELETE' // Laravel Method Spoofing
                     })
                 });
 
+                const data = await response.json();
+
                 if (response.ok) {
-                    const data = await response.json();
                     document.getElementById(`${type}-${id}`).remove();
                     Swal.fire('Deleted!', data.message, 'success');
+                } else {
+                    // This will show "Cannot delete: This contact has transaction history"
+                    Swal.fire('Error', data.message || 'Delete failed', 'error');
                 }
             } catch (error) {
-                Swal.fire('Error', 'Failed to delete.', 'error');
+                Swal.fire('Error', 'Network error.', 'error');
             }
         }
 
@@ -555,43 +580,59 @@
         const paymentTypeSelect = document.getElementById('paymentTypeSelect');
         const customerActionsEl = document.getElementById('customerActions');
 
+        /**
+    * 🟢 UPDATED: Open Ledger with proper reset
+    */
+        /**
+    * 🟢 FIXED: Open Ledger Function
+    */
         function openLedger(id, name, phone, type) {
-            ledgerModal.classList.remove('hidden');
-            ledgerTitleEl.textContent = name;
-            paymentContactIdEl.value = id;
-            paymentContactTypeEl.value = type;
-            paymentContactPhoneEl.value = phone;
+            // Elements ko function ke andar fetch karein taake 'null' error na aaye
+            const tableBody = document.getElementById('ledgerTableBody');
+            const balanceDisplay = document.getElementById('ledgerCurrentBalance');
+            const titleDisplay = document.getElementById('ledgerTitle');
+            const modal = document.getElementById('ledgerModal');
 
-            ledgerTableBody.innerHTML =
-                '<tr><td colspan="5" class="px-6 py-10 text-center text-gray-500"><i class="fas fa-spinner fa-spin text-2xl"></i><br>Loading records...</td></tr>';
+            // Check karein ke elements mil gaye hain ya nahi
+            if (!tableBody || !modal) {
+                console.error("Critical UI elements missing!");
+                return;
+            }
 
+            // 1. Reset State
+            tableBody.innerHTML = '<tr><td colspan="11" class="px-6 py-10 text-center text-gray-500"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><br>Loading fresh records...</td></tr>';
+            if (balanceDisplay) balanceDisplay.textContent = "0";
+            if (titleDisplay) titleDisplay.textContent = name;
+
+            // 2. Show Modal
+            modal.classList.remove('hidden');
+
+            // 3. Update Hidden Inputs
+            document.getElementById('paymentContactId').value = id;
+            document.getElementById('paymentContactType').value = type;
+            document.getElementById('paymentContactPhone').value = phone;
+
+            // 4. Update Table Headers based on Type
             const thDebit = document.getElementById('thDebit');
             const thCredit = document.getElementById('thCredit');
+            const actions = document.getElementById('customerActions');
+            const typeSelect = document.getElementById('paymentTypeSelect');
 
             if (type === 'supplier') {
-                customerActionsEl.classList.add('hidden');
-                thDebit.innerHTML = "Debit <span class='text-[10px] lowercase font-normal'>(Paid)</span>";
-                thCredit.innerHTML = "Credit <span class='text-[10px] lowercase font-normal'>(Purchase)</span>";
-                paymentTypeSelect.innerHTML = `
-                    <option value="payment">Payment (Cash Given to Supplier)</option>
-                    <option value="opening_balance">Opening Balance Adjustment</option>
-                `;
+                if (actions) actions.classList.add('hidden');
+                if (thDebit) thDebit.innerHTML = "Debit <span class='text-[10px] lowercase font-normal'>(Paid)</span>";
+                if (thCredit) thCredit.innerHTML = "Credit <span class='text-[10px] lowercase font-normal'>(Purchase)</span>";
+                typeSelect.innerHTML = `<option value="payment">Payment (Cash Given to Supplier)</option><option value="opening_balance">Opening Balance Adjustment</option>`;
             } else {
-                customerActionsEl.classList.remove('hidden');
-                thDebit.innerHTML = "Debit <span class='text-[10px] lowercase font-normal'>(Sale/Due)</span>";
-                thCredit.innerHTML = "Credit <span class='text-[10px] lowercase font-normal'>(Received)</span>";
-                paymentTypeSelect.innerHTML = `
-                    <option value="payment">Payment (Cash Received from Customer)</option>
-                    <option value="opening_balance">Opening Balance Adjustment</option>
-                `;
+                if (actions) actions.classList.remove('hidden');
+                if (thDebit) thDebit.innerHTML = "Debit <span class='text-[10px] lowercase font-normal'>(Sale/Due)</span>";
+                if (thCredit) thCredit.innerHTML = "Credit <span class='text-[10px] lowercase font-normal'>(Received)</span>";
+                typeSelect.innerHTML = `<option value="payment">Payment (Cash Received from Customer)</option><option value="opening_balance">Opening Balance Adjustment</option>`;
             }
+
+            // 5. Data Fetch karein
             fetchLedgerData(id, type);
         }
-
-        function closeLedger() {
-            ledgerModal.classList.add('hidden');
-        }
-
         function sendWhatsAppReminder() {
             const phone = paymentContactPhoneEl.value;
             const name = ledgerTitleEl.textContent;
@@ -624,93 +665,235 @@
         }
 
         async function fetchLedgerData(id, type) {
+            // 🟢 RE-SELECT ELEMENTS to prevent "Cannot set properties of null" errors
+            const tableBody = document.getElementById('ledgerTableBody');
+            const balanceDisplay = document.getElementById('ledgerCurrentBalance');
+            const thead = document.querySelector('#ledgerModal thead');
+            const scrollContainer = document.querySelector('#ledgerModal .overflow-y-auto');
+
+            // Safety check: if elements are missing, don't proceed
+            if (!tableBody || !thead) return;
+
             try {
                 const endpoint = (type === 'supplier') ? 'suppliers' : 'customers';
                 const url = `/admin/${endpoint}/${id}/ledger`;
 
                 const response = await fetch(url, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
 
-                if (!response.ok) throw new Error("Failed to fetch data");
+                if (!response.ok) throw new Error("Failed to fetch data from server");
 
                 const data = await response.json();
-                ledgerBalanceEl.textContent = parseFloat(data.current_balance).toLocaleString();
 
-                if (data.transactions.length === 0) {
-                    ledgerTableBody.innerHTML =
-                        '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No transactions found.</td></tr>';
+                // Modal balance update
+                if (balanceDisplay) {
+                    balanceDisplay.textContent = parseFloat(data.current_balance || 0).toLocaleString();
+                }
+
+                // 1. Dynamic Headers Logic based on Contact Type
+                if (type === 'supplier') {
+                    thead.innerHTML = `
+                    <tr class="bg-gray-100 text-[10px] font-bold uppercase text-gray-600">
+                        <th class="px-2 py-3">Date</th>
+                        <th class="px-2 py-3 text-left">Description</th>
+                        <th class="px-2 py-3 text-right">Gross</th>
+                        <th class="px-2 py-3 text-right text-red-500">Ded.</th>
+                        <th class="px-2 py-3 text-right">Net</th>
+                        <th class="px-2 py-3 text-right text-blue-600">Kharch</th>
+                        <th class="px-2 py-3 text-right">Rate</th>
+                        <th class="px-2 py-3 text-right text-red-600">Debit (Paid)</th>
+                        <th class="px-2 py-3 text-right text-green-600">Credit (Bill)</th>
+                        <th class="px-2 py-3 text-right">Balance</th>
+                        <th class="px-2 py-3 text-center">Action</th>
+                    </tr>`;
+                } else {
+                    thead.innerHTML = `
+                    <tr class="bg-gray-100 text-xs font-bold uppercase text-gray-600">
+                        <th class="px-4 py-3 text-left">Date</th>
+                        <th class="px-4 py-3 text-left">Description</th>
+                        <th class="px-4 py-3 text-right text-red-600">Debit (Sale)</th>
+                        <th class="px-4 py-3 text-right text-green-600">Credit (Recv)</th>
+                        <th class="px-4 py-3 text-right">Balance</th>
+                        <th class="px-4 py-3 text-center">Action</th>
+                    </tr>`;
+                }
+
+                if (!data.transactions || data.transactions.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="11" class="px-6 py-10 text-center text-gray-400 font-medium italic">No transaction history found.</td></tr>`;
                     return;
                 }
 
                 let html = '';
+                let runningBalance = 0;
+
+                // Backend returns data grouped by Sale/Purchase ID in ASC order
                 data.transactions.forEach(txn => {
                     let debitVal = parseFloat(txn.debit) || 0;
                     let creditVal = parseFloat(txn.credit) || 0;
-                    let balanceVal = parseFloat(txn.balance) || 0;
 
-                    let debitDisplay = debitVal > 0 ?
-                        `<span class="font-bold text-gray-800">${debitVal.toLocaleString()}</span>` : '-';
-                    let creditDisplay = creditVal > 0 ?
-                        `<span class="font-bold text-gray-800">${creditVal.toLocaleString()}</span>` : '-';
-
-                    let rowClass = "hover:bg-gray-50";
-                    let iconHtml = '<i class="fas fa-exchange-alt text-gray-400 mr-2"></i>';
-                    let descHtml = txn.description || 'N/A';
-
-                    if (txn.type === 'purchase') {
-                        rowClass = "bg-blue-50 hover:bg-blue-100";
-                        iconHtml = '<i class="fas fa-truck text-blue-600 mr-2"></i>';
-                        descHtml =
-                            `<span class="bg-blue-100 text-blue-800 text-xs font-bold mr-2 px-2 py-0.5 rounded border border-blue-300">PURCHASE</span> ${txn.description}`;
-                        creditDisplay = `<span class="text-blue-700 font-bold">${creditVal.toLocaleString()}</span>`;
-                    } else if (txn.type === 'payment' && type === 'supplier') {
-                        rowClass = "bg-red-50 hover:bg-red-100";
-                        iconHtml = '<i class="fas fa-money-bill-wave text-red-600 mr-2"></i>';
-                        descHtml =
-                            `<span class="bg-red-100 text-red-800 text-xs font-bold mr-2 px-2 py-0.5 rounded border border-red-300">PAID</span> ${txn.description}`;
-                        debitDisplay = `<span class="text-red-700 font-bold">${debitVal.toLocaleString()}</span>`;
-                    } else if (txn.type === 'sale') {
-                        rowClass = "bg-red-50 hover:bg-red-100";
-                        iconHtml = '<i class="fas fa-shopping-cart text-red-500 mr-2"></i>';
-                        descHtml =
-                            `<span class="bg-red-100 text-red-800 text-xs font-bold mr-2 px-2 py-0.5 rounded border border-red-300">SALE</span> ${txn.description}`;
-                        debitDisplay = `<span class="text-red-600 font-bold">${debitVal.toLocaleString()}</span>`;
-                    } else if (txn.type === 'payment' && type === 'customer') {
-                        rowClass = "bg-green-50 hover:bg-green-100";
-                        iconHtml = '<i class="fas fa-hand-holding-usd text-green-500 mr-2"></i>';
-                        descHtml =
-                            `<span class="bg-green-100 text-green-800 text-xs font-bold mr-2 px-2 py-0.5 rounded border border-green-300">RECEIVED</span> ${txn.description}`;
-                        creditDisplay =
-                            `<span class="text-green-600 font-bold">${creditVal.toLocaleString()}</span>`;
+                    // Running Balance Logic
+                    if (type === 'supplier') {
+                        runningBalance += (creditVal - debitVal);
+                    } else {
+                        runningBalance += (debitVal - creditVal);
                     }
 
-                    // Added whitespace-nowrap to cells
-                    html += `
-                    <tr class="${rowClass} border-b border-gray-100 last:border-0 transition-colors">
-                        <td class="px-4 sm:px-6 py-3 whitespace-nowrap text-gray-600 text-sm font-medium">${txn.date}</td>
-                        <td class="px-4 sm:px-6 py-3 text-gray-800 text-sm flex items-center min-w-[200px]">
-                            ${iconHtml}
-                            <span class="truncate max-w-xs" title="${txn.description}">${descHtml}</span>
+                    let descriptionText = txn.description || '-';
+                    const rowId = txn.group_key || txn.id;
+
+                    if (type === 'supplier') {
+                        // Supplier Formatting
+                        let gross = txn.gross_weight || '-';
+                        let net = txn.net_live_weight || '-';
+                        let rate = txn.buying_rate || '-';
+                        let kharch = txn.total_kharch ? parseFloat(txn.total_kharch).toLocaleString() : '-';
+                        let ded = (parseFloat(txn.dead_weight || 0) + parseFloat(txn.shrink_loss || 0)).toFixed(net !== '-' ? 2 : 0);
+
+                        html += `
+                    <tr id="ledger-row-${rowId}" class="border-b hover:bg-gray-50 text-[11px] transition-all">
+                        <td class="px-2 py-3 whitespace-nowrap row-date text-gray-500 font-medium">${txn.date}</td>
+                        <td class="px-2 py-3 row-desc font-bold text-gray-700"><span>${descriptionText}</span></td>
+                        <td class="px-2 py-3 text-right text-gray-600">${gross}</td>
+                        <td class="px-2 py-3 text-right text-red-400">${ded == "0" || ded == "0.00" ? '-' : ded}</td>
+                        <td class="px-2 py-3 text-right font-bold text-green-700">${net}</td>
+                        <td class="px-2 py-3 text-right text-blue-600 font-medium">${kharch}</td>
+                        <td class="px-2 py-3 text-right text-gray-600">${rate}</td>
+                        <td class="px-2 py-3 text-right font-black text-red-600 row-debit bg-red-50/20">${debitVal > 0 ? debitVal.toLocaleString() : '-'}</td>
+                        <td class="px-2 py-3 text-right font-black text-green-600 row-credit bg-green-50/20">${creditVal > 0 ? creditVal.toLocaleString() : '-'}</td>
+                        <td class="px-2 py-3 text-right font-extrabold text-blue-800 bg-gray-50/50">${runningBalance.toLocaleString()}</td>
+                        <td class="px-2 py-3 text-center whitespace-nowrap">
+                            <div class="flex items-center justify-center gap-1">
+                                <button onclick="toggleLedgerEdit('${rowId}', '${type}')" class="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteLedgerEntry('${rowId}', '${type}')" class="p-1.5 text-red-400 hover:bg-red-50 rounded"><i class="fas fa-trash"></i></button>
+                            </div>
                         </td>
-                        <td class="px-4 sm:px-6 py-3 text-right text-sm whitespace-nowrap">${debitDisplay}</td>
-                        <td class="px-4 sm:px-6 py-3 text-right text-sm whitespace-nowrap">${creditDisplay}</td>
-                        <td class="px-4 sm:px-6 py-3 text-right font-bold text-gray-700 text-sm whitespace-nowrap">${balanceVal.toLocaleString()}</td>
-                    </tr>
-                `;
+                    </tr>`;
+                    } else {
+                        // Customer Formatting
+                        html += `
+                    <tr id="ledger-row-${rowId}" class="border-b hover:bg-gray-50 text-sm transition-all">
+                        <td class="px-4 py-3 whitespace-nowrap row-date text-gray-500 font-medium">${txn.date}</td>
+                        <td class="px-4 py-3 row-desc font-bold text-gray-700"><span>${descriptionText}</span></td>
+                        <td class="px-4 py-3 text-right font-black text-red-600 row-debit bg-red-50/20">${debitVal > 0 ? debitVal.toLocaleString() : '-'}</td>
+                        <td class="px-4 py-3 text-right font-black text-green-600 row-credit bg-green-50/20">${creditVal > 0 ? creditVal.toLocaleString() : '-'}</td>
+                        <td class="px-4 py-3 text-right font-extrabold text-blue-800 bg-gray-50/50">${runningBalance.toLocaleString()}</td>
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <div class="flex items-center justify-center gap-2">
+                                <button onclick="toggleLedgerEdit('${rowId}', '${type}')" class="p-2 text-blue-500 hover:bg-blue-50 rounded"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteLedgerEntry('${rowId}', '${type}')" class="p-2 text-red-400 hover:bg-red-50 rounded"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>`;
+                    }
                 });
-                ledgerTableBody.innerHTML = html;
+
+                tableBody.innerHTML = html;
+
+                // Smooth Auto-scroll to latest entry
+                if (scrollContainer) {
+                    setTimeout(() => {
+                        scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'smooth' });
+                    }, 100);
+                }
 
             } catch (error) {
-                console.error(error);
-                ledgerTableBody.innerHTML =
-                    '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">Error loading data.</td></tr>';
+                console.error("Ledger Fetch Error:", error);
+                if (tableBody) {
+                    tableBody.innerHTML = `<tr><td colspan="11" class="px-6 py-10 text-center text-red-500 font-bold bg-red-50 rounded-lg">Error: ${error.message}</td></tr>`;
+                }
+            }
+        }
+        // 🟢 FIXED INLINE EDIT LOGIC
+        function toggleLedgerEdit(txnId, contactType) {
+            const row = document.getElementById(`ledger-row-${txnId}`);
+
+            // Values extract karein aur format clean karein
+            const date = row.querySelector('.row-date').textContent.trim();
+            const desc = row.querySelector('.row-desc span').textContent.trim();
+            const debit = row.querySelector('.row-debit').textContent.replace(/,/g, '').replace('-', '0').trim();
+            const credit = row.querySelector('.row-credit').textContent.replace(/,/g, '').replace('-', '0').trim();
+
+            // Row ko inputs mein tabdeel karein
+            row.querySelector('.row-date').innerHTML = `<input type="date" id="ed-date-${txnId}" value="${date}" class="w-full text-xs p-1 border rounded focus:ring-1">`;
+            row.querySelector('.row-desc').innerHTML = `<input type="text" id="ed-desc-${txnId}" value="${desc}" class="w-full text-xs p-1 border rounded focus:ring-1">`;
+            row.querySelector('.row-debit').innerHTML = `<input type="number" step="any" id="ed-debit-${txnId}" value="${debit}" class="w-full p-1 border rounded text-right text-xs">`;
+            row.querySelector('.row-credit').innerHTML = `<input type="number" step="any" id="ed-credit-${txnId}" value="${credit}" class="w-full p-1 border rounded text-right text-xs">`;
+
+            // Buttons badlein
+            row.querySelector('td:last-child').innerHTML = `
+                                        <div class="flex gap-2 justify-center">
+                                            <button onclick="saveLedgerEdit('${txnId}', '${contactType}')" class="text-green-600 hover:text-green-800"><i class="fas fa-check-circle text-xl"></i></button>
+                                            <button onclick="fetchLedgerData('${paymentContactIdEl.value}', '${contactType}')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times-circle text-xl"></i></button>
+                                        </div>`;
+        }
+
+        async function saveLedgerEdit(txnId, contactType) {
+            const submitData = {
+                date: document.getElementById(`ed-date-${txnId}`).value,
+                description: document.getElementById(`ed-desc-${txnId}`).value,
+                debit: document.getElementById(`ed-debit-${txnId}`).value,
+                credit: document.getElementById(`ed-credit-${txnId}`).value,
+                _token: document.querySelector('input[name="_token"]').value
+            };
+
+            try {
+                const response = await fetch(`/admin/ledger/${txnId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': submitData._token
+                    },
+                    body: JSON.stringify(submitData)
+                });
+
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    Swal.fire({ icon: 'success', title: 'Updated!', timer: 1000, showConfirmButton: false });
+                    fetchLedgerData(paymentContactIdEl.value, contactType);
+                } else {
+                    Swal.fire('Error', result.message || 'Update failed', 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'Network error', 'error');
             }
         }
 
-        document.getElementById('addPaymentForm').addEventListener('submit', async function(e) {
+        async function deleteLedgerEntry(txnId, contactType) {
+            const result = await Swal.fire({
+                title: 'Delete Transaction?',
+                text: "Are you sure? This will update the contact balance.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/admin/ledger/${txnId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        Swal.fire('Deleted!', 'Transaction removed successfully.', 'success');
+                        fetchLedgerData(paymentContactIdEl.value, contactType);
+                    } else {
+                        Swal.fire('Error', data.message || 'Could not delete.', 'error');
+                    }
+                } catch (error) {
+                    Swal.fire('Error', 'Network connection error.', 'error');
+                }
+            }
+        }
+
+        document.getElementById('addPaymentForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
             const id = paymentContactIdEl.value;
@@ -761,5 +944,11 @@
                 Swal.fire('Error', 'Network Error', 'error');
             }
         });
+
+        function closeLedger() {
+            ledgerModal.classList.add('hidden');
+            // Clear content on close to ensure next open starts fresh
+            ledgerTableBody.innerHTML = '';
+        }
     </script>
 @endsection

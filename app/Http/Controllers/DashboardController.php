@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Purchase;
-use App\Models\Transaction; // The ledger model we created
+use App\Models\Transaction;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -15,38 +15,34 @@ class DashboardController extends Controller
     {
         $today = Carbon::today();
 
-        // 1. Calculate Total Sales Today
-        $total_sales = Sale::whereDate('created_at', $today)->sum('total_amount');
+        /**
+         * 🟢 REVENUE SYNC WITH P&L REPORT
+         * Profit & Loss report mein revenue 'SaleItem::sum(line_total)' se calculate hoti hai.
+         * Humne dashboard par bhi wahi logic apply kar di hai.
+         */
+        $total_revenue = SaleItem::whereDate('created_at', $today)->sum('line_total');
 
-        // 2. Calculate Current Live Stock (Total Purchased - Total Sold)
+        // 2. Current Live Stock
         $total_purchased_weight = Purchase::sum('net_live_weight');
         $total_sold_weight = SaleItem::sum('weight_kg');
         $current_stock = max(0, $total_purchased_weight - $total_sold_weight);
 
-        // 3. Today's Purchase Data
-        $today_purchases = Purchase::whereDate('created_at', $today)->get();
-        $today_purchase_net = $today_purchases->sum('net_live_weight');
-        $today_purchase_cost = $today_purchases->sum('total_payable');
+        // 3. Today's Purchase Expense (Total Payable)
+        $today_purchase_cost = Purchase::whereDate('created_at', $today)->sum('total_payable');
 
-        // 4. Today's Expenses 
-        // (Set to 0 for now until you create an Expense Table, removing mock random numbers)
-        $today_expenses = 0; 
+        // 4. Internal Expense (Poultry Kharch)
+        $internal_expenses = Purchase::whereDate('created_at', $today)->sum('total_kharch');
 
-        // 5. Recent Transactions (From Ledger)
-        // Mapping the data to match your View's variable names
+        // 5. Recent Transactions mapping
         $transactions = Transaction::latest()
-            ->take(10) // Show last 10
+            ->take(8)
             ->get()
             ->map(function ($tx) {
-                // Determine Amount (Debit or Credit)
                 $amount = ($tx->debit > 0) ? $tx->debit : $tx->credit;
-                
-                // Determine Label Color logic based on type
-                $type = ucfirst(str_replace('_', ' ', $tx->type)); // e.g., "Sale", "Payment"
-
+                $type = ucfirst(str_replace('_', ' ', $tx->type));
                 return (object) [
                     'time' => Carbon::parse($tx->created_at)->format('h:i A'),
-                    'customer' => $tx->description, // Description contains Name + Badge info
+                    'customer' => $tx->description,
                     'type' => $type,
                     'amount' => $amount
                 ];
@@ -54,11 +50,10 @@ class DashboardController extends Controller
 
         return view('pages.dashboard', [
             'today_date' => $today->format('d M, Y'),
-            'total_sales' => $total_sales,
+            'total_revenue' => $total_revenue,
             'current_stock' => $current_stock,
-            'today_purchase_net' => $today_purchase_net,
-            'today_purchase_cost' => $today_purchase_cost,
-            'today_expenses' => $today_expenses,
+            'purchase_expense' => $today_purchase_cost,
+            'internal_expenses' => $internal_expenses,
             'transactions' => $transactions
         ]);
     }

@@ -1,130 +1,90 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Purchase;
-use App\Models\Supplier;
 use App\Models\Sale;
 use App\Models\SaleItem;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use App\Models\Supplier;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
     // Placeholder methods for existing routes
-    public function index() { 
-        return redirect()->route('admin.reports.stock_report'); 
+    public function index()
+    {
+        return redirect()->route('admin.reports.stock_report');
     }
-    
+
     /**
      * Handles the STOCK Report AND the Profit & Loss (P&L) report functionality.
      */
     public function stock(Request $request) 
     {
-        // --- 1. P&L DATE RANGE SETUP ---
         $endDate = Carbon::parse($request->input('end_date', Carbon::now()->toDateString()))->endOfDay();
         $startDate = Carbon::parse($request->input('start_date', Carbon::now()->startOfMonth()->toDateString()))->startOfDay();
 
-        // --- 2. STOCK & INVENTORY CALCULATIONS ---
-        $today = Carbon::today();
-        $gauge_max_range = 5000; 
-
+        // 1. Overall Inventory Status
         $totalPurchasedWeight = Purchase::sum('net_live_weight');
         $totalSoldWeightToDate = SaleItem::sum('weight_kg');
-        
         $currentNetStock = max(0, $totalPurchasedWeight - $totalSoldWeightToDate);
-        $todaySoldWeight = SaleItem::whereDate('created_at', $today)->sum('weight_kg');
-        $totalSoldBeforeToday = $totalSoldWeightToDate - $todaySoldWeight;
-        $morningOpeningStock = max(0, $totalPurchasedWeight - $totalSoldBeforeToday);
         
-        // --- 3. PROFIT & LOSS CALCULATIONS ---
+        // 2. Range Specific Totals
+        $totalShrink = Purchase::whereBetween('created_at', [$startDate, $endDate])->sum('shrink_loss');
+        $rangePurchasedWeight = Purchase::whereBetween('created_at', [$startDate, $endDate])->sum('net_live_weight');
+        $rangeSoldWeight = SaleItem::whereBetween('created_at', [$startDate, $endDate])->sum('weight_kg');
 
-        // Aggregate Revenue and Cost (COGS) based on the filter dates
-        $totalRevenue = SaleItem::whereBetween('created_at', [$startDate, $endDate])->sum('line_total');
-        $totalCogs = Purchase::whereBetween('created_at', [$startDate, $endDate])->sum('total_payable');
-
-        // Daily Breakdown for Table and Chart
+        // 3. Daily Breakdown for Table & Chart
         $dailyReport = [];
         $chartLabels = [];
         $chartInputData = [];
         $chartOutputData = [];
         
         $currentDate = $startDate->copy();
-
-        // 🟢 REMOVED: Mock Expense Generator
-        // $mockExpenses = $this->generateMockExpenses($startDate, $endDate); 
-
         while ($currentDate->lte($endDate)) {
             $dateString = $currentDate->toDateString();
             
-            // Daily Revenue & Cost
-            $dailyRevenue = SaleItem::whereDate('created_at', $currentDate)->sum('line_total');
-            $dailyCost = Purchase::whereDate('created_at', $currentDate)->sum('total_payable');
+            $inputWeight = Purchase::whereDate('created_at', $currentDate)->sum('net_live_weight');
+            $outputWeight = SaleItem::whereDate('created_at', $currentDate)->sum('weight_kg');
+            $shrinkLoss = Purchase::whereDate('created_at', $currentDate)->sum('shrink_loss');
             
-            // Daily Weights for Chart
-            $dailyInputWeight = Purchase::whereDate('created_at', $currentDate)->sum('net_live_weight');
-            $dailyOutputWeight = SaleItem::whereDate('created_at', $currentDate)->sum('weight_kg');
-            
-            // 🟢 UPDATED: Set Expenses to 0 (Real data logic can be added here later)
-            $dailyExpenses = 0; 
-            
-            $netProfit = $dailyRevenue - $dailyCost - $dailyExpenses;
-
             $dailyReport[] = [
-                'date' => $dateString,
-                'revenue' => (float)$dailyRevenue,
-                'cost' => (float)$dailyCost,
-                'expenses' => (float)$dailyExpenses,
-                'net_profit' => (float)$netProfit,
+                'date' => $currentDate->format('d M'),
+                'input_weight' => (float)$inputWeight,
+                'output_weight' => (float)$outputWeight,
+                'shrink' => (float)$shrinkLoss,
             ];
 
-            // Collect data for Chart JS
             $chartLabels[] = $currentDate->format('M d');
-            $chartInputData[] = (float)$dailyInputWeight;
-            $chartOutputData[] = (float)$dailyOutputWeight;
+            $chartInputData[] = (float)$inputWeight;
+            $chartOutputData[] = (float)$outputWeight;
 
             $currentDate->addDay();
         }
 
-        // Final Totals
-        $totalExpenses = 0; // Since daily expenses are 0
-        $totalNetProfit = $totalRevenue - $totalCogs - $totalExpenses;
-
-
-        // --- 4. DATA COMPILATION & VIEW RETURN ---
-        $data = [
-            'today_date' => $today->format('d M, Y'),
-            'current_net_stock' => $currentNetStock,
-            'morning_opening' => $morningOpeningStock,
-            'sold_today_weight' => $todaySoldWeight,
-            'total_purchased_weight' => $totalPurchasedWeight, 
-            'gauge_max_range' => $gauge_max_range, 
-            
+        return view('pages.report.stock_report', [
             'startDate' => $startDate->toDateString(), 
             'endDate' => $endDate->toDateString(),
-            'totalRevenue' => $totalRevenue, 
-            'totalCogs' => $totalCogs, 
-            'totalExpenses' => $totalExpenses, 
-            'totalNetProfit' => $totalNetProfit, 
+            'current_net_stock' => $currentNetStock,
+            'total_purchased_weight' => $rangePurchasedWeight,
+            'totalSoldWeightToDate' => $rangeSoldWeight,
+            'totalShrink' => $totalShrink,
             'dailyReport' => $dailyReport,
             'chartLabels' => $chartLabels,
             'chartInputData' => $chartInputData,
             'chartOutputData' => $chartOutputData,
-        ];
-
-        return view('pages.report.stock_report', $data);
+        ]);
     }
 
     // --- PURCHASE REPORT METHODS ---
     public function purchaseReport(Request $request)
     {
-        $suppliers = Supplier::select('id', 'name')->orderBy('name')->get(); 
+        $suppliers = Supplier::select('id', 'name')->orderBy('name')->get();
         $purchases = Purchase::with('supplier')
             ->where('created_at', '>=', Carbon::now()->subDays(30))
             ->orderBy('created_at', 'desc')
-            ->get(); 
-        return view('pages.report.purchase_report', compact('suppliers', 'purchases')); 
+            ->get();
+        return view('pages.report.purchase_report', compact('suppliers', 'purchases'));
     }
 
     public function filterPurchaseReport(Request $request)
@@ -132,10 +92,10 @@ class ReportController extends Controller
         $query = Purchase::with('supplier');
 
         if ($request->filled('start_date') && $request->filled('end_date')) {
-            $endDate = Carbon::parse($request->input('end_date'))->endOfDay(); 
+            $endDate = Carbon::parse($request->input('end_date'))->endOfDay();
             $query->whereBetween('created_at', [
-                $request->input('start_date'), 
-                $endDate
+                $request->input('start_date'),
+                $endDate,
             ]);
         }
 
@@ -144,17 +104,17 @@ class ReportController extends Controller
         }
 
         $purchases = $query->orderBy('created_at', 'desc')->get();
-        $html = $this->renderPurchaseTableRows($purchases);
+        $html      = $this->renderPurchaseTableRows($purchases);
 
         return response()->json(['html' => $html]);
     }
-    
+
     protected function renderPurchaseTableRows($purchases)
     {
-        $html = '';
-        $totalGrossWeight = 0;
+        $html                  = '';
+        $totalGrossWeight      = 0;
         $totalDeadShrinkWeight = 0;
-        $totalNetLiveWeight = 0;
+        $totalNetLiveWeight    = 0;
 
         if ($purchases->isEmpty()) {
             return '<tr><td colspan="5" class="p-4 text-center text-gray-500">No purchase records found for the selected criteria.</td></tr>';
@@ -162,7 +122,7 @@ class ReportController extends Controller
 
         foreach ($purchases as $purchase) {
             $deadShrink = $purchase->dead_weight + $purchase->shrink_loss;
-            $netLive = $purchase->gross_weight - $deadShrink;
+            $netLive    = $purchase->gross_weight - $deadShrink;
 
             $totalGrossWeight += $purchase->gross_weight;
             $totalDeadShrinkWeight += $deadShrink;
@@ -195,96 +155,148 @@ class ReportController extends Controller
         $startDate = Carbon::parse($date)->startOfDay();
         $endDate = Carbon::parse($date)->endOfDay();
 
+        // 1. Fetch all customers for the Modal Dropdown
+        $allCustomers = \App\Models\Customer::orderBy('name')->get();
+
         $sales = Sale::with(['customer', 'items'])
             ->whereBetween('created_at', [$startDate, $endDate])
             ->orderBy('created_at', 'asc')
             ->get();
 
-        $wholesaleSales = [];
-        $permanentSales = [];
-        
-        $retailSalesAggregation = [
-            'Mix' => ['weight' => 0, 'revenue' => 0, 'total_rate' => 0, 'count' => 0],
-            'Chest' => ['weight' => 0, 'revenue' => 0, 'total_rate' => 0, 'count' => 0],
-            'Thigh' => ['weight' => 0, 'revenue' => 0, 'total_rate' => 0, 'count' => 0],
-            'Piece' => ['weight' => 0, 'revenue' => 0, 'total_rate' => 0, 'count' => 0],
+        $categorizedSales = [
+            'wholesale' => [],
+            'permanent' => [],
+            'shop_retail' => [],
         ];
 
         $grandTotalWeight = 0;
         $grandTotalRevenue = 0;
 
         foreach ($sales as $sale) {
-            $customerName = $sale->customer->name ?? 'Retail/Walk-in'; 
-            $saleChannel = strtolower($sale->sale_channel ?? 'permanent'); 
+            $customer = $sale->customer;
+            $type = $customer->type ?? 'permanent';
+            
+            $group = 'permanent';
+            if ($type === 'broker') $group = 'wholesale';
+            if ($type === 'shop_retail') $group = 'shop_retail';
 
-            foreach ($sale->items as $item) {
-                $category = $item->product_category;
-                $lineTotal = $item->line_total;
-                $weight = $item->weight_kg;
+            $saleWeight = $sale->items->sum('weight_kg');
+            $grandTotalWeight += $saleWeight;
+            $grandTotalRevenue += $sale->total_amount;
 
-                $grandTotalWeight += $weight;
-                $grandTotalRevenue += $lineTotal;
-
-                if ($saleChannel === 'retail') {
-                    if (isset($retailSalesAggregation[$category])) {
-                        $retailSalesAggregation[$category]['weight'] += $weight;
-                        $retailSalesAggregation[$category]['revenue'] += $lineTotal;
-                        $retailSalesAggregation[$category]['total_rate'] += $item->rate_pkr;
-                        $retailSalesAggregation[$category]['count'] += 1;
-                    }
-                } 
-                elseif ($saleChannel === 'wholesale' || str_contains(strtolower($customerName), 'truck')) {
-                    $wholesaleSales[] = [
-                        'customer_name' => $customerName,
-                        'weight' => $weight,
-                        'rate' => $item->rate_pkr,
-                        'total' => $lineTotal,
-                        'category' => $category,
-                    ];
-                } 
-                elseif ($sale->customer_id) {
-                    if (!isset($permanentSales[$sale->id])) {
-                        $permanentSales[$sale->id] = [
-                            'customer_name' => $customerName,
-                            'sale_date' => $sale->created_at->format('H:i'),
-                            'items' => [],
-                            'total_sale_amount' => 0,
-                        ];
-                    }
-                    $permanentSales[$sale->id]['items'][] = $item;
-                    $permanentSales[$sale->id]['total_sale_amount'] += $lineTotal; 
-                }
-            }
+            $categorizedSales[$group][$sale->id] = [
+                'customer_name' => $customer->name ?? 'Retail/Walk-in',
+                'sale_time' => $sale->created_at->format('H:i'),
+                'items' => $sale->items,
+                'total_weight' => $saleWeight,
+                'total_amount' => $sale->total_amount,
+            ];
         }
-        
-        $totalRetailWeight = array_sum(array_column($retailSalesAggregation, 'weight'));
-        $totalRetailRevenue = array_sum(array_column($retailSalesAggregation, 'revenue'));
 
-        $totalWholesaleRevenue = array_sum(array_column($wholesaleSales, 'total'));
-        $totalWholesaleWeight = array_sum(array_column($wholesaleSales, 'weight'));
-        
-        $reportData = [
-            'wholesaleSales' => $wholesaleSales,
-            'permanentSales' => $permanentSales,
-            'retailSalesAggregation' => $retailSalesAggregation,
+        return view('pages.report.selll_summary_report', [
+            'categorizedSales' => $categorizedSales,
             'date' => $date,
+            'customers' => $allCustomers,
             'totals' => [
                 'grandTotalWeight' => $grandTotalWeight,
                 'grandTotalRevenue' => $grandTotalRevenue,
-                'totalRetailWeight' => $totalRetailWeight,
-                'totalRetailRevenue' => $totalRetailRevenue,
-                'totalWholesaleWeight' => $totalWholesaleWeight,
-                'totalWholesaleRevenue' => $totalWholesaleRevenue,
-            ],
+            ]
+        ]);
+    }
+
+    public function monthlySalesReport(Request $request)
+{
+    $month = $request->input('month', Carbon::now()->format('Y-m'));
+    $customerId = $request->input('customer_id'); // Optional Customer Filter
+
+    $startDate = Carbon::parse($month)->startOfMonth()->startOfDay();
+    $endDate = Carbon::parse($month)->endOfMonth()->endOfDay();
+
+    $query = Sale::with(['customer', 'items'])
+        ->whereBetween('created_at', [$startDate, $endDate]);
+
+    // Optional Customer Filter Logic
+    if ($customerId) {
+        $query->where('customer_id', $customerId);
+    }
+
+    $sales = $query->orderBy('created_at', 'asc')->get();
+
+    $monthlySales = [];
+    $totalRevenue = 0;
+    $totalWeight = 0;
+
+    foreach ($sales as $sale) {
+        $saleWeight = $sale->items->sum('weight_kg');
+        
+        $monthlySales[] = [
+            'customer_name' => $sale->customer->name ?? 'Retail/Walk-in',
+            'date' => $sale->created_at->format('d M, Y'),
+            'time' => $sale->created_at->format('H:i'),
+            'items' => $sale->items, // Items detail pass ki ja rahi hai
+            'total_weight' => $saleWeight,
+            'total_amount' => $sale->total_amount,
         ];
 
-        return view('pages.report.selll_summary_report', $reportData);
+        $totalRevenue += $sale->total_amount;
+        $totalWeight += $saleWeight;
     }
 
-    public function profitLossReportDynamic(Request $request)
-    {
-        return redirect()->route('admin.reports.stock', $request->query());
+    return response()->json([
+        'sales' => $monthlySales,
+        'totals' => [
+            'revenue' => number_format($totalRevenue, 0),
+            'weight' => number_format($totalWeight, 2),
+        ]
+    ]);
     }
+   public function profitLossReport(Request $request)
+{
+    $endDate = Carbon::parse($request->input('end_date', Carbon::now()->toDateString()))->endOfDay();
+    $startDate = Carbon::parse($request->input('start_date', Carbon::now()->startOfMonth()->toDateString()))->startOfDay();
+
+    // 1. Total Financial Calculations
+    $totalRevenue = SaleItem::whereBetween('created_at', [$startDate, $endDate])->sum('line_total');
+    $totalCogs = Purchase::whereBetween('created_at', [$startDate, $endDate])->sum('total_payable');
+    $poultryExpenses = Purchase::whereBetween('created_at', [$startDate, $endDate])->sum('total_kharch');
+    $externalExpenses = 0; // Future use ke liye placeholder
+
+    $totalNetProfit = $totalRevenue - ($totalCogs + $poultryExpenses + $externalExpenses);
+
+    // 2. Daily Financial Breakdown
+    $dailyReport = [];
+    $currentDate = $startDate->copy();
+
+    while ($currentDate->lte($endDate)) {
+        $dateString = $currentDate->toDateString();
+        
+        $dailyRevenue = SaleItem::whereDate('created_at', $currentDate)->sum('line_total');
+        $dailyCost = Purchase::whereDate('created_at', $currentDate)->sum('total_payable');
+        $dailyKharch = Purchase::whereDate('created_at', $currentDate)->sum('total_kharch');
+        
+        $net = $dailyRevenue - ($dailyCost + $dailyKharch);
+
+        $dailyReport[] = [
+            'date' => $dateString,
+            'revenue' => (float)$dailyRevenue,
+            'cost' => (float)$dailyCost,
+            'kharch' => (float)$dailyKharch,
+            'net_profit' => (float)$net,
+        ];
+
+        $currentDate->addDay();
+    }
+
+    return view('pages.report.pnl_report', [
+        'startDate' => $startDate->toDateString(),
+        'endDate' => $endDate->toDateString(),
+        'totalRevenue' => $totalRevenue,
+        'totalCogs' => $totalCogs,
+        'poultryExpenses' => $poultryExpenses,
+        'externalExpenses' => $externalExpenses,
+        'totalNetProfit' => $totalNetProfit,
+        'dailyReport' => $dailyReport
+    ]);
+}
     
-    // 🟢 REMOVED: generateMockExpenses function
 }

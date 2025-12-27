@@ -417,4 +417,6 @@ class RateController extends Controller
             'net_stock_available' => 0.00,
         ]);
     }
+
+    
 }
