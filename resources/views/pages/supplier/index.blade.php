@@ -233,6 +233,7 @@
                                     class="font-bold text-blue-600 text-lg sm:text-xl">0</span> PKR
                             </p>
                         </div>
+
                         {{-- Close button moved here on mobile for easier access --}}
                         <button onclick="closeLedger()"
                             class="sm:hidden text-gray-400 hover:text-gray-600 bg-white p-2 rounded-full shadow border border-gray-100 h-10 w-10">
@@ -242,6 +243,7 @@
 
                     {{-- Action Buttons --}}
                     <div id="customerActions" class="hidden flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
+
                         <button onclick="sendWhatsAppReminder()"
                             class="flex-1 sm:flex-none justify-center bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-sm transition-colors whitespace-nowrap">
                             <i class="fab fa-whatsapp text-lg mr-2"></i> Reminder
@@ -315,9 +317,23 @@
                             </div>
                         </form>
                     </div>
+                    <div class="flex items-center justify-end mb-4 gap-3">
+                        <button onclick="exportLedgerToExcel()"
+                            class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-md hover:shadow-lg transition-all duration-200">
+                            <i class="fas fa-file-excel text-sm"></i>
+                            Excel
+                        </button>
+
+                        <button onclick="exportLedgerToPDF()"
+                            class="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-md hover:shadow-lg transition-all duration-200">
+                            <i class="fas fa-file-pdf text-sm"></i>
+                            PDF
+                        </button>
+                    </div>
 
                     {{-- Ledger Table --}}
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden w-full">
+
                         <div
                             class="px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                             <h4 class="font-bold text-gray-700 text-lg">Transaction History</h4>
@@ -327,6 +343,7 @@
                         overflow-x-auto allows table scrolling internally on mobile
                         without breaking the page width
                         --}}
+
                         <div class="overflow-x-auto w-full">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-100">
@@ -581,8 +598,109 @@
         const customerActionsEl = document.getElementById('customerActions');
 
         /**
-    * 🟢 UPDATED: Open Ledger with proper reset
-    */
+        * 🟢 EXPORT LEDGER TO EXCEL
+        */
+        /**
+         * 🟢 IMPROVED EXCEL EXPORT (with Styles & Formatting)
+         */
+        async function exportLedgerToExcel() {
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Ledger');
+            const name = document.getElementById('ledgerTitle').textContent;
+            const balance = document.getElementById('ledgerCurrentBalance').textContent;
+
+            // 1. Add Header Information
+            worksheet.mergeCells('A1:E1');
+            const titleCell = worksheet.getCell('A1');
+            titleCell.value = `Ledger Report: ${name}`;
+            titleCell.font = { name: 'Arial Black', size: 14, color: { argb: 'FFFFFFFF' } };
+            titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } }; // Indigo
+            titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+            worksheet.mergeCells('A2:E2');
+            worksheet.getCell('A2').value = `Generated on: ${new Date().toLocaleString()} | Closing Balance: PKR ${balance}`;
+            worksheet.getCell('A2').font = { italic: true, size: 10 };
+
+            // 2. Define Columns & Headers
+            const table = document.querySelector('#ledgerModal table');
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText).slice(0, -1); // Action column chhor kar
+
+            const headerRow = worksheet.addRow(headers);
+            headerRow.eachCell((cell) => {
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F2937' } }; // Dark Gray
+                cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+            });
+
+            // 3. Add Data Rows
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(tr => {
+                const rowData = Array.from(tr.querySelectorAll('td')).map(td => td.innerText).slice(0, -1);
+                const addedRow = worksheet.addRow(rowData);
+
+                // Conditional formatting for Amounts
+                addedRow.eachCell((cell, colNumber) => {
+                    cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+
+                    // Debit (Paid/Sale) formatting
+                    if (headers[colNumber - 1].includes('Debit') && cell.value !== '-') {
+                        cell.font = { color: { argb: 'FFDC2626' }, bold: true }; // Red
+                    }
+                    // Credit (Bill/Recv) formatting
+                    if (headers[colNumber - 1].includes('Credit') && cell.value !== '-') {
+                        cell.font = { color: { argb: 'FF059669' }, bold: true }; // Green
+                    }
+                });
+            });
+
+            // 4. Final Formatting (Auto-width)
+            worksheet.columns.forEach(column => {
+                column.width = 20;
+                column.alignment = { vertical: 'middle', horizontal: 'left' };
+            });
+
+            // 5. Download File
+            const buffer = await workbook.xlsx.writeBuffer();
+            saveAs(new Blob([buffer]), `${name}_Ledger_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        }
+        /**
+         * 🟢 EXPORT LEDGER TO PDF
+         */
+        function exportLedgerToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = jsPDF({ orientation: 'landscape' }); // Landscape for more columns
+            const name = document.getElementById('ledgerTitle').textContent;
+            const balance = document.getElementById('ledgerCurrentBalance').textContent;
+
+            // Header Info
+            doc.setFontSize(18);
+            doc.text("Ledger Report", 14, 15);
+            doc.setFontSize(11);
+            doc.text(`Contact: ${name}`, 14, 22);
+            doc.text(`Closing Balance: PKR ${balance}`, 14, 28);
+            doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 34);
+
+            // AutoTable Logic
+            doc.autoTable({
+                html: '#ledgerModal table',
+                startY: 40,
+                theme: 'striped',
+                headStyles: { fillColor: [79, 70, 229] }, // Indigo color for header
+                styles: { fontSize: 8 },
+                columnStyles: {
+                    0: { cellWidth: 25 }, // Date
+                    1: { cellWidth: 'auto' } // Description
+                },
+                // We exclude the 'Action' column from the export
+                didParseCell: function (data) {
+                    if (data.column.index === (data.table.columns.length - 1)) {
+                        data.cell.text = ""; // Hide text in Action column
+                    }
+                }
+            });
+
+            doc.save(`${name}_Ledger.pdf`);
+        }
         /**
     * 🟢 FIXED: Open Ledger Function
     */
@@ -633,6 +751,7 @@
             // 5. Data Fetch karein
             fetchLedgerData(id, type);
         }
+
         function sendWhatsAppReminder() {
             const phone = paymentContactPhoneEl.value;
             const name = ledgerTitleEl.textContent;
@@ -694,29 +813,29 @@
                 // 1. Dynamic Headers Logic based on Contact Type
                 if (type === 'supplier') {
                     thead.innerHTML = `
-                    <tr class="bg-gray-100 text-[10px] font-bold uppercase text-gray-600">
-                        <th class="px-2 py-3">Date</th>
-                        <th class="px-2 py-3 text-left">Description</th>
-                        <th class="px-2 py-3 text-right">Gross</th>
-                        <th class="px-2 py-3 text-right text-red-500">Ded.</th>
-                        <th class="px-2 py-3 text-right">Net</th>
-                        <th class="px-2 py-3 text-right text-blue-600">Kharch</th>
-                        <th class="px-2 py-3 text-right">Rate</th>
-                        <th class="px-2 py-3 text-right text-red-600">Debit (Paid)</th>
-                        <th class="px-2 py-3 text-right text-green-600">Credit (Bill)</th>
-                        <th class="px-2 py-3 text-right">Balance</th>
-                        <th class="px-2 py-3 text-center">Action</th>
-                    </tr>`;
+                                    <tr class="bg-gray-100 text-[10px] font-bold uppercase text-gray-600">
+                                        <th class="px-2 py-3">Date</th>
+                                        <th class="px-2 py-3 text-left">Description</th>
+                                        <th class="px-2 py-3 text-right">Gross (wht)</th>
+                                        <th class="px-2 py-3 text-right text-red-500">Ded (wht)</th>
+                                        <th class="px-2 py-3 text-right">Net (wht)</th>
+                                        <th class="px-2 py-3 text-right text-blue-600">Kharch</th>
+                                        <th class="px-2 py-3 text-right">Rate</th>
+                                        <th class="px-2 py-3 text-right text-red-600">Debit (Paid)</th>
+                                        <th class="px-2 py-3 text-right text-green-600">Credit (Bill)</th>
+                                        <th class="px-2 py-3 text-right">Balance</th>
+                                        <th class="px-2 py-3 text-center">Action</th>
+                                    </tr>`;
                 } else {
                     thead.innerHTML = `
-                    <tr class="bg-gray-100 text-xs font-bold uppercase text-gray-600">
-                        <th class="px-4 py-3 text-left">Date</th>
-                        <th class="px-4 py-3 text-left">Description</th>
-                        <th class="px-4 py-3 text-right text-red-600">Debit (Sale)</th>
-                        <th class="px-4 py-3 text-right text-green-600">Credit (Recv)</th>
-                        <th class="px-4 py-3 text-right">Balance</th>
-                        <th class="px-4 py-3 text-center">Action</th>
-                    </tr>`;
+                                    <tr class="bg-gray-100 text-xs font-bold uppercase text-gray-600">
+                                        <th class="px-4 py-3 text-left">Date</th>
+                                        <th class="px-4 py-3 text-left">Description</th>
+                                        <th class="px-4 py-3 text-right text-red-600">Debit (Sale)</th>
+                                        <th class="px-4 py-3 text-right text-green-600">Credit (Recv)</th>
+                                        <th class="px-4 py-3 text-right">Balance</th>
+                                        <th class="px-4 py-3 text-center">Action</th>
+                                    </tr>`;
                 }
 
                 if (!data.transactions || data.transactions.length === 0) {
@@ -727,7 +846,6 @@
                 let html = '';
                 let runningBalance = 0;
 
-                // Backend returns data grouped by Sale/Purchase ID in ASC order
                 data.transactions.forEach(txn => {
                     let debitVal = parseFloat(txn.debit) || 0;
                     let creditVal = parseFloat(txn.credit) || 0;
@@ -751,40 +869,40 @@
                         let ded = (parseFloat(txn.dead_weight || 0) + parseFloat(txn.shrink_loss || 0)).toFixed(net !== '-' ? 2 : 0);
 
                         html += `
-                    <tr id="ledger-row-${rowId}" class="border-b hover:bg-gray-50 text-[11px] transition-all">
-                        <td class="px-2 py-3 whitespace-nowrap row-date text-gray-500 font-medium">${txn.date}</td>
-                        <td class="px-2 py-3 row-desc font-bold text-gray-700"><span>${descriptionText}</span></td>
-                        <td class="px-2 py-3 text-right text-gray-600">${gross}</td>
-                        <td class="px-2 py-3 text-right text-red-400">${ded == "0" || ded == "0.00" ? '-' : ded}</td>
-                        <td class="px-2 py-3 text-right font-bold text-green-700">${net}</td>
-                        <td class="px-2 py-3 text-right text-blue-600 font-medium">${kharch}</td>
-                        <td class="px-2 py-3 text-right text-gray-600">${rate}</td>
-                        <td class="px-2 py-3 text-right font-black text-red-600 row-debit bg-red-50/20">${debitVal > 0 ? debitVal.toLocaleString() : '-'}</td>
-                        <td class="px-2 py-3 text-right font-black text-green-600 row-credit bg-green-50/20">${creditVal > 0 ? creditVal.toLocaleString() : '-'}</td>
-                        <td class="px-2 py-3 text-right font-extrabold text-blue-800 bg-gray-50/50">${runningBalance.toLocaleString()}</td>
-                        <td class="px-2 py-3 text-center whitespace-nowrap">
-                            <div class="flex items-center justify-center gap-1">
-                                <button onclick="toggleLedgerEdit('${rowId}', '${type}')" class="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><i class="fas fa-edit"></i></button>
-                                <button onclick="deleteLedgerEntry('${rowId}', '${type}')" class="p-1.5 text-red-400 hover:bg-red-50 rounded"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </td>
-                    </tr>`;
+                                    <tr id="ledger-row-${rowId}" class="border-b hover:bg-gray-50 text-[11px] transition-all">
+                                        <td class="px-2 py-3 whitespace-nowrap row-date text-gray-500 font-medium">${txn.date}</td>
+                                        <td class="px-2 py-3 row-desc font-bold text-gray-700"><span>${descriptionText}</span></td>
+                                        <td class="px-2 py-3 text-right text-gray-600">${gross}</td>
+                                        <td class="px-2 py-3 text-right text-red-400">${ded == "0" || ded == "0.00" ? '-' : ded}</td>
+                                        <td class="px-2 py-3 text-right font-bold text-green-700">${net}</td>
+                                        <td class="px-2 py-3 text-right text-blue-600 font-medium">${kharch}</td>
+                                        <td class="px-2 py-3 text-right text-gray-600">${rate}</td>
+                                        <td class="px-2 py-3 text-right font-black text-red-600 row-debit bg-red-50/20">${debitVal > 0 ? debitVal.toLocaleString() : '-'}</td>
+                                        <td class="px-2 py-3 text-right font-black text-green-600 row-credit bg-green-50/20">${creditVal > 0 ? creditVal.toLocaleString() : '-'}</td>
+                                        <td class="px-2 py-3 text-right font-extrabold text-blue-800 bg-gray-50/50">${runningBalance.toLocaleString()}</td>
+                                        <td class="px-2 py-3 text-center whitespace-nowrap">
+                                            <div class="flex items-center justify-center gap-1">
+                                                <button onclick="toggleLedgerEdit('${rowId}', '${type}')" class="p-1.5 text-blue-500 hover:bg-blue-50 rounded"><i class="fas fa-edit"></i></button>
+                                                <button onclick="deleteLedgerEntry('${rowId}', '${type}')" class="p-1.5 text-red-400 hover:bg-red-50 rounded"><i class="fas fa-trash"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>`;
                     } else {
                         // Customer Formatting
                         html += `
-                    <tr id="ledger-row-${rowId}" class="border-b hover:bg-gray-50 text-sm transition-all">
-                        <td class="px-4 py-3 whitespace-nowrap row-date text-gray-500 font-medium">${txn.date}</td>
-                        <td class="px-4 py-3 row-desc font-bold text-gray-700"><span>${descriptionText}</span></td>
-                        <td class="px-4 py-3 text-right font-black text-red-600 row-debit bg-red-50/20">${debitVal > 0 ? debitVal.toLocaleString() : '-'}</td>
-                        <td class="px-4 py-3 text-right font-black text-green-600 row-credit bg-green-50/20">${creditVal > 0 ? creditVal.toLocaleString() : '-'}</td>
-                        <td class="px-4 py-3 text-right font-extrabold text-blue-800 bg-gray-50/50">${runningBalance.toLocaleString()}</td>
-                        <td class="px-4 py-3 text-center whitespace-nowrap">
-                            <div class="flex items-center justify-center gap-2">
-                                <button onclick="toggleLedgerEdit('${rowId}', '${type}')" class="p-2 text-blue-500 hover:bg-blue-50 rounded"><i class="fas fa-edit"></i></button>
-                                <button onclick="deleteLedgerEntry('${rowId}', '${type}')" class="p-2 text-red-400 hover:bg-red-50 rounded"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </td>
-                    </tr>`;
+                                    <tr id="ledger-row-${rowId}" class="border-b hover:bg-gray-50 text-sm transition-all">
+                                        <td class="px-4 py-3 whitespace-nowrap row-date text-gray-500 font-medium">${txn.date}</td>
+                                        <td class="px-4 py-3 row-desc font-bold text-gray-700"><span>${descriptionText}</span></td>
+                                        <td class="px-4 py-3 text-right font-black text-red-600 row-debit bg-red-50/20">${debitVal > 0 ? debitVal.toLocaleString() : '-'}</td>
+                                        <td class="px-4 py-3 text-right font-black text-green-600 row-credit bg-green-50/20">${creditVal > 0 ? creditVal.toLocaleString() : '-'}</td>
+                                        <td class="px-4 py-3 text-right font-extrabold text-blue-800 bg-gray-50/50">${runningBalance.toLocaleString()}</td>
+                                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                                            <div class="flex items-center justify-center gap-2">
+                                                <button onclick="toggleLedgerEdit('${rowId}', '${type}')" class="p-2 text-blue-500 hover:bg-blue-50 rounded"><i class="fas fa-edit"></i></button>
+                                                <button onclick="deleteLedgerEntry('${rowId}', '${type}')" class="p-2 text-red-400 hover:bg-red-50 rounded"><i class="fas fa-trash"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>`;
                     }
                 });
 
@@ -804,6 +922,7 @@
                 }
             }
         }
+
         // 🟢 FIXED INLINE EDIT LOGIC
         function toggleLedgerEdit(txnId, contactType) {
             const row = document.getElementById(`ledger-row-${txnId}`);
@@ -822,10 +941,10 @@
 
             // Buttons badlein
             row.querySelector('td:last-child').innerHTML = `
-                                        <div class="flex gap-2 justify-center">
-                                            <button onclick="saveLedgerEdit('${txnId}', '${contactType}')" class="text-green-600 hover:text-green-800"><i class="fas fa-check-circle text-xl"></i></button>
-                                            <button onclick="fetchLedgerData('${paymentContactIdEl.value}', '${contactType}')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times-circle text-xl"></i></button>
-                                        </div>`;
+                                                        <div class="flex gap-2 justify-center">
+                                                            <button onclick="saveLedgerEdit('${txnId}', '${contactType}')" class="text-green-600 hover:text-green-800"><i class="fas fa-check-circle text-xl"></i></button>
+                                                            <button onclick="fetchLedgerData('${paymentContactIdEl.value}', '${contactType}')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times-circle text-xl"></i></button>
+                                                        </div>`;
         }
 
         async function saveLedgerEdit(txnId, contactType) {

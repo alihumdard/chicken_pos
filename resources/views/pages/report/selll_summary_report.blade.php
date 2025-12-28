@@ -116,7 +116,7 @@
                         <label class="block text-[10px] font-bold text-gray-500 mb-1">CUSTOMER DROPDOWN</label>
                         <select id="customerFilter" class="w-full border rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-indigo-500">
                             <option value="">All Customers</option>
-                            @foreach($customers as $customer) 
+                            @foreach($customers as $customer) {{-- Backend se aane wale saare customers yahan loop ho rahe hain --}}
                                 <option value="{{ $customer->id }}">{{ $customer->name }}</option>
                             @endforeach
                         </select>
