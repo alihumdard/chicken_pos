@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\DailyRate;
@@ -7,416 +8,356 @@ use App\Models\Supplier;
 use App\Models\SaleItem;
 use App\Models\RateFormula;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log; // Added for logging in try/catch
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Exception;
 
 class RateController extends Controller
 {
-    // 🟢 RESTORING ORIGINAL FIXED MARGINS (This ensures the base rates behave as they did originally)
-   private const RATE_MARGINS = [
-    'wholesale_rate'                => 10.00, 
-    'live_chicken_rate'             => 20.00,
-    'wholesale_mix_rate'            => 25.00,
-    'wholesale_chest_rate'          => 125.00,
-    'wholesale_thigh_rate'          => 75.00,
-    'wholesale_customer_piece_rate' => 0.00,
-    'retail_mix_rate'               => 50.00,
-    'retail_chest_rate'             => 150.00,
-    'retail_thigh_rate'             => 100.00,
-    'retail_piece_rate'             => -10.00,
-    'purchase_effective_cost'       => 0.00, 
-    
-    // NEW FIELDS MARGINS
-    'wholesale_chest_and_leg_pieces'=> 130.00,
-    'wholesale_drum_sticks'         => 140.00,
-    'wholesale_chest_boneless'      => 250.00,
-    'wholesale_thigh_boneless'      => 200.00,
-    'wholesale_kalagi_pot_gardan'   => 15.00,
-    
-    'retail_chest_and_leg_pieces'   => 160.00,
-    'retail_drum_sticks'            => 170.00,
-    'retail_chest_boneless'         => 300.00,
-    'retail_thigh_boneless'         => 240.00,
-    'retail_kalagi_pot_gardan'      => 25.00,
-];
-    
-    private const RATE_FRIENDLY_NAMES = [
-        'wholesale_rate'                => 'Wholesale Live',
-        'wholesale_mix_rate'            => 'Mix (No. 34)',
-        'wholesale_chest_rate'          => 'Mix (No. 35)',
-        'wholesale_thigh_rate'          => 'Mix (No. 36)',
-        'wholesale_customer_piece_rate' => 'Mix (No. 37)',
-        'wholesale_chest_and_leg_pieces'=> 'Chest and Leg Pieces (No. 38)',
-        'wholesale_drum_sticks'         => 'Drum Sticks',
-        'wholesale_chest_boneless'      => 'Chest Boneless',
-        'wholesale_thigh_boneless'      => 'Thigh Boneless',
-        'wholesale_kalagi_pot_gardan'   => 'Kalagi Pot Gardan',
-        
-        'live_chicken_rate'             => 'Retail Live',
-        'retail_mix_rate'               => 'Mix (No. 34)',
-        'retail_chest_rate'             => 'Mix (No. 35)',
-        'retail_thigh_rate'             => 'Mix (No. 36)',
-        'retail_piece_rate'             => 'Mix (No. 37)', 
-        // 'purchase_effective_cost'       => 'Base Rate',
-        'retail_chest_and_leg_pieces'   => 'Chest and Leg Pieces (No. 38)',
-        'retail_drum_sticks'            => 'Drum Sticks',
-        'retail_chest_boneless'         => 'Chest Boneless',
-        'retail_thigh_boneless'         => 'Thigh Boneless',
-        'retail_kalagi_pot_gardan'      => 'Kalagi Pot Gardan',
-        
-    ];
-    
+    // 1. Define Class Properties
+    private $rateMargins;
+    private $rateFriendlyNames;
+
     /**
-     * Display the daily rates overview, checking for a specific date or the active rate.
+     * 2. Constructor: Initialize Defaults & Merge Database Values
      */
+    public function __construct()
+    {
+        $this->rateMargins = [];
+
+        $this->rateFriendlyNames = [];
+
+        // B. Merge Real-Time Database Values
+        try {
+            // Check active formulas
+            $formulas = RateFormula::where('status', true)->get();
+
+            foreach ($formulas as $formula) {
+                // Add/Overwrite friendly name
+                $this->rateFriendlyNames[$formula->rate_key] = $formula->title;
+                
+                // Add/Overwrite margin (using 'plus' column as default margin)
+                $this->rateMargins[$formula->rate_key] = $formula->plus; 
+            }
+        } catch (\Throwable $e) {
+            // Silently fail if DB is not ready (e.g. during migration)
+        }
+    }
+
     public function index(Request $request)
     {
         try {
             $targetDate = $request->input('target_date', now()->toDateString());
             $suppliers = Supplier::orderBy('name')->get(['id', 'name']);
-            // Fetch all active formulas once
-            $rateFormulas = RateFormula::all()->keyBy('rate_key');
+            
+            // Fetch formulas for the view
+            $rateFormulas = RateFormula::where('status', true)->get()->keyBy('rate_key');
 
             $defaultData = [
-                'base_effective_cost'           => 0.00,
-                'manual_base_cost'              => 0.00, 
-                'net_stock_available'           => 0.00,
-                'wholesale_rate'                => 0.00,
-                'permanent_rate'                => 0.00, 
-                'retail_mix_rate'               => 0.00,
-                'retail_chest_rate'             => 0.00,
-                'retail_thigh_rate'             => 0.00,
-                'retail_piece_rate'             => 0.00,
-                'live_chicken_rate'             => 0.00,
-                'wholesale_chest_and_leg_pieces'=> 0.00,
-                'wholesale_drum_sticks'         => 0.00,
-                'wholesale_chest_boneless'      => 0.00,
-                'wholesale_kalagi_pot_gardan'   => 0.00,
-                'wholesale_mix_rate'      => 0.00,
-                'wholesale_chest_rate'    => 0.00,
-                'wholesale_thigh_rate'    => 0.00,
-                'wholesale_customer_piece_rate' => 0.00,
-                'is_historical'                 => false,
+                'base_effective_cost' => 0.00,
+                'manual_base_cost'    => 0.00, 
+                'net_stock_available' => 0.00,
+                'is_historical'       => false,
             ];
 
+            // Initialize all known keys to 0.00
+            foreach ($this->rateFriendlyNames as $key => $name) {
+                $defaultData[$key] = 0.00;
+            }
 
-            $activeRate = DailyRate::whereDate('created_at', $targetDate)
-                ->latest()
-                ->first();
+            $activeRate = DailyRate::whereDate('created_at', $targetDate)->latest()->first();
 
             if ($activeRate) {
+                // --- LOAD SAVED DATA (Historical) ---
                 $savedManualCost = (float)($activeRate->manual_base_cost ?? 0.00);
                 
-                // Load SAVED rates from the database record instead of recalculating
-                $baseForCalculation = $savedManualCost > 0 ? $savedManualCost : (float)$activeRate->base_effective_cost;
-
                 $defaultData['base_effective_cost'] = (float)$activeRate->base_effective_cost;
-                $defaultData['manual_base_cost'] = $savedManualCost; 
-                
-                // Load ALL individual rates directly from the saved activeRate object
-                $defaultData['wholesale_rate']                = (float)$activeRate->wholesale_rate;
-                $defaultData['live_chicken_rate']             = (float)$activeRate->live_chicken_rate;
-                $defaultData['wholesale_mix_rate']      = (float)$activeRate->wholesale_mix_rate;
-                $defaultData['wholesale_chest_rate']    = (float)$activeRate->wholesale_chest_rate;
-                $defaultData['wholesale_thigh_rate']    = (float)$activeRate->wholesale_thigh_rate;
-                $defaultData['wholesale_customer_piece_rate'] = (float)$activeRate->wholesale_customer_piece_rate;
-                $defaultData['wholesale_chest_and_leg_pieces'] = (float)$activeRate->wholesale_chest_and_leg_pieces;
-                $defaultData['wholesale_drum_sticks']         = (float)$activeRate->wholesale_drum_sticks;
-                $defaultData['wholesale_chest_boneless']      = (float)$activeRate->wholesale_chest_boneless; // <--- FIXED
-                $defaultData['wholesale_thigh_boneless']      = (float)$activeRate->wholesale_thigh_boneless; // Don't forget this one too!
-                $defaultData['wholesale_kalagi_pot_gardan']   = (float)$activeRate->wholesale_kalagi_pot_gardan;
-                
-                $defaultData['retail_mix_rate']               = (float)$activeRate->retail_mix_rate;
-                $defaultData['retail_chest_rate']             = (float)$activeRate->retail_chest_rate;
-                $defaultData['retail_thigh_rate']             = (float)$activeRate->retail_thigh_rate;
-                $defaultData['retail_piece_rate']             = (float)$activeRate->retail_piece_rate;
-                $defaultData['permanent_rate']                = (float)$activeRate->permanent_rate;
+                $defaultData['manual_base_cost']    = $savedManualCost; 
+                $defaultData['is_historical']       = now()->toDateString() != $targetDate;
 
-                $defaultData['is_historical'] = now()->toDateString() != $targetDate;
-                
                 $stockData = $this->calculateCombinedStock();
                 $defaultData['net_stock_available'] = $stockData['net_stock'] ?? 0.00;
 
+                // Load values dynamically from the saved record
+                foreach ($this->rateFriendlyNames as $key => $name) {
+                    // Check if column exists on the object before accessing
+                    $defaultData[$key] = (float)($activeRate->$key ?? 0.00);
+                }
+
             } elseif (now()->toDateString() == $targetDate) {
-                
-                // Default live calculation logic 
+                // --- LIVE CALCULATION (Today) ---
                 $combinedData = $this->calculateCombinedRatesAndStock();
                 $baseCost     = $combinedData['average_effective_cost'];
                 
                 $defaultData['base_effective_cost'] = $baseCost;
                 $defaultData['net_stock_available'] = $combinedData['sum_net_stock'];
 
-                // DYNAMIC DEFAULT RATE CALCULATION (Base Cost + Fixed Margin + Formula)
-                foreach (self::RATE_MARGINS as $key => $margin) {
-                    $baseRate = $baseCost + $margin; 
-                    if ($key !== 'purchase_effective_cost') {
-                        $defaultData[$key] = $this->applyFormula($baseRate, $rateFormulas->get($key));
+                // Calculate values dynamically
+                foreach ($this->rateFriendlyNames as $key => $name) {
+                    $formula = $rateFormulas->get($key);
+                    
+                    // Priority: Use DB Formula if exists, else use Base + Margin array
+                    if($formula) {
+                        $defaultData[$key] = $this->applyFormula($baseCost, $formula);
+                    } else {
+                        $margin = $this->rateMargins[$key] ?? 0.00;
+                        $defaultData[$key] = max(0, $baseCost + $margin);
                     }
                 }
-                
-                // Permanent rate also starts at Base Cost + 0 margin
-                $baseRate = $baseCost + 0.00;
-                $defaultData['permanent_rate'] = $this->applyFormula($baseRate, $rateFormulas->get('permanent_rate'));
             }
 
-            // Pass formulas and friendly names to the view
             return view('pages.rates.index', compact('suppliers', 'defaultData', 'targetDate', 'rateFormulas'));
             
         } catch (Exception $e) {
-            return redirect()->route('admin.dashboard')->with('error', 'Error loading daily rates data. Please check the database configuration: ' . $e->getMessage());
+            return redirect()->route('admin.dashboard')->with('error', 'Error: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Store a new set of Daily Rates and activate them. 
-     */
-    public function store(Request $request)
+public function store(Request $request)
     {
-        
-       $data = $request->validate([
-        'supplier_id'                   => ['nullable', 'exists:suppliers,id'],
-        'base_effective_cost'           => ['required', 'numeric', 'min:0'],
-        'manual_base_cost'              => ['nullable', 'numeric', 'min:0'], 
-        'wholesale_rate'                => ['required', 'numeric', 'min:0'],
-        'permanent_rate'                => ['required', 'numeric', 'min:0'], 
-        'live_chicken_rate'             => ['required', 'numeric', 'min:0'], 
-        
-        // Wholesale Extended
-        'wholesale_mix_rate'            => ['required', 'numeric', 'min:0'], 
-        'wholesale_chest_rate'          => ['required', 'numeric', 'min:0'], 
-        'wholesale_thigh_rate'          => ['required', 'numeric', 'min:0'], 
-        'wholesale_customer_piece_rate' => ['required', 'numeric', 'min:0'], 
-        'wholesale_chest_and_leg_pieces'=> ['required', 'numeric', 'min:0'],
-        'wholesale_drum_sticks'         => ['required', 'numeric', 'min:0'],
-        'wholesale_chest_boneless'      => ['required', 'numeric', 'min:0'],
-        'wholesale_thigh_boneless'      => ['required', 'numeric', 'min:0'],
-        'wholesale_kalagi_pot_gardan'   => ['required', 'numeric', 'min:0'],
+        // 1. Static Validation Rules (For the main table columns)
+        $rules = [
+            'supplier_id'         => ['nullable', 'exists:suppliers,id'],
+            'base_effective_cost' => ['required', 'numeric', 'min:0'],
+            'manual_base_cost'    => ['nullable', 'numeric', 'min:0'], 
+        ];
 
-        // Retail Extended
-        'retail_mix_rate'               => ['required', 'numeric', 'min:0'],
-        'retail_chest_rate'             => ['required', 'numeric', 'min:0'],
-        'retail_thigh_rate'             => ['required', 'numeric', 'min:0'],
-        'retail_piece_rate'             => ['required', 'numeric', 'min:0'],
-        'retail_chest_and_leg_pieces'   => ['required', 'numeric', 'min:0'],
-        'retail_drum_sticks'            => ['required', 'numeric', 'min:0'],
-        'retail_chest_boneless'         => ['required', 'numeric', 'min:0'],
-        'retail_thigh_boneless'         => ['required', 'numeric', 'min:0'],
-        'retail_kalagi_pot_gardan'      => ['required', 'numeric', 'min:0'],
-    ]);
-        
-        if (empty($data['supplier_id'])) {
-             $data['supplier_id'] = Supplier::first()->id ?? 1;
+        // 2. Dynamic Validation Rules (For the values going into JSON)
+        // We ensure every key defined in our friendly names list is present
+        foreach ($this->rateFriendlyNames as $key => $name) {
+            $rules[$key] = ['required', 'numeric'];
         }
+
+        $data = $request->validate($rules);
         
-        $data['manual_base_cost'] = $data['manual_base_cost'] ?? 0.00;
+        // Prepare Basic Data
+        $supplierId = $data['supplier_id'] ?? (Supplier::first()->id ?? 1);
+        $baseCost   = $data['base_effective_cost'];
+        $manualCost = $data['manual_base_cost'] ?? 0.00;
+
+        // ðŸŸ¢ 3. PACK DYNAMIC RATES INTO AN ARRAY
+        // Instead of saving to individual columns, we bundle them here.
+        $rateValues = [];
+        foreach ($this->rateFriendlyNames as $key => $title) {
+            $rateValues[$key] = $data[$key];
+        }
 
         try {
-            // 2. Deactivate previous rates saved TODAY only.
+            // Deactivate previous rates for today
             DailyRate::whereDate('created_at', now()->toDateString())->update(['is_active' => false]);
-
-            // 3. Create the new DailyRate record
-            DailyRate::create(array_merge($data, ['is_active' => true]));
             
-            // Handle AJAX request (from the Override button)
+            // ðŸŸ¢ 4. SAVE TO DATABASE (Using JSON column)
+            DailyRate::create([
+                'supplier_id'         => $supplierId,
+                'base_effective_cost' => $baseCost,
+                'manual_base_cost'    => $manualCost,
+                'rate_values'         => $rateValues, // Eloquent automatically converts this array to JSON
+                'is_active'           => true
+            ]);
+            
+            // 5. AJAX Response (For the "Override/Calculate" button preview)
             if ($request->ajax() || $request->wantsJson()) {
-                
-                // Determine the base cost for recalculating all rates for the display
-                
-                $baseCost = (float)($data['manual_base_cost'] ?: $data['base_effective_cost']);
-                // Fetch active formulas for recalculation
+                $calcBase = (float)($manualCost ?: $baseCost);
                 $rateFormulas = RateFormula::all()->keyBy('rate_key');
-
                 $updatedRates = [];
-                // Recalculate and format all rates based on the saved cost for the frontend update
-                foreach (self::RATE_MARGINS as $key => $margin) {
-                    // Only calculate for keys that are displayed on the Rates page
-                    if ($key !== 'purchase_effective_cost') {
-                        $baseRate = $baseCost + $margin; 
-                        // Apply formula logic here
-                        $updatedRates[$key] = number_format($this->applyFormula($baseRate, $rateFormulas->get($key)), 2, '.', '');
+                
+                foreach ($this->rateFriendlyNames as $key => $title) {
+                    $formula = $rateFormulas->get($key);
+                    if($formula) {
+                         $updatedRates[$key] = number_format($this->applyFormula($calcBase, $formula), 2, '.', '');
+                    } else {
+                         $margin = $this->rateMargins[$key] ?? 0.00;
+                         $updatedRates[$key] = number_format($calcBase + $margin, 2, '.', '');
                     }
                 }
                 
-                // Also handle permanent_rate
-                $baseRate = $baseCost + 0.00;
-                $updatedRates['permanent_rate'] = number_format($this->applyFormula($baseRate, $rateFormulas->get('permanent_rate')), 2, '.', '');
-
                 return response()->json([
                     'success' => true,
-                    'message' => 'Rates overridden and saved successfully (via AJAX).',
-                    'base_effective_cost' => number_format($baseCost, 2, '.', ''),
+                    'message' => 'Rates calculated and saved successfully.',
+                    'base_effective_cost' => number_format($calcBase, 2, '.', ''),
                     'rates' => $updatedRates,
                 ]);
             }
 
-            // 4. Default action (from Activate Today's Rates button)
-            return redirect()->route('admin.rates.index', ['target_date' => now()->toDateString()])->with('success', 'New daily rates activated and saved successfully!');
+            return redirect()->route('admin.rates.index', ['target_date' => now()->toDateString()])
+                             ->with('success', 'Rates saved successfully!');
 
         } catch (Exception $e) {
             $errorMessage = 'Database error: ' . $e->getMessage();
-            
-            if ($request->ajax() || $request->wantsJson()) {
-                 return response()->json(['success' => false, 'message' => $errorMessage], 500);
-            }
+            if ($request->ajax() || $request->wantsJson()) return response()->json(['success' => false, 'message' => $errorMessage], 500);
             return back()->withInput()->with('error', $errorMessage);
         }
     }
+    // --- API Endpoints ---
+
+public function getRateFormulas()
+    {
+        $formulas = RateFormula::all()->keyBy('rate_key');
+        
+        // 1. Refresh dynamic names from DB
+        try {
+            $dbFormulas = RateFormula::where('status', true)->get();
+            foreach ($dbFormulas as $f) {
+                $this->rateFriendlyNames[$f->rate_key] = $f->title;
+            }
+        } catch (\Exception $e) {}
+
+        // 🟢 2. SORTING LOGIC (Wholesale -> Retail -> Others)
+        // We get all keys and sort them based on channel priority
+        $sortedKeys = collect(array_keys($this->rateFriendlyNames))->sortBy(function ($key) use ($formulas) {
+            
+            // Determine Channel: Look in DB first, otherwise guess from string
+            $formula = $formulas->get($key);
+            
+            if ($formula && $formula->channel) {
+                $channel = $formula->channel;
+            } else {
+                // Fallback logic for keys not yet in DB
+                if (str_starts_with($key, 'wholesale')) {
+                    $channel = 'wholesale';
+                } elseif (str_starts_with($key, 'retail') || str_starts_with($key, 'live')) {
+                    $channel = 'retail';
+                } else {
+                    $channel = 'other'; // e.g. permanent_rate
+                }
+            }
+
+            // Assign Priority (Lower number = Top of list)
+            return match ($channel) {
+                'wholesale' => 1,
+                'retail'    => 2,
+                default     => 3,
+            };
+        });
+
+        $formattedFormulas = [];
+        
+        // 🟢 3. Loop through the SORTED keys
+        foreach ($sortedKeys as $key) {
+            
+            $name = $this->rateFriendlyNames[$key];
+            $formula = $formulas->get($key);
+            
+            // Handle Icon URL
+            $iconFullUrl = null;
+            if ($formula && $formula->icon_url) {
+                if (str_starts_with($formula->icon_url, 'http')) {
+                    $iconFullUrl = $formula->icon_url;
+                } else {
+                    $path = str_replace('storage/', '', $formula->icon_url);
+                    $iconFullUrl = asset('storage/' . $path);
+                }
+            }
+
+            $formattedFormulas[$key] = [
+                'name'     => $name,
+                'icon_url' => $iconFullUrl,
+                'multiply' => number_format($formula->multiply ?? 1.0, 4, '.', ''),
+                'divide'   => number_format($formula->divide ?? 1.0, 4, '.', ''),
+                'plus'     => number_format($formula->plus ?? 0.0, 2, '.', ''),
+                'minus'    => number_format($formula->minus ?? 0.0, 2, '.', ''),
+            ];
+        }
+
+        return response()->json([
+            'formulas'       => $formattedFormulas,
+            // We re-sort the friendly names array to match the order for the dropdown
+            'friendly_names' => array_replace(array_flip($sortedKeys->toArray()), $this->rateFriendlyNames) 
+        ]);
+    }
     
-    /**
-     * Ensures an array is always returned.
-     */
+    public function updateRateFormula(Request $request)
+    {
+        $data = $request->validate([
+            'rate_key'  => ['required', 'string'], 
+            'title'     => ['nullable', 'string', 'max:191'],
+            'channel'   => ['nullable', 'in:wholesale,retail'], 
+            'icon_url'  => ['nullable', 'image', 'mimes:jpeg,png,jpg,svg', 'max:2048'],
+            'multiply'  => ['nullable', 'numeric', 'min:0'],
+            'divide'    => ['nullable', 'numeric', 'min:0.0001'], 
+            'plus'      => ['nullable', 'numeric'],
+            'minus'     => ['nullable', 'numeric'],
+        ]);
+        
+        try {
+            $existing = $this->rateFriendlyNames[$data['rate_key']] ?? null;
+            $titleToSave = $data['title'] ?? ($existing ?? ucfirst(str_replace('_', ' ', $data['rate_key'])));
+            $channelToSave = $data['channel'] ?? (str_starts_with($data['rate_key'], 'wholesale') ? 'wholesale' : 'retail');
+
+            $updateData = [
+                'title'    => $titleToSave,
+                'channel'  => $channelToSave,
+                'multiply' => $data['multiply'] ?? 1.0000,
+                'divide'   => $data['divide'] ?? 1.0000,
+                'plus'     => $data['plus'] ?? 0.0000,
+                'minus'    => $data['minus'] ?? 0.0000,
+                'status'   => true,
+            ];
+
+            // Handle File Upload
+            if ($request->hasFile('icon_url')) {
+                $path = $request->file('icon_url')->store('formula_icons', 'public');
+                $updateData['icon_url'] = 'storage/' . $path;
+            }
+
+            RateFormula::updateOrCreate(
+                ['rate_key' => $data['rate_key']],
+                $updateData
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => "Formula for **$titleToSave** saved successfully!",
+            ]);
+
+        } catch (Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // --- Calculation Helpers ---
+
     private function calculateCombinedRatesAndStock(): array
     {
         try {
             $suppliers = Supplier::pluck('id');
             $totalEffectiveCost = 0.00;
             $supplierCount = 0;
-            
             foreach ($suppliers as $supplierId) {
-                $latestPurchase = Purchase::where('supplier_id', $supplierId)
-                                          ->latest('created_at')
-                                          ->first();
-
-                if ($latestPurchase) {
-                    $totalEffectiveCost += (float) $latestPurchase->effective_cost;
+                $latest = Purchase::where('supplier_id', $supplierId)->latest('created_at')->first();
+                if ($latest) {
+                    $totalEffectiveCost += (float) $latest->effective_cost;
                     $supplierCount++;
                 }
             }
-            
-            $averageEffectiveCost = $supplierCount > 0 ? $totalEffectiveCost / $supplierCount : 0.00;
-            
-            try {
-                $netStockAvailable = $this->calculateCombinedStock()['net_stock']; 
-            } catch (\Throwable $th) {
-                $netStockAvailable = 0.00;
-            }
-
-
-            return [
-                'average_effective_cost' => $averageEffectiveCost,
-                'sum_net_stock'          => $netStockAvailable,
-            ];
+            $avg = $supplierCount > 0 ? $totalEffectiveCost / $supplierCount : 0.00;
+            $stock = $this->calculateCombinedStock()['net_stock'] ?? 0.00;
+            return ['average_effective_cost' => $avg, 'sum_net_stock' => $stock];
         } catch (\Throwable $e) {
-            Log::error("Error in calculateCombinedRatesAndStock: " . $e->getMessage());
-            return [
-                'average_effective_cost' => 0.00,
-                'sum_net_stock'          => 0.00,
-            ];
+            Log::error("Rate Calc Error: " . $e->getMessage());
+            return ['average_effective_cost' => 0.00, 'sum_net_stock' => 0.00];
         }
     }
     
     private function calculateCombinedStock(): array
     {
-         $totalPurchasedWeight = Purchase::sum('net_live_weight');
-         $totalSoldWeight = SaleItem::sum('weight_kg'); 
-         
-         $netStockAvailable = max(0, $totalPurchasedWeight - $totalSoldWeight); 
-
-         return [
-             'net_stock' => (float) $netStockAvailable,
-         ];
+         $purchased = Purchase::sum('net_live_weight');
+         $sold = SaleItem::sum('weight_kg'); 
+         return ['net_stock' => (float) max(0, $purchased - $sold)];
     }
     
-    // Formula application logic
     private function applyFormula(float $baseRate, ?RateFormula $formula): float
     {
-        if (!$formula) {
-            return $baseRate;
-        }
-
-        $multiply = $formula->multiply > 0 ? $formula->multiply : 1.0;
-        $divide   = $formula->divide > 0 ? $formula->divide : 1.0;
-        $plus     = $formula->plus;
-        $minus    = $formula->minus;
-        
-        $finalRate = $baseRate;
-        
-        $finalRate *= $multiply;
-        
-        if ($divide != 0 && $divide != 1) { 
-            $finalRate /= $divide;
-        }
-
-        $finalRate += $plus;
-        $finalRate -= $minus;
-        
-        return max(0.00, $finalRate);
-    }
-    
-    /**
-     * Endpoint to get rate formulas (for settings page population)
-     */
-    public function getRateFormulas()
-    {
-        $formulas = RateFormula::all()->keyBy('rate_key');
-        
-        $formattedFormulas = [];
-        // Iterate through all friendly names (including the new purchase effective cost)
-        foreach (self::RATE_FRIENDLY_NAMES as $key => $name) {
-            $formula = $formulas->get($key);
-            $formattedFormulas[$key] = [
-                'name'     => $name,
-                'multiply' => number_format($formula->multiply ?? 1.0, 1, '.', ''),
-                'divide'   => number_format($formula->divide ?? 1.0, 1, '.', ''),
-                'plus'     => number_format($formula->plus ?? 0.0, 1, '.', ''),
-                'minus'    => number_format($formula->minus ?? 0.0, 1, '.', ''),
-            ];
-        }
-
-        return response()->json([
-            'formulas' => $formattedFormulas,
-            'friendly_names' => self::RATE_FRIENDLY_NAMES
-        ]);
-    }
-    
-    /**
-     * Endpoint to save rate formulas from the settings page
-     */
-    public function updateRateFormula(Request $request)
-    {
-        $data = $request->validate([
-            // Validate the key against ALL keys, including the new one
-            'rate_key' => ['required', 'string'], 
-            'multiply' => ['nullable', 'numeric', 'min:0'],
-            'divide'   => ['nullable', 'numeric', 'min:0.0001'], 
-            'plus'     => ['nullable', 'numeric'],
-            'minus'    => ['nullable', 'numeric', 'min:0'],
-        ]);
-        
-        try {
-            $data['multiply'] = $data['multiply'] ?? 1.0000;
-            $data['divide']   = $data['divide'] ?? 1.0000;
-            $data['plus']     = $data['plus'] ?? 0.0000;
-            $data['minus']    = $data['minus'] ?? 0.0000;
-            
-            RateFormula::updateOrCreate(
-                ['rate_key' => $data['rate_key']],
-                $data
-            );
-            
-            $friendlyName = self::RATE_FRIENDLY_NAMES[$data['rate_key']];
-
-            return response()->json([
-                'success' => true,
-                'message' => "Formula for **$friendlyName** saved successfully!",
-            ]);
-
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error saving formula: ' . $e->getMessage(),
-            ], 500);
-        }
+        if (!$formula) return $baseRate;
+        $val = $baseRate * ($formula->multiply > 0 ? $formula->multiply : 1.0);
+        if ($formula->divide > 0 && $formula->divide != 1) $val /= $formula->divide;
+        $val += $formula->plus;
+        $val -= $formula->minus;
+        return max(0.00, $val);
     }
     
     public function getSupplierData(Request $request)
     {
-        return response()->json([
-            'base_effective_cost' => 0.00,
-            'net_stock_available' => 0.00,
-        ]);
+        return response()->json(['base_effective_cost' => 0.00, 'net_stock_available' => 0.00]);
     }
-
-    
 }

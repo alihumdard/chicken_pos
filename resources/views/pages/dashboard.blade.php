@@ -13,7 +13,7 @@
     
     {{-- Header Section --}}
     <div class="flex flex-col md:flex-row justify-between items-center mb-6">
-        <h1 class="text-xl font-bold text-gray-800">Overview - {{ $today_date }}</h1>
+        <h1 class="text-xl font-bold text-gray-800">Overview - {{ $today_date ?? '' }}</h1>
         <span class="text-sm font-medium text-gray-500 bg-white px-3 py-1 rounded-full shadow-sm border border-gray-100 italic">
             Live System Status
         </span>

@@ -10,11 +10,15 @@ class RateFormula extends Model
     use HasFactory;
 
     protected $fillable = [
-        'rate_key',
-        'multiply',
-        'divide',
-        'plus',
-        'minus',
+        'title', 
+        'rate_key', 
+        'icon_url', 
+        'channel',
+        'multiply', 
+        'divide', 
+        'plus', 
+        'minus', 
+        'status'
     ];
     
     protected $casts = [

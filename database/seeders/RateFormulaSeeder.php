@@ -14,7 +14,7 @@ class RateFormulaSeeder extends Seeder
      */
     private const RATE_MAP = [
         // --- WHOLESALE ITEMS ---
-        'wholesale_live_chicken_rate'   => 'Live Chicken',
+        'wholesale_live_chicken_rate'   => 'Wholesale Live Chicken',
         'wholesale_mix_34_rate'         => 'Mix (No. 34)',
         'wholesale_mix_35_rate'         => 'Mix (No. 35)',
         'wholesale_mix_36_rate'         => 'Mix (No. 36)',
@@ -27,7 +27,7 @@ class RateFormulaSeeder extends Seeder
         'wholesale_chick_paw_rate'      => 'Chick Paws',
 
         // --- RETAIL ITEMS ---
-        'retail_live_chicken_rate'      => 'Live Chicken',
+        'retail_live_chicken_rate'      => 'Retail Live Chicken',
         'retail_mix_34_rate'            => 'Mix (No. 34)',
         'retail_mix_35_rate'            => 'Mix (No. 35)',
         'retail_mix_36_rate'            => 'Mix (No. 36)',

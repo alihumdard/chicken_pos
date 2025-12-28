@@ -14,61 +14,57 @@ use Exception;
 
 class SalesController extends Controller
 {
-public function index()
-{
-    $customers = Customer::orderBy('name')->get();
-    $dailyRates = DailyRate::latest()->first();
-    
-    // 🟢 Fetch all formulas and key them by their rate_key (e.g., 'wholesale_rate')
-    $formulas = RateFormula::all()->keyBy('rate_key');
+    public function index()
+    {
+        $customers = Customer::orderBy('name')->get();
+        
+        // 1. Fetch Dynamic Formulas (This defines products/labels)
+        // Group them by channel for easy loop in view
+        $formulas = RateFormula::where('status', true)->get()->groupBy('channel');
 
-    $rates = [
-        'wholesale' => [
-            'wholesale_rate'                 => $dailyRates->wholesale_rate ?? 0.00,
-            'wholesale_mix_rate'             => $dailyRates->wholesale_mix_rate ?? 0.00,
-            'wholesale_chest_rate'           => $dailyRates->wholesale_chest_rate ?? 0.00,
-            'wholesale_thigh_rate'           => $dailyRates->wholesale_thigh_rate ?? 0.00,
-            'wholesale_customer_piece_rate'  => $dailyRates->wholesale_customer_piece_rate ?? 0.00,
-            'wholesale_chest_and_leg_pieces' => $dailyRates->wholesale_chest_and_leg_pieces ?? 0.00,
-            'wholesale_drum_sticks'          => $dailyRates->wholesale_drum_sticks ?? 0.00,
-            'wholesale_chest_boneless'       => $dailyRates->wholesale_chest_boneless ?? 0.00,
-            'wholesale_thigh_boneless'       => $dailyRates->wholesale_thigh_boneless ?? 0.00,
-            'wholesale_kalagi_pot_gardan'    => $dailyRates->wholesale_kalagi_pot_gardan ?? 0.00,
-        ],
-        'retail' => [
-            'live_chicken_rate'              => $dailyRates->live_chicken_rate ?? 0.00,
-            'retail_mix_rate'                => $dailyRates->retail_mix_rate ?? 0.00,
-            'retail_chest_rate'              => $dailyRates->retail_chest_rate ?? 0.00,
-            'retail_thigh_rate'              => $dailyRates->retail_thigh_rate ?? 0.00,
-            'retail_piece_rate'              => $dailyRates->retail_piece_rate ?? 0.00,
-            'retail_chest_and_leg_pieces'    => $dailyRates->retail_chest_and_leg_pieces ?? 0.00,
-            'retail_drum_sticks'             => $dailyRates->retail_drum_sticks ?? 0.00,
-            'retail_chest_boneless'          => $dailyRates->retail_chest_boneless ?? 0.00,
-            'retail_thigh_boneless'          => $dailyRates->retail_thigh_boneless ?? 0.00,
-            'retail_kalagi_pot_gardan'       => $dailyRates->retail_kalagi_pot_gardan ?? 0.00,
-        ]
-    ];
+        // 2. Fetch Latest Daily Rates (JSON)
+        $dailyRatesRecord = DailyRate::latest()->first();
+        $rateValues = $dailyRatesRecord ? $dailyRatesRecord->rate_values : [];
 
-    // 🟢 Pass $formulas to the view
-    return view('pages.sales.index', compact('customers', 'rates', 'formulas'));
-}
+        // 3. Prepare Rates Array (Merged with Formulas)
+        $rates = [
+            'wholesale' => [],
+            'retail'    => []
+        ];
 
-    // ... (Your store method remains the same) ...
+        // Populate Wholesale Rates
+        if(isset($formulas['wholesale'])) {
+            foreach($formulas['wholesale'] as $f) {
+                $rates['wholesale'][$f->rate_key] = $rateValues[$f->rate_key] ?? 0.00;
+            }
+        }
+
+        // Populate Retail Rates
+        if(isset($formulas['retail'])) {
+            foreach($formulas['retail'] as $f) {
+                $rates['retail'][$f->rate_key] = $rateValues[$f->rate_key] ?? 0.00;
+            }
+        }
+
+        return view('pages.sales.index', compact('customers', 'rates', 'formulas'));
+    }
+
     public function store(Request $request)
     {
-   $validated = $request->validate([
-    'customer_id'    => 'required|exists:customers,id',
-    'rate_channel'   => 'required|in:wholesale,retail',
-    'cart_items'     => 'required|array|min:1', // Yeh ab pass ho jayega
-    'cart_items.*.category' => 'required|string',
-    'cart_items.*.weight'   => 'required|numeric',
-    'cart_items.*.rate'     => 'required|numeric',
-    'total_payable'  => 'required|numeric',
-    'cash_received'  => 'nullable|numeric',
-    'extra_charges'  => 'nullable|numeric',
-    'discount'       => 'nullable|numeric',
-    'note'           => 'nullable|string|max:255',
-]);
+        $validated = $request->validate([
+            'customer_id'    => 'required|exists:customers,id',
+            'rate_channel'   => 'required|in:wholesale,retail',
+            'cart_items'     => 'required|array|min:1',
+            'cart_items.*.category' => 'required|string',
+            'cart_items.*.weight'   => 'required|numeric',
+            'cart_items.*.rate'     => 'required|numeric',
+            'total_payable'  => 'required|numeric',
+            'cash_received'  => 'nullable|numeric',
+            'extra_charges'  => 'nullable|numeric',
+            'discount'       => 'nullable|numeric',
+            'note'           => 'nullable|string|max:255',
+        ]);
+
         DB::beginTransaction();
 
         try {
@@ -96,7 +92,6 @@ public function index()
             $totalAmount = $validated['total_payable'];
             $cashReceived = $validated['cash_received'] ?? 0;
             
-            // Determine Status
             $paymentStatus = 'credit';
             if ($cashReceived >= $totalAmount) {
                 $paymentStatus = 'paid';
@@ -126,9 +121,7 @@ public function index()
             }
             $sale->items()->saveMany($saleItemsData);
 
-            // 5. Update Balance & Ledger
-            
-            // A. Record SALE (Debit)
+            // 5. Update Ledger
             $customer->current_balance += $totalAmount;
             $customer->save();
 
@@ -144,7 +137,6 @@ public function index()
                 'updated_at'  => now(),
             ]);
 
-            // B. Record PAYMENT (Credit)
             if ($cashReceived > 0) {
                 $customer->current_balance -= $cashReceived;
                 $customer->save();

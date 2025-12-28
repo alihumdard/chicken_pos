@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Dec 26, 2025 at 01:06 AM
+-- Generation Time: Dec 28, 2025 at 11:05 AM
 -- Server version: 11.4.9-MariaDB-cll-lve-log
 -- PHP Version: 8.3.27
 
@@ -55,6 +55,7 @@ CREATE TABLE `alerts` (
 CREATE TABLE `customers` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `name` varchar(100) NOT NULL,
+  `type` varchar(255) NOT NULL DEFAULT 'customer',
   `contact_person` varchar(255) DEFAULT NULL,
   `phone` varchar(255) DEFAULT NULL,
   `address` text DEFAULT NULL,
@@ -67,9 +68,41 @@ CREATE TABLE `customers` (
 -- Dumping data for table `customers`
 --
 
-INSERT INTO `customers` (`id`, `name`, `contact_person`, `phone`, `address`, `current_balance`, `created_at`, `updated_at`) VALUES
-(1, 'Usama Rana', NULL, '03218991304', 'kot momin', 188560.70, '2025-12-25 16:33:22', '2025-12-25 17:50:32'),
-(2, 'Rana Chicken Shop', NULL, '03400602398', 'Kot Momin', 10608.90, '2025-12-25 18:05:37', '2025-12-25 18:06:24');
+INSERT INTO `customers` (`id`, `name`, `type`, `contact_person`, `phone`, `address`, `current_balance`, `created_at`, `updated_at`) VALUES
+(1, 'Rana Chicken Shop', 'shop_retail', NULL, '03457754960', 'kot momin', 401116.85, '2025-12-28 19:21:51', '2025-12-28 20:33:25'),
+(2, 'B Saif', 'customer', NULL, '03457754961', 'kot Momin', 17609.90, '2025-12-28 19:25:20', '2025-12-28 20:14:45'),
+(3, 'B Mushtaq', 'customer', NULL, '03457754965', '66 Chack', 6352.25, '2025-12-28 19:26:38', '2025-12-28 20:16:52'),
+(4, 'Malik Hafeez', 'customer', NULL, '03457754969', 'kot Momin', 12654.57, '2025-12-28 19:27:09', '2025-12-28 20:19:35'),
+(5, 'Malik Abdul Star', 'customer', NULL, '03457754966', '21 chack', 265.36, '2025-12-28 19:28:20', '2025-12-28 20:20:33'),
+(6, 'Ferman Khan', 'customer', NULL, '03457754962', NULL, -345.50, '2025-12-28 19:29:09', '2025-12-28 20:21:37'),
+(7, 'Muhammad Zakaullah', 'customer', NULL, '03457754951', NULL, 18.65, '2025-12-28 19:29:43', '2025-12-28 20:22:25'),
+(8, 'Mudassar Iqbal', 'customer', NULL, '03457754952', NULL, 61981.02, '2025-12-28 19:30:21', '2025-12-28 20:22:59'),
+(9, 'Sain Shokat', 'customer', NULL, '03457754953', NULL, 11543.04, '2025-12-28 19:34:09', '2025-12-28 20:23:52'),
+(10, 'H. Nawaz', 'customer', NULL, '03457754954', NULL, 35989.00, '2025-12-28 19:34:58', '2025-12-28 19:34:58'),
+(11, 'Nouman Babo', 'customer', NULL, '03457754955', NULL, 74837.59, '2025-12-28 19:36:01', '2025-12-28 20:27:19'),
+(12, 'Ali Babo', 'customer', NULL, '03457754956', NULL, 42180.57, '2025-12-28 19:36:33', '2025-12-28 20:28:46'),
+(13, 'Sargodha Chicken', 'customer', NULL, '03457754957', NULL, 155869.16, '2025-12-28 19:37:08', '2025-12-28 20:29:43'),
+(14, 'Maher Naveed', 'customer', NULL, '03457754958', NULL, 209410.26, '2025-12-28 19:37:49', '2025-12-28 20:30:54'),
+(15, 'Ali Jawaid', 'customer', NULL, '03457754959', NULL, 111485.70, '2025-12-28 19:38:22', '2025-12-28 20:31:26'),
+(16, 'Atif Ali', 'customer', NULL, '03457754940', NULL, -9494.51, '2025-12-28 19:39:00', '2025-12-28 20:32:03'),
+(17, 'Khalid Menhdi', 'customer', NULL, '03457754941', NULL, 103652.66, '2025-12-28 19:40:00', '2025-12-28 20:34:21'),
+(18, 'Mohsin Skander', 'customer', NULL, '03457754942', NULL, 66017.75, '2025-12-28 19:40:38', '2025-12-28 20:35:05'),
+(19, 'Jawaid Inayat', 'customer', NULL, '03457754943', NULL, 35471.70, '2025-12-28 19:41:14', '2025-12-28 20:35:38'),
+(20, 'Imran Adnan', 'customer', NULL, '03457754944', NULL, 7559.56, '2025-12-28 19:41:45', '2025-12-28 20:36:06'),
+(21, 'Ateeb Bhai', 'customer', NULL, '03457754945', NULL, 111753.80, '2025-12-28 19:42:23', '2025-12-28 20:36:29'),
+(22, 'Kashi', 'customer', NULL, '03457754946', NULL, 30094.44, '2025-12-28 19:42:56', '2025-12-28 20:37:51'),
+(23, 'Shahzad', 'customer', NULL, '03457754947', NULL, 20746.98, '2025-12-28 19:43:40', '2025-12-28 20:38:18'),
+(24, 'Muneeb + Shabaz', 'customer', NULL, '03457754948', NULL, 13033.94, '2025-12-28 19:44:23', '2025-12-28 20:38:40'),
+(25, 'Qari Sb', 'customer', NULL, '03457754949', NULL, 72596.76, '2025-12-28 19:44:54', '2025-12-28 20:39:07'),
+(26, 'Saith Imran', 'customer', NULL, '03457754930', NULL, 80480.03, '2025-12-28 19:45:38', '2025-12-28 20:39:35'),
+(27, 'Yasir Rana', 'customer', NULL, '03457754931', NULL, 16030.81, '2025-12-28 19:46:16', '2025-12-28 20:40:05'),
+(28, 'Bilal', 'customer', NULL, '03457754932', NULL, 0.00, '2025-12-28 19:46:53', '2025-12-28 19:46:53'),
+(29, 'Rana Saif ur Rehman', 'customer', NULL, '03457754933', NULL, 411901.68, '2025-12-28 19:47:40', '2025-12-28 20:41:12'),
+(30, 'Khalid Tahir', 'customer', NULL, '03457754934', NULL, 0.00, '2025-12-28 19:48:06', '2025-12-28 19:48:06'),
+(31, 'Bhati Keryana', 'customer', NULL, '03457754935', NULL, 0.00, '2025-12-28 19:48:39', '2025-12-28 19:48:39'),
+(32, 'Rana Arshad', 'customer', NULL, '03457754936', NULL, 0.00, '2025-12-28 19:49:05', '2025-12-28 19:49:05'),
+(33, 'Malik Serwar', 'customer', NULL, '03457754937', NULL, 0.00, '2025-12-28 19:49:29', '2025-12-28 19:49:29'),
+(34, 'USAMA RANA', 'customer', NULL, '03218991304', 'P/O Same Chak No 09 SB,Kot momin', 0.00, '2025-12-28 20:44:00', '2025-12-28 20:44:00');
 
 -- --------------------------------------------------------
 
@@ -82,17 +115,7 @@ CREATE TABLE `daily_rates` (
   `supplier_id` bigint(20) UNSIGNED DEFAULT NULL,
   `base_effective_cost` decimal(10,2) NOT NULL,
   `manual_base_cost` decimal(8,2) NOT NULL DEFAULT 0.00,
-  `wholesale_rate` decimal(10,2) NOT NULL,
-  `permanent_rate` decimal(10,2) NOT NULL,
-  `live_chicken_rate` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `wholesale_mix_rate` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `wholesale_chest_rate` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `wholesale_thigh_rate` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `wholesale_customer_piece_rate` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `retail_mix_rate` decimal(10,2) NOT NULL,
-  `retail_chest_rate` decimal(10,2) NOT NULL,
-  `retail_thigh_rate` decimal(10,2) NOT NULL,
-  `retail_piece_rate` decimal(10,2) NOT NULL,
+  `rate_values` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`rate_values`)),
   `is_active` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
@@ -102,43 +125,9 @@ CREATE TABLE `daily_rates` (
 -- Dumping data for table `daily_rates`
 --
 
-INSERT INTO `daily_rates` (`id`, `supplier_id`, `base_effective_cost`, `manual_base_cost`, `wholesale_rate`, `permanent_rate`, `live_chicken_rate`, `wholesale_mix_rate`, `wholesale_chest_rate`, `wholesale_thigh_rate`, `wholesale_customer_piece_rate`, `retail_mix_rate`, `retail_chest_rate`, `retail_thigh_rate`, `retail_piece_rate`, `is_active`, `created_at`, `updated_at`) VALUES
-(1, 1, 353.00, 353.00, 353.00, 353.00, 353.00, 353.00, 353.00, 353.00, 353.00, 353.00, 353.00, 353.00, 353.00, 0, '2025-12-25 15:13:52', '2025-12-25 20:01:11'),
-(2, 1, 353.00, 353.00, 363.00, 353.00, 373.00, 378.00, 478.00, 428.00, 353.00, 403.00, 503.00, 453.00, 343.00, 0, '2025-12-25 15:13:56', '2025-12-25 20:01:11'),
-(3, 1, 353.63, 353.63, 353.63, 353.63, 353.63, 353.63, 353.63, 353.63, 353.63, 353.63, 353.63, 353.63, 353.63, 0, '2025-12-25 15:14:03', '2025-12-25 20:01:11'),
-(4, 1, 350.63, 350.63, 353.63, 350.63, 370.63, 508.41, 525.94, 561.01, 578.54, 537.41, 555.94, 561.01, 578.54, 0, '2025-12-25 16:27:48', '2025-12-25 20:01:11'),
-(5, 1, 350.63, 350.63, 363.63, 350.63, 390.63, 544.66, 713.45, 681.01, 578.54, 600.91, 770.95, 721.01, 562.04, 0, '2025-12-25 16:28:06', '2025-12-25 20:01:11'),
-(6, 1, 353.63, 353.63, 356.63, 353.63, 373.63, 512.76, 530.44, 565.81, 583.49, 541.76, 560.44, 565.81, 583.49, 0, '2025-12-25 16:29:01', '2025-12-25 20:01:11'),
-(7, 1, 353.63, 353.63, 353.63, 353.63, 373.63, 512.76, 530.44, 565.81, 583.49, 541.76, 560.44, 597.81, 616.49, 0, '2025-12-25 17:36:26', '2025-12-25 20:01:11'),
-(8, 1, 353.63, 353.63, 356.63, 353.63, 373.63, 512.76, 530.44, 565.81, 583.49, 541.76, 560.44, 597.81, 616.49, 0, '2025-12-25 18:33:57', '2025-12-25 20:01:11'),
-(9, 1, 353.63, 0.00, 356.63, 353.63, 373.63, 512.76, 530.44, 565.81, 583.49, 541.76, 560.44, 597.81, 616.49, 0, '2025-12-25 18:35:49', '2025-12-25 20:01:11'),
-(10, 1, 353.63, 0.00, 356.63, 353.63, 373.63, 512.76, 530.44, 565.81, 583.49, 541.76, 560.44, 597.81, 616.49, 0, '2025-12-25 18:35:50', '2025-12-25 20:01:11'),
-(11, 1, 353.63, 0.00, 356.63, 353.63, 373.63, 512.76, 530.44, 565.81, 583.49, 541.76, 560.44, 597.81, 616.49, 0, '2025-12-25 18:35:59', '2025-12-25 20:01:11'),
-(12, 1, 353.63, 0.00, 356.63, 353.63, 373.63, 512.76, 530.44, 565.81, 583.49, 541.76, 560.44, 597.81, 616.49, 0, '2025-12-25 18:36:09', '2025-12-25 20:01:11'),
-(13, 1, 353.63, 0.00, 356.63, 353.63, 373.63, 512.76, 530.44, 565.81, 583.49, 541.76, 560.44, 597.81, 616.49, 0, '2025-12-25 18:36:17', '2025-12-25 20:01:11'),
-(14, 1, 353.63, 0.00, 356.63, 353.63, 373.63, 512.76, 530.44, 565.81, 583.49, 541.76, 560.44, 597.81, 616.49, 0, '2025-12-25 18:37:24', '2025-12-25 20:01:11'),
-(15, 1, 350.00, 350.00, 353.00, 350.00, 370.00, 507.50, 525.00, 560.00, 577.50, 536.50, 555.00, 592.00, 610.50, 0, '2025-12-25 18:37:39', '2025-12-25 20:01:11'),
-(16, 1, 350.00, 350.00, 363.00, 350.00, 390.00, 543.75, 712.50, 680.00, 577.50, 600.00, 770.00, 740.00, 581.00, 0, '2025-12-25 18:37:42', '2025-12-25 20:01:11'),
-(17, 1, 350.00, 0.00, 353.00, 350.00, 370.00, 507.50, 525.00, 560.00, 577.50, 536.50, 555.00, 592.00, 610.50, 0, '2025-12-25 18:47:09', '2025-12-25 20:01:11'),
-(18, 1, 0.00, 0.00, 13.00, 0.00, 40.00, 36.25, 187.50, 120.00, 0.00, 92.50, 245.00, 180.00, 3.50, 0, '2025-12-25 18:47:15', '2025-12-25 20:01:11'),
-(19, 1, 0.00, 0.00, 3.00, 0.00, 20.00, 0.00, 0.00, 0.00, 0.00, 29.00, 30.00, 32.00, 33.00, 0, '2025-12-25 18:47:29', '2025-12-25 20:01:11'),
-(20, 1, 0.00, 0.00, 13.00, 0.00, 40.00, 36.25, 187.50, 120.00, 0.00, 92.50, 245.00, 180.00, 3.50, 0, '2025-12-25 18:47:47', '2025-12-25 20:01:11'),
-(21, 1, 400.00, 400.00, 403.00, 400.00, 420.00, 580.00, 600.00, 640.00, 660.00, 609.00, 630.00, 672.00, 693.00, 0, '2025-12-25 18:48:38', '2025-12-25 20:01:11'),
-(22, 1, 400.00, 0.00, 403.00, 400.00, 420.00, 580.00, 600.00, 640.00, 660.00, 609.00, 630.00, 672.00, 693.00, 0, '2025-12-25 18:51:36', '2025-12-25 20:01:11'),
-(23, 1, 400.00, 0.00, 403.00, 400.00, 420.00, 580.00, 600.00, 640.00, 660.00, 609.00, 630.00, 672.00, 693.00, 0, '2025-12-25 18:52:47', '2025-12-25 20:01:11'),
-(24, 1, 350.63, 350.63, 353.63, 350.63, 370.63, 508.42, 525.95, 561.01, 578.54, 537.42, 555.95, 593.01, 611.54, 0, '2025-12-25 18:54:01', '2025-12-25 20:01:11'),
-(25, 1, 350.63, 0.00, 353.63, 350.63, 370.63, 508.41, 525.94, 561.01, 578.54, 537.41, 555.94, 593.01, 611.54, 0, '2025-12-25 18:54:12', '2025-12-25 20:01:11'),
-(26, 1, 0.00, 0.00, 13.00, 0.00, 40.00, 36.25, 187.50, 120.00, 0.00, 92.50, 245.00, 180.00, 3.50, 0, '2025-12-25 18:54:17', '2025-12-25 20:01:11'),
-(27, 1, 0.00, 0.00, 3.00, 0.00, 20.00, 0.00, 0.00, 0.00, 0.00, 29.00, 30.00, 32.00, 33.00, 0, '2025-12-25 18:55:21', '2025-12-25 20:01:11'),
-(28, 1, 350.63, 350.63, 353.63, 350.63, 370.63, 508.41, 525.94, 561.01, 578.54, 537.41, 555.94, 593.01, 611.54, 0, '2025-12-25 18:56:54', '2025-12-25 20:01:11'),
-(29, 1, 350.63, 0.00, 353.63, 350.63, 370.63, 508.41, 525.94, 561.01, 578.54, 537.41, 555.94, 593.01, 611.54, 0, '2025-12-25 18:57:39', '2025-12-25 20:01:11'),
-(30, 1, 350.63, 0.00, 353.63, 350.63, 370.63, 508.41, 525.94, 561.01, 578.54, 537.41, 555.94, 593.01, 611.54, 0, '2025-12-25 18:58:19', '2025-12-25 20:01:11'),
-(31, 1, 350.63, 0.00, 353.63, 350.63, 370.63, 508.41, 525.94, 561.01, 578.54, 537.41, 555.94, 593.01, 611.54, 0, '2025-12-25 18:58:42', '2025-12-25 20:01:11'),
-(32, 1, 350.63, 0.00, 353.63, 350.63, 370.63, 508.41, 525.94, 561.01, 578.54, 537.41, 555.94, 593.01, 611.54, 0, '2025-12-25 19:00:37', '2025-12-25 20:01:11'),
-(33, 1, 350.63, 0.00, 353.63, 350.63, 370.63, 508.41, 525.94, 561.01, 578.54, 537.41, 555.94, 593.01, 611.54, 0, '2025-12-25 19:00:56', '2025-12-25 20:01:11'),
-(34, 1, 350.63, 0.00, 363.63, 350.63, 390.63, 544.66, 713.45, 681.01, 578.54, 600.91, 770.95, 741.01, 582.04, 0, '2025-12-25 19:01:19', '2025-12-25 20:01:11'),
-(35, 1, 350.63, 0.00, 353.63, 350.63, 370.63, 530.44, 525.94, 561.01, 578.54, 537.41, 555.94, 593.01, 611.54, 0, '2025-12-25 19:04:06', '2025-12-25 20:01:11'),
-(36, 1, 350.63, 0.00, 353.63, 350.63, 373.63, 512.76, 530.44, 565.81, 583.49, 541.76, 560.44, 597.81, 616.49, 1, '2025-12-25 20:01:11', '2025-12-25 20:01:11');
+INSERT INTO `daily_rates` (`id`, `supplier_id`, `base_effective_cost`, `manual_base_cost`, `rate_values`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, 1, 355.30, 0.00, '{\"wholesale_live_chicken_rate\":\"358.30\",\"wholesale_mix_34_rate\":\"519.53\",\"wholesale_mix_35_rate\":\"537.45\",\"wholesale_mix_36_rate\":\"573.28\",\"wholesale_mix_37_rate\":\"591.19\",\"wholesale_chest_leg_38_rate\":\"609.11\",\"wholesale_drum_sticks_rate\":\"680.77\",\"wholesale_chest_boneless_rate\":\"788.26\",\"wholesale_thigh_boneless_rate\":\"859.92\",\"wholesale_kalagi_pot_rate\":\"355.30\",\"wholesale_chick_paw_rate\":\"177.65\",\"retail_live_chicken_rate\":\"378.30\",\"retail_mix_34_rate\":\"548.53\",\"retail_mix_35_rate\":\"567.45\",\"retail_mix_36_rate\":\"605.28\",\"retail_mix_37_rate\":\"643.11\",\"retail_chest_leg_38_rate\":\"643.11\",\"retail_drum_sticks_rate\":\"718.77\",\"retail_chest_boneless_rate\":\"824.09\",\"retail_thigh_boneless_rate\":\"859.92\",\"retail_kalagi_pot_rate\":\"355.30\",\"retail_chick_paw_rate\":\"177.65\"}', 0, '2025-12-28 19:17:00', '2025-12-28 19:22:25'),
+(2, 1, 355.30, 0.00, '{\"wholesale_live_chicken_rate\":\"358.30\",\"wholesale_mix_34_rate\":\"519.53\",\"wholesale_mix_35_rate\":\"537.45\",\"wholesale_mix_36_rate\":\"573.28\",\"wholesale_mix_37_rate\":\"591.19\",\"wholesale_chest_leg_38_rate\":\"609.11\",\"wholesale_drum_sticks_rate\":\"680.77\",\"wholesale_chest_boneless_rate\":\"788.26\",\"wholesale_thigh_boneless_rate\":\"859.92\",\"wholesale_kalagi_pot_rate\":\"355.30\",\"wholesale_chick_paw_rate\":\"177.65\",\"retail_live_chicken_rate\":\"378.30\",\"retail_mix_34_rate\":\"548.53\",\"retail_mix_35_rate\":\"567.45\",\"retail_mix_36_rate\":\"605.28\",\"retail_mix_37_rate\":\"624.19\",\"retail_chest_leg_38_rate\":\"643.11\",\"retail_drum_sticks_rate\":\"718.77\",\"retail_chest_boneless_rate\":\"788.26\",\"retail_thigh_boneless_rate\":\"859.92\",\"retail_kalagi_pot_rate\":\"355.30\",\"retail_chick_paw_rate\":\"177.65\"}', 1, '2025-12-28 19:22:25', '2025-12-28 19:22:25');
 
 -- --------------------------------------------------------
 
@@ -206,7 +195,14 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (15, '2025_12_05_052341_create_settings_table', 1),
 (16, '2025_12_06_171240_create_transactions_table', 1),
 (17, '2025_12_07_051500_create_poultries_table', 1),
-(18, '2025_12_07_052827_create_expenses_table', 1);
+(18, '2025_12_07_052827_create_expenses_table', 1),
+(19, '2025_12_26_064907_add_extended_poultry_columns_to_daily_rates_table', 1),
+(20, '2025_12_26_072925_add_total_kharch_to_purchases_table', 1),
+(21, '2025_12_27_054808_add_type_to_suppliers_table', 1),
+(22, '2025_12_27_054818_add_type_to_customers_table', 1),
+(23, '2025_12_27_075019_add_address_to_contacts_tables', 1),
+(24, '2025_12_27_145402_add_extra_fields_to_transactions_table', 1),
+(25, '2025_12_28_130216_restructure_daily_rates_to_json', 1);
 
 -- --------------------------------------------------------
 
@@ -272,9 +268,10 @@ CREATE TABLE `purchases` (
   `shrink_loss` decimal(10,2) NOT NULL DEFAULT 0.00,
   `net_live_weight` decimal(10,2) NOT NULL,
   `buying_rate` decimal(10,2) NOT NULL,
+  `total_kharch` decimal(15,2) NOT NULL DEFAULT 0.00,
   `total_payable` decimal(10,2) NOT NULL,
   `effective_cost` decimal(10,2) NOT NULL,
-  `purchase_date` date NOT NULL DEFAULT '2025-12-25',
+  `purchase_date` date NOT NULL DEFAULT '2025-12-28',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -283,10 +280,8 @@ CREATE TABLE `purchases` (
 -- Dumping data for table `purchases`
 --
 
-INSERT INTO `purchases` (`id`, `supplier_id`, `driver_no`, `gross_weight`, `dead_qty`, `dead_weight`, `shrink_loss`, `net_live_weight`, `buying_rate`, `total_payable`, `effective_cost`, `purchase_date`, `created_at`, `updated_at`) VALUES
-(3, 1, NULL, 4037.00, 0, 35.00, 0.00, 4002.00, 340.00, 1372580.00, 350.63, '2025-12-25', '2025-12-25 18:37:09', '2025-12-25 18:37:09'),
-(4, 1, NULL, 4037.00, 0, 0.00, 35.00, 4002.00, 340.00, 1372580.00, 350.63, '2025-12-25', '2025-12-25 18:45:13', '2025-12-25 18:45:13'),
-(5, 1, NULL, 4037.00, 0, 0.00, 35.00, 4002.00, 340.00, 1372580.00, 351.89, '2025-12-25', '2025-12-26 10:40:06', '2025-12-26 10:40:06');
+INSERT INTO `purchases` (`id`, `supplier_id`, `driver_no`, `gross_weight`, `dead_qty`, `dead_weight`, `shrink_loss`, `net_live_weight`, `buying_rate`, `total_kharch`, `total_payable`, `effective_cost`, `purchase_date`, `created_at`, `updated_at`) VALUES
+(1, 1, NULL, 4080.00, 0, 0.00, 30.60, 4049.40, 347.00, 23000.00, 1415760.00, 355.30, '2025-12-28', '2025-12-28 18:46:43', '2025-12-28 18:46:43');
 
 -- --------------------------------------------------------
 
@@ -296,11 +291,15 @@ INSERT INTO `purchases` (`id`, `supplier_id`, `driver_no`, `gross_weight`, `dead
 
 CREATE TABLE `rate_formulas` (
   `id` bigint(20) UNSIGNED NOT NULL,
-  `rate_key` varchar(255) NOT NULL COMMENT 'The key for the rate being modified (e.g., wholesale_rate)',
-  `multiply` decimal(8,4) NOT NULL DEFAULT 1.0000,
-  `divide` decimal(8,4) NOT NULL DEFAULT 1.0000,
-  `plus` decimal(8,4) NOT NULL DEFAULT 0.0000,
-  `minus` decimal(8,4) NOT NULL DEFAULT 0.0000,
+  `title` varchar(255) NOT NULL,
+  `rate_key` varchar(255) NOT NULL,
+  `icon_url` varchar(255) DEFAULT NULL,
+  `channel` enum('wholesale','retail') NOT NULL,
+  `multiply` decimal(10,4) NOT NULL DEFAULT 1.0000,
+  `divide` decimal(10,4) NOT NULL DEFAULT 1.0000,
+  `plus` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `minus` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `status` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -309,29 +308,29 @@ CREATE TABLE `rate_formulas` (
 -- Dumping data for table `rate_formulas`
 --
 
-INSERT INTO `rate_formulas` (`id`, `rate_key`, `multiply`, `divide`, `plus`, `minus`, `created_at`, `updated_at`) VALUES
-(1, 'wholesale_rate', 1.0000, 1.0000, 3.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 18:33:01'),
-(2, 'live_chicken_rate', 1.0000, 1.0000, 23.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 19:06:16'),
-(3, 'wholesale_mix_rate', 1.4500, 1.0000, 3.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 19:04:37'),
-(4, 'wholesale_chest_rate', 1.5000, 1.0000, 3.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 19:05:03'),
-(5, 'wholesale_thigh_rate', 1.6000, 1.0000, 3.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 19:05:12'),
-(6, 'wholesale_customer_piece_rate', 1.6500, 1.0000, 3.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 19:05:38'),
-(7, 'retail_mix_rate', 1.4500, 1.0000, 23.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 19:06:33'),
-(8, 'retail_chest_rate', 1.5000, 1.0000, 23.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 19:06:41'),
-(9, 'retail_thigh_rate', 1.6000, 1.0000, 23.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 19:06:50'),
-(10, 'retail_piece_rate', 1.6500, 1.0000, 23.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 19:07:01'),
-(11, 'purchase_effective_cost', 1.0000, 1.0000, 0.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 14:40:35'),
-(12, 'permanent_rate', 1.0000, 1.0000, 0.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 14:40:35'),
-(14, 'wholesale_chest_and_leg_pieces', 1.7000, 1.0000, 3.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 19:42:51'),
-(15, 'wholesale_drum_sticks', 1.9000, 1.0000, 3.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 19:44:20'),
-(16, 'wholesale_chest_boneless', 2.2000, 1.0000, 3.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 19:44:42'),
-(17, 'wholesale_thigh_boneless', 2.4000, 1.0000, 3.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 19:45:03'),
-(18, 'wholesale_kalagi_pot_gardan', 1.0000, 1.0000, 0.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 14:40:35'),
-(19, 'retail_chest_and_leg_pieces', 1.7000, 1.0000, 23.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 19:45:31'),
-(20, 'retail_drum_sticks', 1.9000, 1.0000, 23.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 19:45:48'),
-(21, 'retail_chest_boneless', 2.2000, 1.0000, 3.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 19:46:27'),
-(22, 'retail_thigh_boneless', 2.4000, 1.0000, 3.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 19:46:39'),
-(23, 'retail_kalagi_pot_gardan', 1.0000, 1.0000, 0.0000, 0.0000, '2025-12-25 14:40:35', '2025-12-25 14:40:35');
+INSERT INTO `rate_formulas` (`id`, `title`, `rate_key`, `icon_url`, `channel`, `multiply`, `divide`, `plus`, `minus`, `status`, `created_at`, `updated_at`) VALUES
+(1, 'Wholesale Live Chicken', 'wholesale_live_chicken_rate', NULL, 'wholesale', 1.0000, 1.0000, 3.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:08:03'),
+(2, 'Mix (No. 34)', 'wholesale_mix_34_rate', NULL, 'wholesale', 1.4500, 1.0000, 3.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:08:19'),
+(3, 'Mix (No. 35)', 'wholesale_mix_35_rate', NULL, 'wholesale', 1.5000, 1.0000, 3.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:08:33'),
+(4, 'Mix (No. 36)', 'wholesale_mix_36_rate', NULL, 'wholesale', 1.6000, 1.0000, 3.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:08:45'),
+(5, 'Mix (No. 37)', 'wholesale_mix_37_rate', NULL, 'wholesale', 1.6500, 1.0000, 3.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:09:39'),
+(6, 'Chest Leg (No. 38)', 'wholesale_chest_leg_38_rate', NULL, 'wholesale', 1.7000, 1.0000, 3.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:09:59'),
+(7, 'Drum Sticks', 'wholesale_drum_sticks_rate', NULL, 'wholesale', 1.9000, 1.0000, 3.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:10:16'),
+(8, 'Chest Boneless', 'wholesale_chest_boneless_rate', NULL, 'wholesale', 2.2000, 1.0000, 3.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:10:36'),
+(9, 'Thigh Boneless', 'wholesale_thigh_boneless_rate', NULL, 'wholesale', 2.4000, 1.0000, 3.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:11:25'),
+(10, 'Kalagi Pot', 'wholesale_kalagi_pot_rate', NULL, 'wholesale', 1.0000, 1.0000, 0.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 18:36:16'),
+(11, 'Chick Paws', 'wholesale_chick_paw_rate', NULL, 'wholesale', 1.0000, 2.0000, 0.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:11:57'),
+(12, 'Retail Live Chicken', 'retail_live_chicken_rate', NULL, 'retail', 1.0000, 1.0000, 23.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:14:05'),
+(13, 'Mix (No. 34)', 'retail_mix_34_rate', NULL, 'retail', 1.4500, 1.0000, 23.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:14:29'),
+(14, 'Mix (No. 35)', 'retail_mix_35_rate', NULL, 'retail', 1.5000, 1.0000, 23.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:14:46'),
+(15, 'Mix (No. 36)', 'retail_mix_36_rate', NULL, 'retail', 1.6000, 1.0000, 23.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:15:05'),
+(16, 'Mix (No. 37)', 'retail_mix_37_rate', NULL, 'retail', 1.6500, 1.0000, 23.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:19:04'),
+(17, 'Chest Leg (No. 38)', 'retail_chest_leg_38_rate', NULL, 'retail', 1.7000, 1.0000, 23.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:15:38'),
+(18, 'Drum Sticks', 'retail_drum_sticks_rate', NULL, 'retail', 1.9000, 1.0000, 23.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:15:51'),
+(19, 'Chest Boneless', 'retail_chest_boneless_rate', NULL, 'retail', 2.2000, 1.0000, 3.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:20:22'),
+(20, 'Thigh Boneless', 'retail_thigh_boneless_rate', NULL, 'retail', 2.4000, 1.0000, 3.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:16:27'),
+(21, 'Kalagi Pot', 'retail_kalagi_pot_rate', NULL, 'retail', 1.0000, 1.0000, 0.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 18:36:16'),
+(22, 'Chick Paws', 'retail_chick_paw_rate', NULL, 'retail', 1.0000, 2.0000, 0.00, 0.00, 1, '2025-12-28 18:36:16', '2025-12-28 19:16:51');
 
 -- --------------------------------------------------------
 
@@ -354,8 +353,33 @@ CREATE TABLE `sales` (
 --
 
 INSERT INTO `sales` (`id`, `customer_id`, `total_amount`, `payment_status`, `sale_channel`, `created_at`, `updated_at`) VALUES
-(1, 1, 188560.70, 'credit', NULL, '2025-12-25 17:49:00', '2025-12-25 17:49:00'),
-(2, 2, 10608.90, 'credit', NULL, '2025-12-25 18:06:24', '2025-12-25 18:06:24');
+(1, 2, 15406.90, 'partial', NULL, '2025-12-28 20:14:45', '2025-12-28 20:14:45'),
+(2, 3, 2687.25, 'paid', NULL, '2025-12-28 20:16:52', '2025-12-28 20:16:52'),
+(3, 4, 6413.57, 'partial', NULL, '2025-12-28 20:19:35', '2025-12-28 20:19:35'),
+(4, 5, 10462.36, 'partial', NULL, '2025-12-28 20:20:33', '2025-12-28 20:20:33'),
+(5, 6, 5374.50, 'paid', NULL, '2025-12-28 20:21:37', '2025-12-28 20:21:37'),
+(6, 7, 5553.65, 'partial', NULL, '2025-12-28 20:22:25', '2025-12-28 20:22:25'),
+(7, 8, 46364.02, 'paid', NULL, '2025-12-28 20:22:59', '2025-12-28 20:22:59'),
+(8, 9, 31817.04, 'partial', NULL, '2025-12-28 20:23:52', '2025-12-28 20:23:52'),
+(9, 11, 38445.59, 'partial', NULL, '2025-12-28 20:26:21', '2025-12-28 20:26:21'),
+(10, 12, 27911.57, 'paid', NULL, '2025-12-28 20:28:46', '2025-12-28 20:28:46'),
+(11, 13, 55608.16, 'credit', NULL, '2025-12-28 20:29:43', '2025-12-28 20:29:43'),
+(12, 14, 90363.26, 'partial', NULL, '2025-12-28 20:30:54', '2025-12-28 20:30:54'),
+(13, 15, 39054.70, 'credit', NULL, '2025-12-28 20:31:26', '2025-12-28 20:31:26'),
+(14, 16, 21605.49, 'paid', NULL, '2025-12-28 20:32:03', '2025-12-28 20:32:03'),
+(15, 1, 401116.85, 'credit', NULL, '2025-12-28 20:33:25', '2025-12-28 20:33:25'),
+(16, 17, 39484.66, 'credit', NULL, '2025-12-28 20:34:21', '2025-12-28 20:34:21'),
+(17, 18, 29559.75, 'credit', NULL, '2025-12-28 20:35:05', '2025-12-28 20:35:05'),
+(18, 19, 35471.70, 'credit', NULL, '2025-12-28 20:35:38', '2025-12-28 20:35:38'),
+(19, 20, 4729.56, 'credit', NULL, '2025-12-28 20:36:06', '2025-12-28 20:36:06'),
+(20, 21, 20064.80, 'credit', NULL, '2025-12-28 20:36:29', '2025-12-28 20:36:29'),
+(21, 22, 23934.44, 'credit', NULL, '2025-12-28 20:37:51', '2025-12-28 20:37:51'),
+(22, 23, 10963.98, 'credit', NULL, '2025-12-28 20:38:18', '2025-12-28 20:38:18'),
+(23, 24, 4227.94, 'credit', NULL, '2025-12-28 20:38:40', '2025-12-28 20:38:40'),
+(24, 25, 16911.76, 'credit', NULL, '2025-12-28 20:39:07', '2025-12-28 20:39:07'),
+(25, 26, 44465.03, 'credit', NULL, '2025-12-28 20:39:35', '2025-12-28 20:39:35'),
+(26, 27, 10999.81, 'credit', NULL, '2025-12-28 20:40:05', '2025-12-28 20:40:05'),
+(27, 29, 411901.68, 'credit', NULL, '2025-12-28 20:41:12', '2025-12-28 20:41:12');
 
 -- --------------------------------------------------------
 
@@ -379,17 +403,34 @@ CREATE TABLE `sale_items` (
 --
 
 INSERT INTO `sale_items` (`id`, `sale_id`, `product_category`, `weight_kg`, `rate_pkr`, `line_total`, `created_at`, `updated_at`) VALUES
-(1, 1, 'Mix (No.37)', 30.000, 616.49, 18494.70, '2025-12-25 17:49:00', '2025-12-25 17:49:00'),
-(2, 1, 'Mix (No.36)', 30.000, 597.81, 17934.30, '2025-12-25 17:49:00', '2025-12-25 17:49:00'),
-(3, 1, 'Mix (No.35)', 30.000, 560.44, 16813.20, '2025-12-25 17:49:00', '2025-12-25 17:49:00'),
-(4, 1, 'Mix (No.34)', 30.000, 541.76, 16252.80, '2025-12-25 17:49:00', '2025-12-25 17:49:00'),
-(5, 1, 'Live', 30.000, 373.63, 11208.90, '2025-12-25 17:49:00', '2025-12-25 17:49:00'),
-(6, 1, 'Mix (No.37)', 30.000, 583.49, 17504.70, '2025-12-25 17:49:00', '2025-12-25 17:49:00'),
-(7, 1, 'Mix (No.36)', 30.000, 565.81, 16974.30, '2025-12-25 17:49:00', '2025-12-25 17:49:00'),
-(8, 1, 'Mix (No.35)', 50.000, 530.44, 26522.00, '2025-12-25 17:49:00', '2025-12-25 17:49:00'),
-(9, 1, 'Mix (No.34)', 50.000, 512.76, 25638.00, '2025-12-25 17:49:00', '2025-12-25 17:49:00'),
-(10, 1, 'live', 60.000, 353.63, 21217.80, '2025-12-25 17:49:00', '2025-12-25 17:49:00'),
-(11, 2, 'live', 30.000, 353.63, 10608.90, '2025-12-25 18:06:24', '2025-12-25 18:06:24');
+(1, 1, 'Wholesale Live Chicken', 43.000, 358.30, 15406.90, '2025-12-28 20:14:45', '2025-12-28 20:14:45'),
+(2, 2, 'Wholesale Live Chicken', 7.500, 358.30, 2687.25, '2025-12-28 20:16:52', '2025-12-28 20:16:52'),
+(3, 3, 'Wholesale Live Chicken', 17.900, 358.30, 6413.57, '2025-12-28 20:19:35', '2025-12-28 20:19:35'),
+(4, 4, 'Wholesale Live Chicken', 29.200, 358.30, 10462.36, '2025-12-28 20:20:33', '2025-12-28 20:20:33'),
+(5, 5, 'Wholesale Live Chicken', 15.000, 358.30, 5374.50, '2025-12-28 20:21:37', '2025-12-28 20:21:37'),
+(6, 6, 'Wholesale Live Chicken', 15.500, 358.30, 5553.65, '2025-12-28 20:22:25', '2025-12-28 20:22:25'),
+(7, 7, 'Wholesale Live Chicken', 129.400, 358.30, 46364.02, '2025-12-28 20:22:59', '2025-12-28 20:22:59'),
+(8, 8, 'Wholesale Live Chicken', 88.800, 358.30, 31817.04, '2025-12-28 20:23:52', '2025-12-28 20:23:52'),
+(9, 9, 'Wholesale Live Chicken', 107.300, 358.30, 38445.59, '2025-12-28 20:26:21', '2025-12-28 20:26:21'),
+(10, 10, 'Wholesale Live Chicken', 77.900, 358.30, 27911.57, '2025-12-28 20:28:46', '2025-12-28 20:28:46'),
+(11, 11, 'Wholesale Live Chicken', 155.200, 358.30, 55608.16, '2025-12-28 20:29:43', '2025-12-28 20:29:43'),
+(12, 12, 'Wholesale Live Chicken', 252.200, 358.30, 90363.26, '2025-12-28 20:30:54', '2025-12-28 20:30:54'),
+(13, 13, 'Wholesale Live Chicken', 109.000, 358.30, 39054.70, '2025-12-28 20:31:26', '2025-12-28 20:31:26'),
+(14, 14, 'Wholesale Live Chicken', 60.300, 358.30, 21605.49, '2025-12-28 20:32:03', '2025-12-28 20:32:03'),
+(15, 15, 'Wholesale Live Chicken', 669.900, 358.30, 240025.17, '2025-12-28 20:33:25', '2025-12-28 20:33:25'),
+(16, 15, 'Wholesale Live Chicken', 449.600, 358.30, 161091.68, '2025-12-28 20:33:25', '2025-12-28 20:33:25'),
+(17, 16, 'Wholesale Live Chicken', 110.200, 358.30, 39484.66, '2025-12-28 20:34:21', '2025-12-28 20:34:21'),
+(18, 17, 'Wholesale Live Chicken', 82.500, 358.30, 29559.75, '2025-12-28 20:35:05', '2025-12-28 20:35:05'),
+(19, 18, 'Wholesale Live Chicken', 99.000, 358.30, 35471.70, '2025-12-28 20:35:38', '2025-12-28 20:35:38'),
+(20, 19, 'Wholesale Live Chicken', 13.200, 358.30, 4729.56, '2025-12-28 20:36:06', '2025-12-28 20:36:06'),
+(21, 20, 'Wholesale Live Chicken', 56.000, 358.30, 20064.80, '2025-12-28 20:36:29', '2025-12-28 20:36:29'),
+(22, 21, 'Wholesale Live Chicken', 66.800, 358.30, 23934.44, '2025-12-28 20:37:51', '2025-12-28 20:37:51'),
+(23, 22, 'Wholesale Live Chicken', 30.600, 358.30, 10963.98, '2025-12-28 20:38:18', '2025-12-28 20:38:18'),
+(24, 23, 'Wholesale Live Chicken', 11.800, 358.30, 4227.94, '2025-12-28 20:38:40', '2025-12-28 20:38:40'),
+(25, 24, 'Wholesale Live Chicken', 47.200, 358.30, 16911.76, '2025-12-28 20:39:07', '2025-12-28 20:39:07'),
+(26, 25, 'Wholesale Live Chicken', 124.100, 358.30, 44465.03, '2025-12-28 20:39:35', '2025-12-28 20:39:35'),
+(27, 26, 'Wholesale Live Chicken', 30.700, 358.30, 10999.81, '2025-12-28 20:40:05', '2025-12-28 20:40:05'),
+(28, 27, 'Wholesale Live Chicken', 1149.600, 358.30, 411901.68, '2025-12-28 20:41:12', '2025-12-28 20:41:12');
 
 -- --------------------------------------------------------
 
@@ -412,7 +453,7 @@ CREATE TABLE `settings` (
 --
 
 INSERT INTO `settings` (`id`, `shop_name`, `address`, `phone_number`, `logo_url`, `created_at`, `updated_at`) VALUES
-(1, 'RANA POS', NULL, NULL, NULL, '2025-12-25 14:40:35', '2025-12-25 14:40:35');
+(1, 'RANA POS', NULL, NULL, NULL, '2025-12-28 18:36:15', '2025-12-28 18:36:15');
 
 -- --------------------------------------------------------
 
@@ -423,8 +464,10 @@ INSERT INTO `settings` (`id`, `shop_name`, `address`, `phone_number`, `logo_url`
 CREATE TABLE `suppliers` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `name` varchar(100) NOT NULL,
+  `type` varchar(255) NOT NULL DEFAULT 'supplier',
   `contact_person` varchar(255) DEFAULT NULL,
   `phone` varchar(255) DEFAULT NULL,
+  `address` varchar(255) DEFAULT NULL,
   `current_balance` decimal(15,2) NOT NULL DEFAULT 0.00,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
@@ -434,8 +477,8 @@ CREATE TABLE `suppliers` (
 -- Dumping data for table `suppliers`
 --
 
-INSERT INTO `suppliers` (`id`, `name`, `contact_person`, `phone`, `current_balance`, `created_at`, `updated_at`) VALUES
-(1, 'WALEED POLTRY', NULL, NULL, 6851000.00, '2025-12-25 14:45:34', '2025-12-26 10:40:06');
+INSERT INTO `suppliers` (`id`, `name`, `type`, `contact_person`, `phone`, `address`, `current_balance`, `created_at`, `updated_at`) VALUES
+(1, 'Zafer Iqbal', 'supplier', NULL, '03400602398', NULL, 1415760.00, '2025-12-28 18:45:09', '2025-12-28 18:46:43');
 
 -- --------------------------------------------------------
 
@@ -450,6 +493,12 @@ CREATE TABLE `transactions` (
   `date` date NOT NULL,
   `type` varchar(255) DEFAULT NULL,
   `description` varchar(255) DEFAULT NULL,
+  `gross_weight` decimal(10,2) DEFAULT NULL,
+  `dead_weight` decimal(10,2) DEFAULT NULL,
+  `shrink_loss` decimal(10,2) DEFAULT NULL,
+  `net_live_weight` decimal(10,2) DEFAULT NULL,
+  `total_kharch` decimal(12,2) DEFAULT NULL,
+  `buying_rate` decimal(10,2) DEFAULT NULL,
   `debit` decimal(15,2) NOT NULL DEFAULT 0.00,
   `credit` decimal(15,2) NOT NULL DEFAULT 0.00,
   `balance` decimal(15,2) NOT NULL DEFAULT 0.00,
@@ -461,16 +510,70 @@ CREATE TABLE `transactions` (
 -- Dumping data for table `transactions`
 --
 
-INSERT INTO `transactions` (`id`, `supplier_id`, `customer_id`, `date`, `type`, `description`, `debit`, `credit`, `balance`, `created_at`, `updated_at`) VALUES
-(1, 1, NULL, '2025-12-25', 'purchase', 'Purchase #1 (Driver: )', 0.00, 1360680.00, 1360680.00, '2025-12-25 15:06:50', '2025-12-25 15:06:50'),
-(2, NULL, 1, '2025-12-25', 'sale', 'Sale #1 (10 items)', 188560.70, 0.00, 188560.70, '2025-12-25 17:49:00', '2025-12-25 17:49:00'),
-(3, NULL, 1, '2025-12-25', 'opening_balance', 'opening balance', 50000.00, 0.00, 238560.70, '2025-12-25 17:50:01', '2025-12-25 17:50:01'),
-(4, NULL, 1, '2025-12-25', 'payment', 'cash dia', 0.00, 50000.00, 188560.70, '2025-12-25 17:50:32', '2025-12-25 17:50:32'),
-(5, NULL, 2, '2025-12-25', 'sale', 'Sale #2 (1 items)', 10608.90, 0.00, 10608.90, '2025-12-25 18:06:24', '2025-12-25 18:06:24'),
-(6, 1, NULL, '2025-12-25', 'purchase', 'Purchase #2 (Driver: )', 0.00, 1372580.00, 2733260.00, '2025-12-25 18:21:29', '2025-12-25 18:21:29'),
-(7, 1, NULL, '2025-12-25', 'purchase', 'Purchase #3 (Driver: )', 0.00, 1372580.00, 4105840.00, '2025-12-25 18:37:09', '2025-12-25 18:37:09'),
-(8, 1, NULL, '2025-12-25', 'purchase', 'Purchase #4 (Driver: )', 0.00, 1372580.00, 5478420.00, '2025-12-25 18:45:13', '2025-12-25 18:45:13'),
-(9, 1, NULL, '2025-12-26', 'purchase', 'Purchase #5 (Driver: )', 0.00, 1372580.00, 6851000.00, '2025-12-26 10:40:06', '2025-12-26 10:40:06');
+INSERT INTO `transactions` (`id`, `supplier_id`, `customer_id`, `date`, `type`, `description`, `gross_weight`, `dead_weight`, `shrink_loss`, `net_live_weight`, `total_kharch`, `buying_rate`, `debit`, `credit`, `balance`, `created_at`, `updated_at`) VALUES
+(1, 1, NULL, '2025-12-28', 'purchase', 'Purchase #1', 4080.00, NULL, 30.60, 4049.40, 23000.00, NULL, 0.00, 1415760.00, 1415760.00, '2025-12-28 18:46:43', '2025-12-28 18:46:43'),
+(2, NULL, 2, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 15203.00, 0.00, 15203.00, '2025-12-28 19:25:20', '2025-12-28 19:25:20'),
+(3, NULL, 3, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 7665.00, 0.00, 2687.00, '2025-12-28 19:26:38', '2025-12-28 20:16:02'),
+(4, NULL, 4, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 11741.00, 0.00, 6413.00, '2025-12-28 19:27:09', '2025-12-28 20:17:52'),
+(5, NULL, 5, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 263.00, 0.00, 263.00, '2025-12-28 19:28:20', '2025-12-28 19:28:20'),
+(6, NULL, 7, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 15.00, 0.00, 15.00, '2025-12-28 19:29:43', '2025-12-28 19:29:43'),
+(7, NULL, 8, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 94617.00, 0.00, 94617.00, '2025-12-28 19:30:21', '2025-12-28 19:30:21'),
+(8, NULL, 9, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 11543.00, 0.00, 11543.00, '2025-12-28 19:34:09', '2025-12-28 19:34:09'),
+(9, NULL, 10, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 35989.00, 0.00, 35989.00, '2025-12-28 19:34:58', '2025-12-28 19:34:58'),
+(10, NULL, 11, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 67392.00, 0.00, 67392.00, '2025-12-28 19:36:01', '2025-12-28 19:36:01'),
+(11, NULL, 12, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 42269.00, 0.00, 42269.00, '2025-12-28 19:36:33', '2025-12-28 19:36:33'),
+(12, NULL, 13, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 100261.00, 0.00, 100261.00, '2025-12-28 19:37:08', '2025-12-28 19:37:08'),
+(13, NULL, 14, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 194767.00, 0.00, 194767.00, '2025-12-28 19:37:49', '2025-12-28 19:37:49'),
+(14, NULL, 15, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 72431.00, 0.00, 72431.00, '2025-12-28 19:38:22', '2025-12-28 19:38:22'),
+(16, NULL, 17, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 64168.00, 0.00, 64168.00, '2025-12-28 19:40:00', '2025-12-28 19:40:00'),
+(17, NULL, 18, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 36458.00, 0.00, 36458.00, '2025-12-28 19:40:38', '2025-12-28 19:40:38'),
+(18, NULL, 20, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 2830.00, 0.00, 2830.00, '2025-12-28 19:41:45', '2025-12-28 19:41:45'),
+(19, NULL, 21, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 91689.00, 0.00, 91689.00, '2025-12-28 19:42:23', '2025-12-28 19:42:23'),
+(20, NULL, 22, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 6160.00, 0.00, 6160.00, '2025-12-28 19:42:56', '2025-12-28 19:42:56'),
+(21, NULL, 23, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 9783.00, 0.00, 9783.00, '2025-12-28 19:43:40', '2025-12-28 19:43:40'),
+(22, NULL, 24, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 8806.00, 0.00, 8806.00, '2025-12-28 19:44:23', '2025-12-28 19:44:23'),
+(23, NULL, 25, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 55685.00, 0.00, 55685.00, '2025-12-28 19:44:54', '2025-12-28 19:44:54'),
+(24, NULL, 26, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 36015.00, 0.00, 36015.00, '2025-12-28 19:45:38', '2025-12-28 19:45:38'),
+(25, NULL, 27, '2025-12-28', 'opening_balance', 'Opening Balance Entry', NULL, NULL, NULL, NULL, NULL, NULL, 5031.00, 0.00, 5031.00, '2025-12-28 19:46:16', '2025-12-28 19:46:16'),
+(26, NULL, 2, '2025-12-28', 'sale', 'Sale #1 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 15406.90, 0.00, 30609.90, '2025-12-28 20:14:45', '2025-12-28 20:14:45'),
+(27, NULL, 2, '2025-12-28', 'payment', 'Cash Received for Sale #1', NULL, NULL, NULL, NULL, NULL, NULL, 0.00, 13000.00, 17609.90, '2025-12-28 20:14:45', '2025-12-28 20:14:45'),
+(28, NULL, 3, '2025-12-28', 'sale', 'Sale #2 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 2687.25, 0.00, 10352.25, '2025-12-28 20:16:52', '2025-12-28 20:16:52'),
+(29, NULL, 3, '2025-12-28', 'payment', 'Cash Received for Sale #2', NULL, NULL, NULL, NULL, NULL, NULL, 0.00, 4000.00, 6352.25, '2025-12-28 20:16:52', '2025-12-28 20:16:52'),
+(30, NULL, 4, '2025-12-28', 'sale', 'Sale #3 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 6413.57, 0.00, 18154.57, '2025-12-28 20:19:35', '2025-12-28 20:19:35'),
+(31, NULL, 4, '2025-12-28', 'payment', 'Cash Received for Sale #3', NULL, NULL, NULL, NULL, NULL, NULL, 0.00, 5500.00, 12654.57, '2025-12-28 20:19:35', '2025-12-28 20:19:35'),
+(32, NULL, 5, '2025-12-28', 'sale', 'Sale #4 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 10462.36, 0.00, 10725.36, '2025-12-28 20:20:33', '2025-12-28 20:20:33'),
+(33, NULL, 5, '2025-12-28', 'payment', 'Cash Received for Sale #4', NULL, NULL, NULL, NULL, NULL, NULL, 0.00, 10460.00, 265.36, '2025-12-28 20:20:33', '2025-12-28 20:20:33'),
+(34, NULL, 6, '2025-12-28', 'sale', 'Sale #5 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 5374.50, 0.00, 5374.50, '2025-12-28 20:21:37', '2025-12-28 20:21:37'),
+(35, NULL, 6, '2025-12-28', 'payment', 'Cash Received for Sale #5', NULL, NULL, NULL, NULL, NULL, NULL, 0.00, 5720.00, -345.50, '2025-12-28 20:21:37', '2025-12-28 20:21:37'),
+(36, NULL, 7, '2025-12-28', 'sale', 'Sale #6 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 5553.65, 0.00, 5568.65, '2025-12-28 20:22:25', '2025-12-28 20:22:25'),
+(37, NULL, 7, '2025-12-28', 'payment', 'Cash Received for Sale #6', NULL, NULL, NULL, NULL, NULL, NULL, 0.00, 5550.00, 18.65, '2025-12-28 20:22:25', '2025-12-28 20:22:25'),
+(38, NULL, 8, '2025-12-28', 'sale', 'Sale #7 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 46364.02, 0.00, 140981.02, '2025-12-28 20:22:59', '2025-12-28 20:22:59'),
+(39, NULL, 8, '2025-12-28', 'payment', 'Cash Received for Sale #7', NULL, NULL, NULL, NULL, NULL, NULL, 0.00, 79000.00, 61981.02, '2025-12-28 20:22:59', '2025-12-28 20:22:59'),
+(40, NULL, 9, '2025-12-28', 'sale', 'Sale #8 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 31817.04, 0.00, 43360.04, '2025-12-28 20:23:52', '2025-12-28 20:23:52'),
+(41, NULL, 9, '2025-12-28', 'payment', 'Cash Received for Sale #8', NULL, NULL, NULL, NULL, NULL, NULL, 0.00, 31817.00, 11543.04, '2025-12-28 20:23:52', '2025-12-28 20:23:52'),
+(42, NULL, 11, '2025-12-28', 'sale', 'Sale #9 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 38445.59, 0.00, 105837.59, '2025-12-28 20:26:21', '2025-12-28 20:26:21'),
+(43, NULL, 11, '2025-12-28', 'payment', 'Cash Received for Sale #9', NULL, NULL, NULL, NULL, NULL, NULL, 0.00, 31000.00, 74837.59, '2025-12-28 20:26:21', '2025-12-28 20:26:21'),
+(44, NULL, 12, '2025-12-28', 'sale', 'Sale #10 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 27911.57, 0.00, 70180.57, '2025-12-28 20:28:46', '2025-12-28 20:28:46'),
+(45, NULL, 12, '2025-12-28', 'payment', 'Cash Received for Sale #10', NULL, NULL, NULL, NULL, NULL, NULL, 0.00, 28000.00, 42180.57, '2025-12-28 20:28:46', '2025-12-28 20:28:46'),
+(46, NULL, 13, '2025-12-28', 'sale', 'Sale #11 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 55608.16, 0.00, 155869.16, '2025-12-28 20:29:43', '2025-12-28 20:29:43'),
+(47, NULL, 14, '2025-12-28', 'sale', 'Sale #12 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 90363.26, 0.00, 285130.26, '2025-12-28 20:30:54', '2025-12-28 20:30:54'),
+(48, NULL, 14, '2025-12-28', 'payment', 'Cash Received for Sale #12', NULL, NULL, NULL, NULL, NULL, NULL, 0.00, 75720.00, 209410.26, '2025-12-28 20:30:54', '2025-12-28 20:30:54'),
+(49, NULL, 15, '2025-12-28', 'sale', 'Sale #13 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 39054.70, 0.00, 111485.70, '2025-12-28 20:31:26', '2025-12-28 20:31:26'),
+(50, NULL, 16, '2025-12-28', 'sale', 'Sale #14 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 21605.49, 0.00, 38683.49, '2025-12-28 20:32:03', '2025-12-28 20:32:03'),
+(51, NULL, 16, '2025-12-28', 'payment', 'Cash Received for Sale #14', NULL, NULL, NULL, NULL, NULL, NULL, 0.00, 31100.00, 7583.49, '2025-12-28 20:32:03', '2025-12-28 20:32:03'),
+(52, NULL, 1, '2025-12-28', 'sale', 'Sale #15 (2 items)', NULL, NULL, NULL, NULL, NULL, NULL, 401116.85, 0.00, 401116.85, '2025-12-28 20:33:25', '2025-12-28 20:33:25'),
+(53, NULL, 17, '2025-12-28', 'sale', 'Sale #16 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 39484.66, 0.00, 103652.66, '2025-12-28 20:34:21', '2025-12-28 20:34:21'),
+(54, NULL, 18, '2025-12-28', 'sale', 'Sale #17 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 29559.75, 0.00, 66017.75, '2025-12-28 20:35:05', '2025-12-28 20:35:05'),
+(55, NULL, 19, '2025-12-28', 'sale', 'Sale #18 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 35471.70, 0.00, 35471.70, '2025-12-28 20:35:38', '2025-12-28 20:35:38'),
+(56, NULL, 20, '2025-12-28', 'sale', 'Sale #19 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 4729.56, 0.00, 7559.56, '2025-12-28 20:36:06', '2025-12-28 20:36:06'),
+(57, NULL, 21, '2025-12-28', 'sale', 'Sale #20 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 20064.80, 0.00, 111753.80, '2025-12-28 20:36:29', '2025-12-28 20:36:29'),
+(58, NULL, 22, '2025-12-28', 'sale', 'Sale #21 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 23934.44, 0.00, 30094.44, '2025-12-28 20:37:51', '2025-12-28 20:37:51'),
+(59, NULL, 23, '2025-12-28', 'sale', 'Sale #22 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 10963.98, 0.00, 20746.98, '2025-12-28 20:38:18', '2025-12-28 20:38:18'),
+(60, NULL, 24, '2025-12-28', 'sale', 'Sale #23 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 4227.94, 0.00, 13033.94, '2025-12-28 20:38:40', '2025-12-28 20:38:40'),
+(61, NULL, 25, '2025-12-28', 'sale', 'Sale #24 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 16911.76, 0.00, 72596.76, '2025-12-28 20:39:07', '2025-12-28 20:39:07'),
+(62, NULL, 26, '2025-12-28', 'sale', 'Sale #25 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 44465.03, 0.00, 80480.03, '2025-12-28 20:39:35', '2025-12-28 20:39:35'),
+(63, NULL, 27, '2025-12-28', 'sale', 'Sale #26 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 10999.81, 0.00, 16030.81, '2025-12-28 20:40:05', '2025-12-28 20:40:05'),
+(64, NULL, 29, '2025-12-28', 'sale', 'Sale #27 (1 items)', NULL, NULL, NULL, NULL, NULL, NULL, 411901.68, 0.00, 411901.68, '2025-12-28 20:41:12', '2025-12-28 20:41:12');
 
 -- --------------------------------------------------------
 
@@ -516,7 +619,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `name`, `email`, `email_verified_at`, `password`, `phone`, `address`, `role`, `user_pic`, `com_name`, `com_pic`, `country`, `zip_code`, `city`, `state`, `otp`, `reset_pswd_time`, `reset_pswd_attempt`, `subscribed_to_newsletter`, `terms_accepted_at`, `privacy_policy_accepted_at`, `staff_id`, `sadmin_id`, `status`, `created_by`, `updated_by`, `remember_token`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 'Admin', 'admin@example.com', '2025-12-25 14:40:35', '$2y$10$qL5oEuNRhyUaFcZn8zD7je5mkjk4VoBwZ.c5qurGt/LbBd0eprR9S', NULL, NULL, 'Admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, '1', NULL, NULL, NULL, '2025-12-25 14:40:35', '2025-12-25 14:40:35', NULL);
+(1, 'Admin', 'admin@example.com', '2025-12-28 18:36:16', '$2y$10$FBcl2LCcEwYqmvC3BnHxyObC/L5Xa9Z6KzsgT5boe7xQULhkjUMMm', NULL, NULL, 'Admin', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, '1', NULL, NULL, NULL, '2025-12-28 18:36:16', '2025-12-28 18:36:16', NULL);
 
 --
 -- Indexes for dumped tables
@@ -591,8 +694,7 @@ ALTER TABLE `purchases`
 -- Indexes for table `rate_formulas`
 --
 ALTER TABLE `rate_formulas`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `rate_formulas_rate_key_unique` (`rate_key`) USING HASH;
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `sales`
@@ -650,13 +752,13 @@ ALTER TABLE `alerts`
 -- AUTO_INCREMENT for table `customers`
 --
 ALTER TABLE `customers`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
 
 --
 -- AUTO_INCREMENT for table `daily_rates`
 --
 ALTER TABLE `daily_rates`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `expenses`
@@ -674,7 +776,7 @@ ALTER TABLE `failed_jobs`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT for table `personal_access_tokens`
@@ -692,7 +794,7 @@ ALTER TABLE `poultries`
 -- AUTO_INCREMENT for table `purchases`
 --
 ALTER TABLE `purchases`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `rate_formulas`
@@ -704,13 +806,13 @@ ALTER TABLE `rate_formulas`
 -- AUTO_INCREMENT for table `sales`
 --
 ALTER TABLE `sales`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT for table `sale_items`
 --
 ALTER TABLE `sale_items`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
 
 --
 -- AUTO_INCREMENT for table `settings`
@@ -728,7 +830,7 @@ ALTER TABLE `suppliers`
 -- AUTO_INCREMENT for table `transactions`
 --
 ALTER TABLE `transactions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
 
 --
 -- AUTO_INCREMENT for table `users`

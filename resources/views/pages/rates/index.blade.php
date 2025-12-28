@@ -1,7 +1,7 @@
 @extends('layouts.main')
 
 @section('content')
-    {{-- 🟢 SweetAlert2 CDN --}}
+    {{-- SweetAlert2 CDN --}}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <div class="flex">
@@ -35,12 +35,10 @@
                 <form id="daily-rates-form" method="POST" action="{{ route('admin.rates.store') }}">
                     @csrf
 
-                    {{-- 🟢 CONTROL PANEL: Manual Rate + Actions --}}
-                    <div
-                        class="bg-yellow-50 p-6 rounded-2xl shadow-md border border-yellow-300 mb-8 @if($defaultData['is_historical'] ?? false) hidden @endif">
+                    {{-- CONTROL PANEL: Manual Rate + Actions --}}
+                    <div class="bg-yellow-50 p-6 rounded-2xl shadow-md border border-yellow-300 mb-8 @if($defaultData['is_historical'] ?? false) hidden @endif">
 
-                        <h2
-                            class="font-bold text-xl text-gray-800 mb-6 flex items-center gap-2 border-b border-yellow-200 pb-2">
+                        <h2 class="font-bold text-xl text-gray-800 mb-6 flex items-center gap-2 border-b border-yellow-200 pb-2">
                             <i class="fas fa-sliders-h"></i> Pricing Control & Actions
                         </h2>
 
@@ -58,10 +56,7 @@
                                         min="0" step="0.01"
                                         class="text-xl font-bold w-full p-3 pr-12 border border-green-500 bg-white rounded-lg text-gray-800 focus:border-green-700 focus:ring-green-700 transition-all shadow-sm"
                                         placeholder="Enter manual rate...">
-                                    <span
-                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold text-sm">
-                                        PKR
-                                    </span>
+                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold text-sm">PKR</span>
                                 </div>
 
                                 <button type="button" id="apply-rate-override"
@@ -77,9 +72,7 @@
                                 </h3>
 
                                 <div class="flex flex-col gap-3 h-full justify-center">
-
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
                                         <button type="submit"
                                             class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors flex justify-center items-center gap-2 h-full
                                             @if($defaultData['is_historical'] ?? false) opacity-50 cursor-not-allowed @endif"
@@ -91,13 +84,11 @@
                                             <i class="fas fa-calculator"></i> Set/Change Formula's
                                         </a>
                                     </div>
-
                                     <p class="text-xs text-gray-500 text-center mt-2">
                                         * Ensure formulas are set before activating.
                                     </p>
                                 </div>
                             </div>
-
                         </div>
                     </div>
                     {{-- END CONTROL PANEL --}}
@@ -106,7 +97,6 @@
                         value="{{ $defaultData['base_effective_cost'] ?? 0.00 }}">
 
                     <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 mb-8">
-
                         <div class="flex justify-between items-center mb-6">
                             <h2 class="font-bold text-4xl text-gray-700">
                                 Rate
@@ -114,8 +104,6 @@
                                     @if($defaultData['is_historical'] ?? false) (Saved Rate) @else (Live Calculation) @endif
                                 </span>
                             </h2>
-
-                            {{-- 🟢 ADJUST STOCK BUTTON --}}
                             <button type="button" id="adjust-stock-btn"
                                 class="bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 font-bold px-3 py-2 rounded-lg text-sm transition flex items-center gap-2">
                                 <i class="fas fa-minus-circle"></i> Stock Adjustment
@@ -134,12 +122,9 @@
                             <div class="bg-green-600 text-white text-center p-6 rounded-2xl shadow-md">
                                 <p class="text-lg font-semibold opacity-90">Net Stock Available</p>
                                 <div class="block text-3xl font-extrabold mt-2">
-                                    {{-- 🟢 Wrapped number in a span for JS targeting --}}
-                                    <span
-                                        id="net-stock-value">{{ number_format($defaultData['net_stock_available'] ?? 0.00, 2) }}</span>
+                                    <span id="net-stock-value">{{ number_format($defaultData['net_stock_available'] ?? 0.00, 2) }}</span>
                                     <span class="text-xl">KG</span>
                                 </div>
-                                {{-- Hidden Input to send updated stock to server if needed --}}
                                 <input type="hidden" name="net_stock_available" id="net_stock_input"
                                     value="{{ $defaultData['net_stock_available'] ?? 0.00 }}">
                             </div>
@@ -152,7 +137,7 @@
                         @endif
                     </div>
 
-                    {{-- Form Inputs (Permanent/Wholesale/Retail) - Keeping them exactly as previous --}}
+                    {{-- Form Inputs (Permanent/Wholesale/Retail) --}}
                     <div class="">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div id="permanent_rate_container" class="hidden">
@@ -166,18 +151,16 @@
                                 </div>
                                 @php
                                     $pRateFormula = $rateFormulas->get('permanent_rate');
-                                    $pRateFormulaSet = $pRateFormula && ($pRateFormula->multiply != 1.0 || $pRateFormula->divide != 1.0 || $pRateFormula->plus != 0.0 || $pRateFormula->minus != 0.0);
                                     $pRateFormulaText = $pRateFormula ? "×{$pRateFormula->multiply} ÷{$pRateFormula->divide} +{$pRateFormula->plus} -{$pRateFormula->minus}" : 'No Formula';
-                                    $pTextColor = $pRateFormulaSet ? 'text-green-600' : 'text-red-600';
                                 @endphp
-                                <p class="{{ $pTextColor }} text-xs mt-1" data-margin="0.00"
-                                    data-formula="{{ htmlspecialchars($pRateFormulaText) }}" data-key="permanent_rate">
+                                <p class="text-xs mt-1 text-gray-500" data-key="permanent_rate">
                                     Formula: {{ $pRateFormulaText }}
                                 </p>
                             </div>
                         </div>
                     </div>
 
+                    {{-- 🟢 WHOLESALE SECTION (Dynamic) --}}
                     <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 mb-10 mt-8">
                         <h2 class="font-bold text-xl text-gray-700 mb-6 flex items-center gap-2">
                             <i class="fas fa-chart-line text-gray-600 text-2xl"></i>
@@ -185,8 +168,10 @@
                         </h2>
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            
+                            {{-- 1. Base Wholesale Rate (Static Input kept for layout) --}}
                             <div id="wholesale_rate_container">
-                                <label class="font-semibold text-gray-700 block mb-1"> Live</label>
+                                <label class="font-semibold text-gray-700 block mb-1">Live</label>
                                 <div class="flex items-center border border-green-500 rounded-xl p-3 shadow-sm">
                                     <input type="number" name="wholesale_rate" id="wholesale_rate_input"
                                         value="{{ number_format($defaultData['wholesale_rate'] ?? 0.00, 2, '.', '') }}"
@@ -198,42 +183,34 @@
                                     $wRateFormula = $rateFormulas->get('wholesale_rate');
                                     $wRateFormulaText = $wRateFormula ? "×{$wRateFormula->multiply} ÷{$wRateFormula->divide} +{$wRateFormula->plus} -{$wRateFormula->minus}" : 'No Formula';
                                 @endphp
-                                <p class="text-xs mt-1 text-gray-500" data-margin="0.00"
-                                    data-formula="{{ htmlspecialchars($wRateFormulaText) }}" data-key="wholesale_rate">
+                                <p class="text-xs mt-1 text-gray-500" data-key="wholesale_rate">
                                     Formula: ( value {{ $wRateFormulaText }} )
                                 </p>
                             </div>
                             
-                            @php
-                              $wholesales = [
-                                ['label' => 'Mix (No. 34)', 'name' => 'wholesale_mix_rate'],
-                                ['label' => 'Mix (No. 35)', 'name' => 'wholesale_chest_rate'],
-                                ['label' => 'Mix (No. 36)', 'name' => 'wholesale_thigh_rate'],
-                                ['label' => 'Mix (No. 37)', 'name' => 'wholesale_customer_piece_rate'],
-                                ['label' => 'Chest & Leg (No. 38)', 'name' => 'wholesale_chest_and_leg_pieces'],
-                                ['label' => 'Drum Sticks', 'name' => 'wholesale_drum_sticks'],
-                                ['label' => 'Chest Boneless', 'name' => 'wholesale_chest_boneless'],
-                                ['label' => 'Thigh Boneless', 'name' => 'wholesale_thigh_boneless'], // Fixed name here
-                                ['label' => 'Kalagi Pot Gardan', 'name' => 'wholesale_kalagi_pot_gardan'],
-                            ];
-                            @endphp
+                            {{-- 🟢 DYNAMIC LOOP FOR WHOLESALE --}}
+                            @foreach($rateFormulas->where('channel', 'wholesale') as $formula)
+                                {{-- Skip 'wholesale_rate' if it's in the DB to avoid duplicating the input above --}}
+                                @if($formula->rate_key === 'wholesale_rate') @continue @endif
 
-                            @foreach($wholesales as $item)
                                 <div>
-                                    <label class="font-semibold text-gray-700 block mb-1">{{ $item['label'] }}</label>
+                                    {{-- Title from DB used as Label --}}
+                                    <label class="font-semibold text-gray-700 block mb-1">{{ $formula->title }}</label>
+                                    
                                     <div class="flex items-center border border-green-500 rounded-xl p-3 shadow-sm">
-                                        <input type="number" name="{{ $item['name'] }}" id="{{ $item['name'] }}_input"
-                                            value="{{ number_format($defaultData[$item['name']] ?? 0.00, 2, '.', '') }}"
+                                        {{-- Rate Key used as Input Name --}}
+                                        <input type="number" name="{{ $formula->rate_key }}" id="{{ $formula->rate_key }}_input"
+                                            value="{{ number_format($defaultData[$formula->rate_key] ?? 0.00, 2, '.', '') }}"
                                             step="0.01" class="w-full outline-none text-gray-800"
                                             @if($defaultData['is_historical'] ?? false) disabled @endif required>
                                         <span class="ml-2 text-gray-500">PKR</span>
                                     </div>
+                                    
+                                    {{-- Dynamic Formula Text --}}
                                     @php
-                                        $formula = $rateFormulas->get($item['name']);
-                                        $formulaText = $formula ? "×{$formula->multiply} ÷{$formula->divide} +{$formula->plus} -{$formula->minus}" : 'No Formula';
+                                        $formulaText = "×".($formula->multiply+0)." ÷".($formula->divide+0)." +".($formula->plus+0)." -".($formula->minus+0);
                                     @endphp
-                                    <p class="text-xs mt-1 text-gray-500" data-margin="0.00"
-                                        data-formula="{{ htmlspecialchars($formulaText) }}" data-key="{{ $item['name'] }}">
+                                    <p class="text-xs mt-1 text-gray-500" data-key="{{ $formula->rate_key }}">
                                         Formula: (value {{ $formulaText }})
                                     </p>
                                 </div>
@@ -241,42 +218,31 @@
                         </div>
                     </div>
 
+                    {{-- 🟢 RETAIL SECTION (Dynamic) --}}
                     <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 mb-10">
                         <h2 class="font-bold text-xl text-gray-700 mb-6 flex items-center gap-2">
                             <i class="fas fa-chart-line text-gray-600 text-2xl pr-2"></i>
                             Shop Retail Rates (Purchun)
                         </h2>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            @php
-                               $retails = [
-                                ['label' => 'Retail Live', 'name' => 'live_chicken_rate'],
-                                ['label' => 'Mix (No. 34)', 'name' => 'retail_mix_rate'],
-                                ['label' => 'Mix (No. 35)', 'name' => 'retail_chest_rate'],
-                                ['label' => 'Mix (No. 36)', 'name' => 'retail_thigh_rate'],
-                                ['label' => 'Mix (No. 37)', 'name' => 'retail_piece_rate'],
-                                ['label' => 'Chest & Leg (No. 38)', 'name' => 'retail_chest_and_leg_pieces'], // Added
-                                ['label' => 'Drum Sticks', 'name' => 'retail_drum_sticks'],                   // Added
-                                ['label' => 'Chest Boneless', 'name' => 'retail_chest_boneless'],             // Added
-                                ['label' => 'Thigh Boneless', 'name' => 'retail_thigh_boneless'],             // Added
-                                ['label' => 'Kalagi Pot Gardan', 'name' => 'retail_kalagi_pot_gardan'],       // Added
-                            ];
-                            @endphp
-                            @foreach($retails as $item)
+                            
+                            {{-- 🟢 DYNAMIC LOOP FOR RETAIL --}}
+                            @foreach($rateFormulas->where('channel', 'retail') as $formula)
                                 <div>
-                                    <label class="font-semibold text-gray-700 block mb-1">{{ $item['label'] }}</label>
+                                    <label class="font-semibold text-gray-700 block mb-1">{{ $formula->title }}</label>
+                                    
                                     <div class="flex items-center border border-green-500 rounded-xl p-3 shadow-sm">
-                                        <input type="number" name="{{ $item['name'] }}" id="{{ $item['name'] }}_input"
-                                            value="{{ number_format($defaultData[$item['name']] ?? 0.00, 2, '.', '') }}"
+                                        <input type="number" name="{{ $formula->rate_key }}" id="{{ $formula->rate_key }}_input"
+                                            value="{{ number_format($defaultData[$formula->rate_key] ?? 0.00, 2, '.', '') }}"
                                             step="0.01" class="w-full outline-none text-gray-800"
                                             @if($defaultData['is_historical'] ?? false) disabled @endif required>
                                         <span class="ml-2 text-gray-500">PKR</span>
                                     </div>
+                                    
                                     @php
-                                        $formula = $rateFormulas->get($item['name']);
-                                        $formulaText = $formula ? "×{$formula->multiply} ÷{$formula->divide} +{$formula->plus} -{$formula->minus}" : 'No Formula';
+                                        $formulaText = "×".($formula->multiply+0)." ÷".($formula->divide+0)." +".($formula->plus+0)." -".($formula->minus+0);
                                     @endphp
-                                    <p class="text-xs mt-1 text-gray-500" data-margin="0.00"
-                                        data-formula="{{ htmlspecialchars($formulaText) }}" data-key="{{ $item['name'] }}">
+                                    <p class="text-xs mt-1 text-gray-500" data-key="{{ $formula->rate_key }}">
                                         Formula: (value {{ $formulaText }})
                                     </p>
                                 </div>
@@ -289,6 +255,7 @@
         </div>
     </div>
 
+    {{-- Keep existing scripts exactly as they were --}}
     <script>
         function applyFormulaJS(baseRate, formula) {
             if (!formula) return baseRate;
@@ -311,7 +278,7 @@
                 if (isHistorical) return;
 
                 const formulaMapBase64 = '{{ base64_encode(json_encode($rateFormulas->map(function ($f) {
-        return ["multiply" => $f->multiply, "divide" => $f->divide, "plus" => $f->plus, "minus" => $f->minus]; }))) }}';
+                    return ["multiply" => $f->multiply, "divide" => $f->divide, "plus" => $f->plus, "minus" => $f->minus]; }))) }}';
                 const rateFormulas = JSON.parse(atob(formulaMapBase64));
 
                 const form = document.getElementById('daily-rates-form');
@@ -321,14 +288,13 @@
                 const manualBaseCostInput = document.getElementById('manual_base_cost');
                 const applyOverrideButton = document.getElementById('apply-rate-override');
 
-                // 🟢 STOCK ELEMENTS
+                // STOCK ELEMENTS
                 const adjustStockBtn = document.getElementById('adjust-stock-btn');
                 const netStockValueEl = document.getElementById('net-stock-value');
                 const netStockInput = document.getElementById('net_stock_input');
 
                 function formatNumber(number) { return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number); }
 
-                // const rateInputs = document.querySelectorAll('input[type="number"][name$="_rate"]:not(#manual_base_cost)');
                 const rateInputs = document.querySelectorAll('input[type="number"]:not(#manual_base_cost):not(#net_stock_input)');
                 const rateInputElements = {};
                 const userEditedInputs = {};
@@ -381,7 +347,7 @@
 
                 calculateAndApplyRatesClient({});
 
-                // 🟢 STOCK DEDUCTION LOGIC
+                // STOCK DEDUCTION LOGIC
                 if (adjustStockBtn) {
                     adjustStockBtn.addEventListener('click', async () => {
                         const { value: weightToRemove } = await Swal.fire({
@@ -400,21 +366,12 @@
                         });
 
                         if (weightToRemove) {
-                            // 1. Get current values
                             let currentStock = parseFloat(netStockValueEl.innerText.replace(/,/g, '')) || 0;
                             let removeAmount = parseFloat(weightToRemove);
-
-                            // 2. Calculation
                             let newStock = currentStock - removeAmount;
-
-                            // Prevent negative stock visually (optional)
                             if (newStock < 0) newStock = 0;
-
-                            // 3. Update UI
                             netStockValueEl.innerText = formatNumber(newStock);
-                            netStockInput.value = newStock; // Update hidden input if you want to save it on form submit
-
-                            // 4. Success Alert
+                            netStockInput.value = newStock;
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Stock Updated',
@@ -426,7 +383,7 @@
                     });
                 }
 
-                // 🟢 AJAX SAVE OVERRIDE
+                // AJAX SAVE OVERRIDE
                 applyOverrideButton.addEventListener('click', async function (e) {
                     e.preventDefault();
                     const overrideValue = parseFloat(manualBaseCostInput.value) || 0.00;
@@ -482,5 +439,4 @@
             }
         });
     </script>
-
 @endsection

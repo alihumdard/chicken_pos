@@ -145,7 +145,7 @@ class SupplierCustomerController extends Controller
             // 1. Validate
             $validated = $request->validate([
                 'name'    => 'required|string|max:255',
-                'type'    => 'required|in:supplier,customer',
+                'type'    => 'required',
                 'phone'   => "nullable|string|max:20|unique:$tableName,phone,$id",
                 'address' => 'nullable|string|max:255',
             ]);
@@ -154,6 +154,7 @@ class SupplierCustomerController extends Controller
             $contact = $modelClass::findOrFail($id);
             $contact->update([
                 'name'    => $validated['name'],
+                'type'    => $validated['type'] ?? null,
                 'phone'   => $validated['phone'] ?? null,
                 'address' => $validated['address'] ?? null,
             ]);
