@@ -10,6 +10,7 @@ class Sale extends Model
     use HasFactory;
 
     protected $fillable = [
+        'shop_id',
         'customer_id',
         'total_amount',
         'payment_status', // e.g., 'credit', 'paid', 'partial'

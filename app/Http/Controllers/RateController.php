@@ -7,6 +7,7 @@ use App\Models\Purchase;
 use App\Models\Supplier;
 use App\Models\SaleItem;
 use App\Models\RateFormula;
+use App\Models\Shop;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -35,9 +36,9 @@ class RateController extends Controller
             foreach ($formulas as $formula) {
                 // Add/Overwrite friendly name
                 $this->rateFriendlyNames[$formula->rate_key] = $formula->title;
-                
+
                 // Add/Overwrite margin (using 'plus' column as default margin)
-                $this->rateMargins[$formula->rate_key] = $formula->plus; 
+                $this->rateMargins[$formula->rate_key] = $formula->plus;
             }
         } catch (\Throwable $e) {
             // Silently fail if DB is not ready (e.g. during migration)
@@ -49,13 +50,13 @@ class RateController extends Controller
         try {
             $targetDate = $request->input('target_date', now()->toDateString());
             $suppliers = Supplier::orderBy('name')->get(['id', 'name']);
-            
+
             // Fetch formulas for the view
             $rateFormulas = RateFormula::where('status', true)->get()->keyBy('rate_key');
 
             $defaultData = [
                 'base_effective_cost' => 0.00,
-                'manual_base_cost'    => 0.00, 
+                'manual_base_cost'    => 0.00,
                 'net_stock_available' => 0.00,
                 'is_historical'       => false,
             ];
@@ -70,9 +71,9 @@ class RateController extends Controller
             if ($activeRate) {
                 // --- LOAD SAVED DATA (Historical) ---
                 $savedManualCost = (float)($activeRate->manual_base_cost ?? 0.00);
-                
+
                 $defaultData['base_effective_cost'] = (float)$activeRate->base_effective_cost;
-                $defaultData['manual_base_cost']    = $savedManualCost; 
+                $defaultData['manual_base_cost']    = $savedManualCost;
                 $defaultData['is_historical']       = now()->toDateString() != $targetDate;
 
                 $stockData = $this->calculateCombinedStock();
@@ -83,21 +84,20 @@ class RateController extends Controller
                     // Check if column exists on the object before accessing
                     $defaultData[$key] = (float)($activeRate->$key ?? 0.00);
                 }
-
             } elseif (now()->toDateString() == $targetDate) {
                 // --- LIVE CALCULATION (Today) ---
                 $combinedData = $this->calculateCombinedRatesAndStock();
                 $baseCost     = $combinedData['average_effective_cost'];
-                
+
                 $defaultData['base_effective_cost'] = $baseCost;
                 $defaultData['net_stock_available'] = $combinedData['sum_net_stock'];
 
                 // Calculate values dynamically
                 foreach ($this->rateFriendlyNames as $key => $name) {
                     $formula = $rateFormulas->get($key);
-                    
+
                     // Priority: Use DB Formula if exists, else use Base + Margin array
-                    if($formula) {
+                    if ($formula) {
                         $defaultData[$key] = $this->applyFormula($baseCost, $formula);
                     } else {
                         $margin = $this->rateMargins[$key] ?? 0.00;
@@ -106,20 +106,25 @@ class RateController extends Controller
                 }
             }
 
-            return view('pages.rates.index', compact('suppliers', 'defaultData', 'targetDate', 'rateFormulas'));
-            
+        $shops = Shop::all(); 
+        $stockData = $this->calculateCombinedStock();
+        $defaultData['net_stock_available'] = $stockData['net_stock'];
+        $defaultData['shop_stock_breakdown'] = $stockData['shop_breakdown'];
+
+        return view('pages.rates.index', compact('suppliers', 'defaultData', 'targetDate', 'rateFormulas', 'shops'));
         } catch (Exception $e) {
+            dd($e->getMessage());
             return redirect()->route('admin.dashboard')->with('error', 'Error: ' . $e->getMessage());
         }
     }
 
-public function store(Request $request)
+    public function store(Request $request)
     {
         // 1. Static Validation Rules (For the main table columns)
         $rules = [
             'supplier_id'         => ['nullable', 'exists:suppliers,id'],
             'base_effective_cost' => ['required', 'numeric', 'min:0'],
-            'manual_base_cost'    => ['nullable', 'numeric', 'min:0'], 
+            'manual_base_cost'    => ['nullable', 'numeric', 'min:0'],
         ];
 
         // 2. Dynamic Validation Rules (For the values going into JSON)
@@ -129,7 +134,7 @@ public function store(Request $request)
         }
 
         $data = $request->validate($rules);
-        
+
         // Prepare Basic Data
         $supplierId = $data['supplier_id'] ?? (Supplier::first()->id ?? 1);
         $baseCost   = $data['base_effective_cost'];
@@ -145,7 +150,7 @@ public function store(Request $request)
         try {
             // Deactivate previous rates for today
             DailyRate::whereDate('created_at', now()->toDateString())->update(['is_active' => false]);
-            
+
             // ðŸŸ¢ 4. SAVE TO DATABASE (Using JSON column)
             DailyRate::create([
                 'supplier_id'         => $supplierId,
@@ -154,23 +159,23 @@ public function store(Request $request)
                 'rate_values'         => $rateValues, // Eloquent automatically converts this array to JSON
                 'is_active'           => true
             ]);
-            
+
             // 5. AJAX Response (For the "Override/Calculate" button preview)
             if ($request->ajax() || $request->wantsJson()) {
                 $calcBase = (float)($manualCost ?: $baseCost);
                 $rateFormulas = RateFormula::all()->keyBy('rate_key');
                 $updatedRates = [];
-                
+
                 foreach ($this->rateFriendlyNames as $key => $title) {
                     $formula = $rateFormulas->get($key);
-                    if($formula) {
-                         $updatedRates[$key] = number_format($this->applyFormula($calcBase, $formula), 2, '.', '');
+                    if ($formula) {
+                        $updatedRates[$key] = number_format($this->applyFormula($calcBase, $formula), 2, '.', '');
                     } else {
-                         $margin = $this->rateMargins[$key] ?? 0.00;
-                         $updatedRates[$key] = number_format($calcBase + $margin, 2, '.', '');
+                        $margin = $this->rateMargins[$key] ?? 0.00;
+                        $updatedRates[$key] = number_format($calcBase + $margin, 2, '.', '');
                     }
                 }
-                
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Rates calculated and saved successfully.',
@@ -180,8 +185,7 @@ public function store(Request $request)
             }
 
             return redirect()->route('admin.rates.index', ['target_date' => now()->toDateString()])
-                             ->with('success', 'Rates saved successfully!');
-
+                ->with('success', 'Rates saved successfully!');
         } catch (Exception $e) {
             $errorMessage = 'Database error: ' . $e->getMessage();
             if ($request->ajax() || $request->wantsJson()) return response()->json(['success' => false, 'message' => $errorMessage], 500);
@@ -190,25 +194,26 @@ public function store(Request $request)
     }
     // --- API Endpoints ---
 
-public function getRateFormulas()
+    public function getRateFormulas()
     {
         $formulas = RateFormula::all()->keyBy('rate_key');
-        
+
         // 1. Refresh dynamic names from DB
         try {
             $dbFormulas = RateFormula::where('status', true)->get();
             foreach ($dbFormulas as $f) {
                 $this->rateFriendlyNames[$f->rate_key] = $f->title;
             }
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {
+        }
 
         // 🟢 2. SORTING LOGIC (Wholesale -> Retail -> Others)
         // We get all keys and sort them based on channel priority
         $sortedKeys = collect(array_keys($this->rateFriendlyNames))->sortBy(function ($key) use ($formulas) {
-            
+
             // Determine Channel: Look in DB first, otherwise guess from string
             $formula = $formulas->get($key);
-            
+
             if ($formula && $formula->channel) {
                 $channel = $formula->channel;
             } else {
@@ -231,13 +236,13 @@ public function getRateFormulas()
         });
 
         $formattedFormulas = [];
-        
+
         // 🟢 3. Loop through the SORTED keys
         foreach ($sortedKeys as $key) {
-            
+
             $name = $this->rateFriendlyNames[$key];
             $formula = $formulas->get($key);
-            
+
             // Handle Icon URL
             $iconFullUrl = null;
             if ($formula && $formula->icon_url) {
@@ -262,23 +267,23 @@ public function getRateFormulas()
         return response()->json([
             'formulas'       => $formattedFormulas,
             // We re-sort the friendly names array to match the order for the dropdown
-            'friendly_names' => array_replace(array_flip($sortedKeys->toArray()), $this->rateFriendlyNames) 
+            'friendly_names' => array_replace(array_flip($sortedKeys->toArray()), $this->rateFriendlyNames)
         ]);
     }
-    
+
     public function updateRateFormula(Request $request)
     {
         $data = $request->validate([
-            'rate_key'  => ['required', 'string'], 
+            'rate_key'  => ['required', 'string'],
             'title'     => ['nullable', 'string', 'max:191'],
-            'channel'   => ['nullable', 'in:wholesale,retail'], 
+            'channel'   => ['nullable', 'in:wholesale,retail'],
             'icon_url'  => ['nullable', 'image', 'mimes:jpeg,png,jpg,svg', 'max:2048'],
             'multiply'  => ['nullable', 'numeric', 'min:0'],
-            'divide'    => ['nullable', 'numeric', 'min:0.0001'], 
+            'divide'    => ['nullable', 'numeric', 'min:0.0001'],
             'plus'      => ['nullable', 'numeric'],
             'minus'     => ['nullable', 'numeric'],
         ]);
-        
+
         try {
             $existing = $this->rateFriendlyNames[$data['rate_key']] ?? null;
             $titleToSave = $data['title'] ?? ($existing ?? ucfirst(str_replace('_', ' ', $data['rate_key'])));
@@ -309,7 +314,6 @@ public function getRateFormulas()
                 'success' => true,
                 'message' => "Formula for **$titleToSave** saved successfully!",
             ]);
-
         } catch (Exception $e) {
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
@@ -338,14 +342,31 @@ public function getRateFormulas()
             return ['average_effective_cost' => 0.00, 'sum_net_stock' => 0.00];
         }
     }
-    
+
     private function calculateCombinedStock(): array
     {
-         $purchased = Purchase::sum('net_live_weight');
-         $sold = SaleItem::sum('weight_kg'); 
-         return ['net_stock' => (float) max(0, $purchased - $sold)];
+        $purchasedTotal =  Purchase::sum('net_live_weight');
+        $soldTotal = SaleItem::sum('weight_kg'); // Assuming SaleItem links to Sale -> links to Shop
+
+        $netStockTotal = (float) max(0, $purchasedTotal - $soldTotal);
+
+        $shops = Shop::all();
+        $shopStocks = [];
+
+        foreach ($shops as $shop) {
+            $shopStocks[] = [
+                'id' => $shop->id,
+                'name' => $shop->name,
+                'stock' => $shop->current_stock // This attribute handles purchase + transfer_in - sale - transfer_out
+            ];
+        }
+
+        return [
+            'net_stock' => $netStockTotal,
+            'shop_breakdown' => $shopStocks
+        ];
     }
-    
+
     private function applyFormula(float $baseRate, ?RateFormula $formula): float
     {
         if (!$formula) return $baseRate;
@@ -355,7 +376,7 @@ public function getRateFormulas()
         $val -= $formula->minus;
         return max(0.00, $val);
     }
-    
+
     public function getSupplierData(Request $request)
     {
         return response()->json(['base_effective_cost' => 0.00, 'net_stock_available' => 0.00]);

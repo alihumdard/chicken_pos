@@ -171,12 +171,14 @@
                 <form id="contactForm">
                     @csrf
                     <input type="hidden" id="editContactId" name="id" value="">
+                    
+                    {{-- 🟢 HIDDEN INPUT: This sends the actual data to the server --}}
                     <input type="hidden" name="type" id="finalType">
 
                     <div class="px-6 py-6 space-y-5">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                            <input type="text" name="name" id="contactName" required
+                            <input type="text" name="name" id="contactName" required 
                                 class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 outline-none">
                             <p id="nameError" class="text-xs text-red-500 mt-1 hidden"></p>
                         </div>
@@ -185,44 +187,37 @@
                         <div id="customerTypeContainer" class="hidden">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Customer Category</label>
                             <div class="relative">
-                                <select id="customerSubtypeSelect" name="type"
+                                {{-- 🛑 REMOVED name="type" from here so it doesn't override the hidden input --}}
+                                <select id="customerSubtypeSelect" 
                                     class="w-full appearance-none px-4 py-2.5 rounded-lg border border-gray-300 bg-white">
                                     <option value="customer">Permanent Customer</option>
                                     <option value="broker">Whole Sale Live</option>
                                     <option value="shop_retail">Shop Retail</option>
                                 </select>
-                                <div
-                                    class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
                                     <i class="fas fa-chevron-down text-xs"></i>
                                 </div>
                             </div>
                         </div>
 
+                        {{-- ... Rest of your inputs (Phone, Address, etc.) ... --}}
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                            <input type="text" name="phone"
-                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 outline-none">
+                            <input type="text" name="phone" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 outline-none">
                         </div>
-
                         <div id="openingBalanceDiv">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Opening Balance</label>
-                            <input type="number" name="opening_balance" id="openingBalance" value="0"
-                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 outline-none">
+                            <input type="number" name="opening_balance" id="openingBalance" value="0" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 outline-none">
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                            <textarea name="address" rows="2"
-                                class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 outline-none resize-none"></textarea>
+                            <textarea name="address" rows="2" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-slate-200 outline-none resize-none"></textarea>
                         </div>
                     </div>
 
                     <div class="bg-gray-50 px-6 py-4 flex flex-col sm:flex-row-reverse gap-2 sm:gap-0">
-                        <button type="submit" id="saveContactBtn"
-                            class="w-full sm:w-auto inline-flex justify-center rounded-lg bg-slate-800 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-700 transition-colors">Save
-                            Contact</button>
-                        <button type="button" onclick="closeModal()"
-                            class="w-full sm:w-auto inline-flex justify-center rounded-lg bg-white px-6 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mr-3 transition-colors">Cancel</button>
+                        <button type="submit" id="saveContactBtn" class="w-full sm:w-auto inline-flex justify-center rounded-lg bg-slate-800 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-700 transition-colors">Save Contact</button>
+                        <button type="button" onclick="closeModal()" class="w-full sm:w-auto inline-flex justify-center rounded-lg bg-white px-6 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mr-3 transition-colors">Cancel</button>
                     </div>
                 </form>
             </div>
@@ -406,11 +401,15 @@
                 item.style.display = name.includes(filter) ? "" : "none";
             });
         });
+// 1. EVENT LISTENER: This connects the Dropdown to the Hidden Input
+    document.getElementById('customerSubtypeSelect').addEventListener('change', function() {
+        document.getElementById('finalType').value = this.value;
+    });
 
-        // --- ADD / EDIT CONTACT MODAL LOGIC ---
+    // 2. Open Add Modal
         function openAddModal(type) {
             const modal = document.getElementById('contactModal');
-            const finalTypeInput = document.getElementById('finalType'); // Hidden field jo backend ko data bhejti hai
+            const finalTypeInput = document.getElementById('finalType'); 
             const customerTypeContainer = document.getElementById('customerTypeContainer');
             const customerSubtypeSelect = document.getElementById('customerSubtypeSelect');
             const form = document.getElementById('contactForm');
@@ -421,52 +420,48 @@
 
             if (type === 'supplier') {
                 document.getElementById('modalTitle').textContent = 'Add New Supplier';
-                finalTypeInput.value = 'supplier'; // Supplier ke liye seedha value set karein
+                finalTypeInput.value = 'supplier'; 
                 customerTypeContainer.classList.add('hidden');
             } else {
                 document.getElementById('modalTitle').textContent = 'Add New Customer';
                 customerTypeContainer.classList.remove('hidden');
-
-                // Default subtype set karein
-                finalTypeInput.value = customerSubtypeSelect.value;
-
-                // Jab user dropdown change kare to hidden field update ho
-                customerSubtypeSelect.onchange = function () {
-                    finalTypeInput.value = this.value;
-                };
+                
+                // Reset Dropdown and Hidden Input defaults
+                customerSubtypeSelect.value = 'customer'; 
+                finalTypeInput.value = 'customer'; 
             }
         }
-
         function openEditModal(id, name, phone, address, type) {
-        const modal = document.getElementById('contactModal');
-        const finalTypeInput = document.getElementById('finalType');
-        const customerTypeContainer = document.getElementById('customerTypeContainer');
-        const customerSubtypeSelect = document.getElementById('customerSubtypeSelect');
-        const balanceDiv = document.getElementById('openingBalanceDiv'); 
+                const modal = document.getElementById('contactModal');
+                const finalTypeInput = document.getElementById('finalType');
+                const customerTypeContainer = document.getElementById('customerTypeContainer');
+                const customerSubtypeSelect = document.getElementById('customerSubtypeSelect');
+                const balanceDiv = document.getElementById('openingBalanceDiv'); 
 
-        document.getElementById('editContactId').value = id;
-        document.getElementById('contactName').value = name;
-        document.querySelector('input[name="phone"]').value = phone;
-        document.querySelector('textarea[name="address"]').value = address;
+                document.getElementById('editContactId').value = id;
+                document.getElementById('contactName').value = name;
+                document.querySelector('input[name="phone"]').value = phone;
+                document.querySelector('textarea[name="address"]').value = address;
 
-        // Hide opening balance during edit
-        if (balanceDiv) balanceDiv.classList.add('hidden');
+                if (balanceDiv) balanceDiv.classList.add('hidden');
 
-        // ✅ FIX 1: Set the hidden input value immediately
-        finalTypeInput.value = type;
+                // ✅ IMPORTANT: Handle potential empty types from DB
+                if (!type || type === '') type = 'customer';
 
-        if (type === 'supplier') {
-            customerTypeContainer.classList.add('hidden');
-        } else {
-            customerTypeContainer.classList.remove('hidden');
-            // ✅ FIX 2: Set the dropdown to match the incoming type
-            customerSubtypeSelect.value = type;
-        }
+                // ✅ Set Hidden Input immediately
+                finalTypeInput.value = type;
 
-        document.getElementById('modalTitle').textContent = 'Edit Contact';
-        modal.classList.remove('hidden');
-    }
+                if (type === 'supplier') {
+                    customerTypeContainer.classList.add('hidden');
+                } else {
+                    customerTypeContainer.classList.remove('hidden');
+                    // ✅ Set Dropdown visual state
+                    customerSubtypeSelect.value = type;
+                }
 
+                document.getElementById('modalTitle').textContent = 'Edit Contact';
+                modal.classList.remove('hidden');
+            }
         function closeModal() {
             document.getElementById('contactModal').classList.add('hidden');
         }

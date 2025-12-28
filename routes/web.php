@@ -11,6 +11,7 @@ use App\Http\Controllers\ReportController;
 // -- NEW CONTROLLERS --
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\StockTransferController;
 use App\Http\Controllers\SupplierCustomerController;
 use App\Http\Controllers\UserController;
 use Faker\Guesser\Name;
@@ -53,13 +54,8 @@ Route::middleware('auth')->group(function () {
         Route::prefix('contacts')->name('contacts.')->group(function () {
             Route::get('/', [SupplierCustomerController::class, 'index'])->name('index');
             Route::post('/', [SupplierCustomerController::class, 'store'])->name('store');
-
-            // 🟢 Yeh Edit/Update ke liye zaroori hai
             Route::put('/{id}', [SupplierCustomerController::class, 'update'])->name('update');
-
-            // 🔴 Delete route
             Route::delete('/{id}', [SupplierCustomerController::class, 'destroy'])->name('destroy');
-
             Route::get('/create', [SupplierCustomerController::class, 'create'])->name('create');
         });
         Route::put('ledger/{id}', [SupplierCustomerController::class, 'updateLedger'])->name('admin.ledger.update');
@@ -69,6 +65,13 @@ Route::middleware('auth')->group(function () {
         Route::get('purchases/create', [PurchaseController::class, 'create'])->name('purchases.create');
         Route::post('purchases', [PurchaseController::class, 'store'])->name('purchases.store');
         Route::delete('purchases/{purchase}', [PurchaseController::class, 'destroy'])->name('purchases.destroy');
+
+        // 3. Stock Transfer
+        Route::get('stocks', [StockTransferController::class, 'index'])->name('stocks.index');
+        Route::post('/stock/transfer', [StockTransferController::class, 'create'])->name('stock.create');
+        Route::post('stocks', [StockTransferController::class, 'store'])->name('stock.transfer.store');
+        Route::delete('stocks/{stock}', [StockTransferController::class, 'destroy'])->name('stock.destroy');
+        Route::post('/stock/adjustment', [StockTransferController::class, 'storeAdjustment'])->name('stock.adjustment.store');
 
         // 4. Sell (POS & Wholesale)
         Route::get('rates', [RateController::class, 'index'])->name('rates.index');
