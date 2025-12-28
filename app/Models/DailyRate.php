@@ -9,41 +9,21 @@ class DailyRate extends Model
 {
     use HasFactory;
 
+    // 🟢 Only these columns exist in the DB now
     protected $fillable = [
         'supplier_id',
         'base_effective_cost',
         'manual_base_cost', 
+        'rate_values', // This stores: ['wholesale_mix_rate' => 350, 'retail_chest_rate' => 500, ...]
         'is_active',
-
-        // Wholesale Rates
-        'wholesale_rate',
-        'wholesale_mix_rate',
-        'wholesale_chest_rate',
-        'wholesale_thigh_rate',
-        'wholesale_customer_piece_rate',
-        'wholesale_chest_and_leg_pieces',
-        'wholesale_drum_sticks',
-        'wholesale_chest_boneless',
-        'wholesale_thigh_boneless',
-        'wholesale_kalagi_pot_gardan',
-
-        // Retail Rates
-        'live_chicken_rate',
-        'retail_mix_rate',
-        'retail_chest_rate',
-        'retail_thigh_rate',
-        'retail_piece_rate',
-        'retail_chest_and_leg_pieces',
-        'retail_drum_sticks',
-        'retail_chest_boneless',
-        'retail_thigh_boneless',
-        'retail_kalagi_pot_gardan',
-        
-        'permanent_rate',
     ];
 
+    // 🟢 Automatically cast JSON to Array
     protected $casts = [
-        'is_active' => 'boolean',
+        'is_active'   => 'boolean',
+        'rate_values' => 'array', 
+        'base_effective_cost' => 'decimal:2',
+        'manual_base_cost'    => 'decimal:2',
     ];
 
     public function supplier()

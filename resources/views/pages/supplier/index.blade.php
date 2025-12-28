@@ -13,9 +13,6 @@
 
             {{-- Grid: Stacks on mobile (grid-cols-1), 2 cols on Large screens --}}
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 w-full">
-
-                {{-- 🟢 SUPPLIERS SECTION --}}
-                {{-- min-w-0 prevents flex items from overflowing their container --}}
                 <div class="bg-gray-100 rounded-xl p-1 min-w-0">
                     <div class="flex flex-col gap-3 p-2 sm:p-4 mb-2">
                         <div class="flex justify-between items-center">
@@ -77,12 +74,34 @@
                 {{-- 🟢 CUSTOMERS SECTION --}}
                 <div class="bg-gray-100 rounded-xl p-1 min-w-0">
                     <div class="flex flex-col gap-3 p-2 sm:p-4 mb-2">
-                        <div class="flex justify-between items-center">
-                            <h2 class="text-lg font-semibold text-gray-700">Customers</h2>
-                            <button onclick="openAddModal('customer')"
-                                class="bg-slate-800 hover:bg-slate-900 text-white text-xs sm:text-sm font-medium py-2 px-3 sm:px-4 rounded-lg flex items-center transition-colors shadow-sm whitespace-nowrap">
-                                <i class="fas fa-plus mr-2"></i> Add Customer
-                            </button>
+                        <div class="flex flex-col sm:flex-row justify-between items-center gap-2">
+                            {{-- Click Title to Reset Filter --}}
+                            <h2 class="text-lg font-semibold text-gray-700 cursor-pointer hover:text-blue-600" 
+                                onclick="filterCustomers('all')" title="Show All">
+                                Customers
+                            </h2>
+                            
+                            <div class="flex flex-wrap gap-1 justify-end">
+                                {{-- 🟢 Filter Buttons --}}
+                                <button onclick="filterCustomers('customer')" 
+                                    class="bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-bold py-1.5 px-2.5 rounded shadow-sm transition-colors">
+                                    Permanent
+                                </button>
+                                <button onclick="filterCustomers('broker')" 
+                                    class="bg-orange-600 hover:bg-orange-700 text-white text-[10px] sm:text-xs font-bold py-1.5 px-2.5 rounded shadow-sm transition-colors">
+                                    Live
+                                </button>
+                                <button onclick="filterCustomers('shop_retail')" 
+                                    class="bg-green-600 hover:bg-green-700 text-white text-[10px] sm:text-xs font-bold py-1.5 px-2.5 rounded shadow-sm transition-colors">
+                                    Shop
+                                </button>
+                                
+                                {{-- Add Button --}}
+                                <button onclick="openAddModal('customer')"
+                                    class="bg-slate-800 hover:bg-slate-900 text-white text-[10px] sm:text-xs font-bold py-1.5 px-2.5 rounded flex items-center shadow-sm whitespace-nowrap ml-1 transition-colors">
+                                    <i class="fas fa-plus mr-1"></i> New
+                                </button>
+                            </div>
                         </div>
                         <div class="relative w-full">
                             <input type="text" id="searchCustomer" placeholder="Search customers..."
@@ -93,7 +112,7 @@
 
                     <div id="customerList" class="space-y-2 px-1 sm:px-2 pb-2">
                         @forelse($customers as $customer)
-                            <div id="customer-{{ $customer->id }}"
+                            <div id="customer-{{ $customer->id }}" data-type="{{ $customer->type ?? 'customer' }}"
                                 onclick="openLedger({{ $customer->id }}, '{{ addslashes($customer->name) }}', '{{ $customer->phone ?? '' }}', 'customer')"
                                 class="customer-item group bg-white p-3 sm:p-4 rounded-lg shadow-sm border border-gray-200 flex justify-between items-center hover:shadow-md transition-shadow cursor-pointer">
                                 <div class="min-w-0 pr-2">
@@ -113,7 +132,7 @@
                                         class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 hidden z-10">
                                         <div class="py-1" role="menu">
                                             <a href="#"
-                                                onclick="openEditModal('{{ $customer->id }}', '{{ addslashes($customer->name) }}', '{{ $customer->phone ?? '' }}', '{{ addslashes($customer->address ?? '') }}', 'customer')"
+                                                onclick="openEditModal('{{ $customer->id }}', '{{ addslashes($customer->name) }}', '{{ $customer->phone ?? '' }}', '{{ addslashes($customer->address ?? '') }}', '{{ addslashes($customer->type ?? '') }}')"
                                                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                                 <i class="fas fa-edit mr-2 text-blue-500"></i> Edit
                                             </a>
@@ -147,14 +166,11 @@
                 class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-2xl transition-all sm:my-8 w-full max-w-sm sm:max-w-md border border-gray-100">
                 <div class="bg-white px-6 py-4 border-b border-gray-100 flex justify-between items-center">
                     <h3 class="text-lg font-semibold text-gray-800" id="modalTitle">Add New Contact</h3>
-                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors"><i
-                            class="fas fa-times"></i></button>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition-colors"><i class="fas fa-times"></i></button>
                 </div>
                 <form id="contactForm">
                     @csrf
                     <input type="hidden" id="editContactId" name="id" value="">
-
-                    {{-- 🟢 Hidden input jo backend ko final type bhejega --}}
                     <input type="hidden" name="type" id="finalType">
 
                     <div class="px-6 py-6 space-y-5">
@@ -169,10 +185,10 @@
                         <div id="customerTypeContainer" class="hidden">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Customer Category</label>
                             <div class="relative">
-                                <select id="customerSubtypeSelect"
+                                <select id="customerSubtypeSelect" name="type"
                                     class="w-full appearance-none px-4 py-2.5 rounded-lg border border-gray-300 bg-white">
                                     <option value="customer">Permanent Customer</option>
-                                    <option value="broker">Broker</option>
+                                    <option value="broker">Whole Sale Live</option>
                                     <option value="shop_retail">Shop Retail</option>
                                 </select>
                                 <div
@@ -270,12 +286,6 @@
                         <h4 class="font-bold text-gray-800 text-md mb-4 flex items-center gap-2">
                             <i class="fas fa-coins text-yellow-500"></i> Add Manual Transaction
                         </h4>
-
-                        {{--
-                        Responsive Form:
-                        - flex-col on mobile (stack vertically)
-                        - lg:flex-row on desktop (side-by-side)
-                        --}}
                         <form id="addPaymentForm" class="flex flex-col lg:flex-row gap-3 sm:gap-4 items-end">
                             <input type="hidden" id="paymentContactId" name="contact_id">
                             <input type="hidden" id="paymentContactType" name="contact_type">
@@ -338,11 +348,6 @@
                             class="px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                             <h4 class="font-bold text-gray-700 text-lg">Transaction History</h4>
                         </div>
-
-                        {{--
-                        overflow-x-auto allows table scrolling internally on mobile
-                        without breaking the page width
-                        --}}
 
                         <div class="overflow-x-auto w-full">
                             <table class="min-w-full divide-y divide-gray-200">
@@ -433,31 +438,34 @@
         }
 
         function openEditModal(id, name, phone, address, type) {
-            const modal = document.getElementById('contactModal');
-            const finalTypeInput = document.getElementById('finalType');
-            const customerTypeContainer = document.getElementById('customerTypeContainer');
-            const balanceDiv = document.getElementById('openingBalanceDiv'); // Ensure this ID exists on the balance container
+        const modal = document.getElementById('contactModal');
+        const finalTypeInput = document.getElementById('finalType');
+        const customerTypeContainer = document.getElementById('customerTypeContainer');
+        const customerSubtypeSelect = document.getElementById('customerSubtypeSelect');
+        const balanceDiv = document.getElementById('openingBalanceDiv'); 
 
-            document.getElementById('editContactId').value = id;
-            document.getElementById('contactName').value = name;
-            document.querySelector('input[name="phone"]').value = phone;
-            document.querySelector('textarea[name="address"]').value = address;
+        document.getElementById('editContactId').value = id;
+        document.getElementById('contactName').value = name;
+        document.querySelector('input[name="phone"]').value = phone;
+        document.querySelector('textarea[name="address"]').value = address;
 
-            // Hide opening balance during edit to prevent accounting errors
-            if (balanceDiv) balanceDiv.classList.add('hidden');
+        // Hide opening balance during edit
+        if (balanceDiv) balanceDiv.classList.add('hidden');
 
-            finalTypeInput.value = type;
+        // ✅ FIX 1: Set the hidden input value immediately
+        finalTypeInput.value = type;
 
-            if (type === 'supplier') {
-                customerTypeContainer.classList.add('hidden');
-            } else {
-                customerTypeContainer.classList.remove('hidden');
-                document.getElementById('customerSubtypeSelect').value = type;
-            }
-
-            document.getElementById('modalTitle').textContent = 'Edit Contact';
-            modal.classList.remove('hidden');
+        if (type === 'supplier') {
+            customerTypeContainer.classList.add('hidden');
+        } else {
+            customerTypeContainer.classList.remove('hidden');
+            // ✅ FIX 2: Set the dropdown to match the incoming type
+            customerSubtypeSelect.value = type;
         }
+
+        document.getElementById('modalTitle').textContent = 'Edit Contact';
+        modal.classList.remove('hidden');
+    }
 
         function closeModal() {
             document.getElementById('contactModal').classList.add('hidden');
@@ -1069,5 +1077,38 @@
             // Clear content on close to ensure next open starts fresh
             ledgerTableBody.innerHTML = '';
         }
+
+        let currentFilterType = 'all';
+
+    function filterCustomers(type) {
+        currentFilterType = type; // Save selected filter
+        
+        // Get current search text to apply both filters together
+        const searchText = document.getElementById('searchCustomer').value.toLowerCase();
+
+        document.querySelectorAll('.customer-item').forEach(item => {
+            // Get the type from the HTML attribute we added
+            const itemType = item.getAttribute('data-type');
+            const name = item.querySelector('.customer-name').textContent.toLowerCase();
+
+            // 1. Check Type Match (or if 'all' is selected)
+            const matchesType = (currentFilterType === 'all' || itemType === currentFilterType);
+
+            // 2. Check Search Text Match
+            const matchesSearch = name.includes(searchText);
+
+            // Show only if BOTH match
+            if (matchesType && matchesSearch) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    // Update the search listener to use the new function
+    document.getElementById('searchCustomer').addEventListener('keyup', function () {
+        filterCustomers(currentFilterType);
+    });
     </script>
 @endsection
