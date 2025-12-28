@@ -40,7 +40,7 @@ public function store(Request $request)
     $validatedData = $this->validatePurchase($request);
 
     $request->validate([
-        'cash_received' => 'nullable|numeric|min:0', // Ya cash_paid jo bhi aap use kar rahe hain
+        'cash_received' => 'nullable|numeric|min:0', 
     ]);
 
     try {
@@ -53,21 +53,15 @@ public function store(Request $request)
             return $value;
         })->toArray();
 
-        // 2. Create Purchase Record
         $purchase = Purchase::create($purchaseData);
-
         $supplier     = Supplier::findOrFail($request->supplier_id);
         $totalPayable = (float) $request->total_payable;
-        // Ensure variable name matches your form input (cash_paid or cash_received)
         $cashPaid     = (float) ($request->cash_paid ?? $request->cash_received ?? 0);
 
-        // 3. Update Supplier Balance (Net Effect)
         $netEffect = $totalPayable - $cashPaid;
         $supplier->current_balance += $netEffect;
         $supplier->save();
 
-        // 🟢 4. SINGLE TRANSACTION ENTRY (Strictly Only One)
-        // Yahan sirf aik INSERT hoga jo Ledger ki aik row banayega
         DB::table('transactions')->insert([
             'supplier_id'     => $supplier->id,
             'date'            => now(),
@@ -85,9 +79,6 @@ public function store(Request $request)
             'created_at'      => now(),
             'updated_at'      => now(),
         ]);
-
-        // ❌ Yahan pehle aik 'if ($cashPaid > 0)' wala block tha jo dusri entry insert karta tha.
-        // Wo maine HATA diya hai taake second line na banay.
 
         $purchase->load('supplier:id,name');
         DB::commit();
@@ -168,6 +159,7 @@ public function store(Request $request)
             'net_live_weight' => 'required|numeric|min:0',
             'total_payable'   => 'required|numeric|min:0',
             'effective_cost'  => 'required|numeric|min:0',
+            'shop_id'         => 'required|exists:shops,id'
         ]);
     }
 

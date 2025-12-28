@@ -106,7 +106,7 @@
                             </h2>
                             <button type="button" id="adjust-stock-btn"
                                 class="bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 font-bold px-3 py-2 rounded-lg text-sm transition flex items-center gap-2">
-                                <i class="fas fa-minus-circle"></i> Stock Adjustment
+                                <i class="fas fa-minus-circle"></i> Stock Shrink
                             </button>
                         </div>
 
@@ -119,15 +119,41 @@
                                 </span>
                             </div>
 
-                            <div class="bg-green-600 text-white text-center p-6 rounded-2xl shadow-md">
-                                <p class="text-lg font-semibold opacity-90">Net Stock Available</p>
-                                <div class="block text-3xl font-extrabold mt-2">
-                                    <span id="net-stock-value">{{ number_format($defaultData['net_stock_available'] ?? 0.00, 2) }}</span>
-                                    <span class="text-xl">KG</span>
+                        <div class="bg-green-600 text-white p-6 rounded-2xl shadow-md relative overflow-hidden group">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-lg font-semibold opacity-90">Total Net Stock</p>
+                                    <div class="block text-4xl font-extrabold mt-1">
+                                        <span id="net-stock-value">{{ number_format($defaultData['net_stock_available'] ?? 0.00, 2) }}</span>
+                                        <span class="text-xl">KG</span>
+                                    </div>
                                 </div>
-                                <input type="hidden" name="net_stock_available" id="net_stock_input"
-                                    value="{{ $defaultData['net_stock_available'] ?? 0.00 }}">
+                                {{-- Shop Breakdown Tooltip/Popup --}}
+                                <div class="text-right text-xs bg-green-700 bg-opacity-50 p-2 rounded-lg">
+                                    @if(isset($defaultData['shop_stock_breakdown']))
+                                        @foreach($defaultData['shop_stock_breakdown'] as $shopStock)
+                                            <div class="flex justify-between gap-4">
+                                                <span class="opacity-80">{{ $shopStock['name'] }}:</span>
+                                                <span class="font-bold">{{ number_format($shopStock['stock'], 2) }} kg</span>
+                                            </div>
+                                        @endforeach
+                                    @endif
+                                </div>
                             </div>
+
+                            {{-- Action Buttons Row --}}
+                            <div class="mt-6 flex flex-wrap gap-2">
+                                <button type="button" onclick="openStockAdjustmentModal()"
+                                    class="bg-white text-green-700 hover:bg-green-50 font-bold px-3 py-2 rounded-lg text-sm shadow transition flex items-center gap-2">
+                                    <i class="fas fa-sliders-h"></i> Adjust
+                                </button>
+                                
+                                <button type="button" onclick="openTransferModal()"
+                                    class="bg-purple-600 text-white hover:bg-purple-700 border border-purple-500 font-bold px-3 py-2 rounded-lg text-sm shadow transition flex items-center gap-2">
+                                    <i class="fas fa-exchange-alt"></i> Transfer
+                                </button>
+                            </div>
+                        </div>
                         </div>
 
                         @if($defaultData['is_historical'] ?? false)
@@ -255,6 +281,223 @@
         </div>
     </div>
 
+{{-- 🟢 STOCK ADJUSTMENT / ISSUE MODAL --}}
+<div id="adjustmentModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-50 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 border border-gray-200 overflow-y-auto max-h-[90vh]">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-800">Stock Transfer / Issue</h3>
+            <button onclick="document.getElementById('adjustmentModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <form action="{{ route('admin.stock.adjustment.store') }}" method="POST" id="adjustmentForm">
+            @csrf
+            
+            {{-- 1. Source Shop (Where stock comes FROM) --}}
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-700 mb-1">From Shop (Source)</label>
+                <select name="shop_id" id="source_shop_select" onchange="validateStockAvailability()" class="w-full border p-2.5 rounded-lg bg-gray-50 focus:ring-2 focus:ring-red-500 outline-none" required>
+                    @foreach($shops as $shop)
+                        <option value="{{ $shop->id }}" data-stock="{{ $shop->current_stock }}">
+                            {{ $shop->name }} (Stock: {{ number_format($shop->current_stock, 2) }} kg)
+                        </option>
+                    @endforeach
+                </select>
+                <p id="stock_warning_msg" class="text-xs text-red-600 font-bold mt-1 hidden"></p>
+            </div>
+
+            {{-- 2. Destination Shop (Where stock goes TO) --}}
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-700 mb-1">To Shop (Destination)</label>
+                <select name="to_shop_id" id="to_shop_select" onchange="filterCustomersByShop()" class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required>
+                    @foreach($shops as $shop)
+                        <option value="{{ $shop->id }}">{{ $shop->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- 3. Customer Selection (Optional) --}}
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-700 mb-1">Issue to Customer (Optional)</label>
+                <select name="customer_id" id="adj_customer_select" class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    @php
+                        $retailCustomers = \App\Models\Customer::where('type', 'shop_retail')->get();
+                    @endphp
+                    @foreach($retailCustomers as $customer)
+                        <option value="{{ $customer->id }}" data-shop-id="{{ $customer->shop_id }}">
+                            {{ $customer->name }} ({{ $customer->shop->name ?? 'No Shop' }})
+                        </option>
+                    @endforeach
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Select a customer to record this as a sale/credit transaction.</p>
+            </div>
+
+            {{-- 4. Meat Type --}}
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-700 mb-1">Meat Type (Formula)</label>
+                <select id="adj_formula_select" name="formula_key" class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" onchange="updateAdjustmentRate()">
+                    @foreach($rateFormulas as $formula)
+                        @php
+                            $base = $defaultData['base_effective_cost'] ?? 0;
+                            $rate = $base * ($formula->multiply ?: 1);
+                            if($formula->divide > 0) $rate = $rate / $formula->divide;
+                            $rate = $rate + $formula->plus - $formula->minus;
+                        @endphp
+                        <option value="{{ $formula->rate_key }}" data-rate="{{ number_format($rate, 2, '.', '') }}">
+                            {{ $formula->title }} (Rate: {{ number_format($rate, 2) }})
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                {{-- 5. Weight --}}
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Weight (KG)</label>
+                    <input type="number" id="adj_weight" name="weight" step="0.01" 
+                        class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-bold" 
+                        placeholder="0.00" required oninput="calculateAdjTotal(); validateStockAvailability()">
+                </div>
+                {{-- 6. Rate --}}
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Rate (PKR)</label>
+                    <input type="number" id="adj_rate" name="rate" step="0.01" 
+                        class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                        placeholder="0.00" required oninput="calculateAdjTotal()">
+                </div>
+            </div>
+
+            {{-- 7. Total Amount --}}
+            <div class="mb-4 bg-gray-50 p-3 rounded-lg flex justify-between items-center border">
+                <span class="text-gray-600 font-bold text-sm">Total Value:</span>
+                <span id="adj_total_display" class="text-xl font-black text-blue-700">0.00</span>
+                <input type="hidden" name="total_amount" id="adj_total_input">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-700 mb-1">Reason / Note</label>
+                <input type="text" name="reason" class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-gray-200 outline-none" placeholder="e.g. Daily supply">
+            </div>
+
+            <button type="submit" id="adj_submit_btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed">
+                Process Transaction
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function validateStockAvailability() {
+        const sourceSelect = document.getElementById('source_shop_select');
+        const weightInput = document.getElementById('adj_weight');
+        const submitBtn = document.getElementById('adj_submit_btn');
+        const warningMsg = document.getElementById('stock_warning_msg');
+
+        // Get available stock from the selected option's data attribute
+        const selectedOption = sourceSelect.options[sourceSelect.selectedIndex];
+        const availableStock = parseFloat(selectedOption.getAttribute('data-stock')) || 0;
+        const enteredWeight = parseFloat(weightInput.value) || 0;
+
+        if (enteredWeight > availableStock) {
+            warningMsg.textContent = `Error: Cannot transfer ${enteredWeight}kg. Only ${availableStock.toFixed(2)}kg available.`;
+            warningMsg.classList.remove('hidden');
+            submitBtn.disabled = true; // Disable submit button
+            weightInput.classList.add('border-red-500', 'bg-red-50');
+        } else {
+            warningMsg.classList.add('hidden');
+            submitBtn.disabled = false; // Enable submit button
+            weightInput.classList.remove('border-red-500', 'bg-red-50');
+        }
+    }
+
+    function filterCustomersByShop() {
+        const selectedShopId = document.getElementById('to_shop_select').value;
+        const customerSelect = document.getElementById('adj_customer_select');
+        const options = customerSelect.querySelectorAll('option');
+
+        customerSelect.value = ""; // Reset selection
+
+        options.forEach(option => {
+            if (option.value === "") return;
+            const customerShopId = option.getAttribute('data-shop-id');
+            // Show only customers matching the selected shop
+            if (customerShopId === selectedShopId || !customerShopId) {
+                option.style.display = '';
+            } else {
+                option.style.display = 'none';
+            }
+        });
+    }
+
+    function updateAdjustmentRate() {
+        const select = document.getElementById('adj_formula_select');
+        const rateInput = document.getElementById('adj_rate');
+        const selectedOption = select.options[select.selectedIndex];
+        const rate = selectedOption.getAttribute('data-rate') || 0;
+        
+        rateInput.value = rate;
+        calculateAdjTotal();
+    }
+
+    function calculateAdjTotal() {
+        const weight = parseFloat(document.getElementById('adj_weight').value) || 0;
+        const rate = parseFloat(document.getElementById('adj_rate').value) || 0;
+        const total = weight * rate;
+
+        document.getElementById('adj_total_display').innerText = total.toFixed(2);
+        document.getElementById('adj_total_input').value = total.toFixed(2);
+    }
+</script>
+
+    {{-- 🟢 STOCK TRANSFER MODAL --}}
+    <div id="transferModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-50 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border border-gray-200">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Transfer Stock</h3>
+                <button onclick="document.getElementById('transferModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <form action="{{ route('admin.stock.transfer.store') }}" method="POST">
+                @csrf
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">From (Source)</label>
+                        <select name="from_shop_id" class="w-full border p-2 rounded-lg bg-gray-50" required>
+                            @foreach($shops as $shop)
+                                <option value="{{ $shop->id }}">{{ $shop->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-center pt-4">
+                        <i class="fas fa-arrow-right text-gray-400"></i>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">To (Destination)</label>
+                        <select name="to_shop_id" class="w-full border p-2 rounded-lg bg-gray-50" required>
+                            @foreach($shops as $shop)
+                                <option value="{{ $shop->id }}">{{ $shop->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Weight to Transfer (KG)</label>
+                    <input type="number" name="weight" step="0.01" class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none font-bold text-purple-700" placeholder="0.00" required>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Date</label>
+                    <input type="date" name="date" value="{{ date('Y-m-d') }}" class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-gray-200 outline-none">
+                </div>
+
+                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-lg">
+                    Transfer Stock
+                </button>
+            </form>
+        </div>
+    </div>
+
+
     {{-- Keep existing scripts exactly as they were --}}
     <script>
         function applyFormulaJS(baseRate, formula) {
@@ -270,7 +513,13 @@
             finalRate -= minus;
             return Math.max(0.00, finalRate);
         }
+        function openStockAdjustmentModal() {
+                document.getElementById('adjustmentModal').classList.remove('hidden');
+        }
 
+        function openTransferModal() {
+            document.getElementById('transferModal').classList.remove('hidden');
+        }
         document.addEventListener('DOMContentLoaded', function () {
             try {
                 const colors = { yellowDark: '#EAB308', bluePrimary: '#2563EB', yellowLight: '#FFFBEB' };

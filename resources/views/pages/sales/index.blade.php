@@ -94,7 +94,7 @@
                     @endphp
 
                     @forelse ($sortedCustomers as $customer)
-                        {{-- ðŸŸ¢ ADDED data-type HERE --}}
+                        @if($customer->type != 'shop_retail')
                         <li class="customer-item p-3 rounded-lg border cursor-pointer transition-all hover:bg-gray-50 {{ $customer->type === 'shop_retail' ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100' }}"
                             data-id="{{ $customer->id }}" 
                             data-type="{{ $customer->type }}" 
@@ -103,12 +103,11 @@
                             
                             <div class="flex justify-between items-start">
                                 <span class="font-bold text-gray-800">{{ $customer->name }}</span>
-                                @if($customer->type === 'shop_retail')
-                                    <span class="pinned-badge"><i class="fas fa-thumbtack"></i> Shop</span>
-                                @endif
-                            </div>
-                            <span class="text-xs text-gray-600">Bal: <b>{{ number_format($customer->current_balance, 0) }}</b> PKR</span>
-                        </li>
+                                    <!-- <span class="pinned-badge"><i class="fas fa-thumbtack"></i> Shop</span> -->
+                                </div>
+                                <span class="text-xs text-gray-600">Bal: <b>{{ number_format($customer->current_balance, 0) }}</b> PKR</span>
+                            </li>
+                            @endif
                     @empty
                         <li class="p-3 text-gray-500 text-sm text-center">No customers found.</li>
                     @endforelse
@@ -129,7 +128,18 @@
                             | Bal: <span id="current-customer-balance" class="font-bold text-red-600">0.00</span>
                         </div>
                     </div>
-
+                    <div class="mb-4">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase block mb-1">Selling From (Shop)</label>
+                        <select name="shop_id" id="shop-select" class="w-full border p-2 rounded-lg bg-blue-50 font-bold text-blue-900 outline-none focus:ring-2 focus:ring-blue-300">
+                            @foreach($shops as $shop)
+                                {{-- Default selected if ID is 1 --}}
+                                <option value="{{ $shop->id }}" {{ $shop->id == 1 ? 'selected' : '' }}>
+                                    {{ $shop->name }} (Stock: {{ number_format($shop->current_stock, 2) }} KG)
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    
                     <div class="flex gap-4 mb-4 p-2 border rounded-lg bg-gray-50">
                         <label class="flex items-center space-x-2 font-bold text-xs cursor-pointer">
                             <input type="radio" name="rate_channel" value="wholesale" checked> <span>WHOLESALE</span>
@@ -533,6 +543,7 @@
             const payload = {
                 _token: document.querySelector('input[name="_token"]').value,
                 customer_id: document.getElementById('selected-customer-id').value,
+                shop_id: document.getElementById('shop-select').value,
                 total_payable: document.getElementById('final-total-payable').value,
                 cash_received: document.getElementById('cash-received-input').value,
                 extra_charges: document.getElementById('charges-input').value,

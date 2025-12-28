@@ -13,6 +13,7 @@ class Transaction extends Model
 
     // Mass assignment allow karne ke liye fields define karein
    protected $fillable = [
+    'shop_id',
     'customer_id', // Ensure ye column DB mein isi naam se hai
     'supplier_id', 
     'date',

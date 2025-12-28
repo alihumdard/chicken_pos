@@ -8,6 +8,7 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\DailyRate;
 use App\Models\Purchase;
+use App\Models\Shop; // 🟢 Import Shop Model
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Exception;
@@ -17,42 +18,38 @@ class SalesController extends Controller
     public function index()
     {
         $customers = Customer::orderBy('name')->get();
+        $shops = Shop::all(); // 🟢 Fetch all shops for the dropdown
         
-        // 1. Fetch Dynamic Formulas (This defines products/labels)
-        // Group them by channel for easy loop in view
+        // ... (Existing Rate Logic) ...
         $formulas = RateFormula::where('status', true)->get()->groupBy('channel');
-
-        // 2. Fetch Latest Daily Rates (JSON)
         $dailyRatesRecord = DailyRate::latest()->first();
         $rateValues = $dailyRatesRecord ? $dailyRatesRecord->rate_values : [];
 
-        // 3. Prepare Rates Array (Merged with Formulas)
         $rates = [
             'wholesale' => [],
             'retail'    => []
         ];
 
-        // Populate Wholesale Rates
         if(isset($formulas['wholesale'])) {
             foreach($formulas['wholesale'] as $f) {
                 $rates['wholesale'][$f->rate_key] = $rateValues[$f->rate_key] ?? 0.00;
             }
         }
 
-        // Populate Retail Rates
         if(isset($formulas['retail'])) {
             foreach($formulas['retail'] as $f) {
                 $rates['retail'][$f->rate_key] = $rateValues[$f->rate_key] ?? 0.00;
             }
         }
 
-        return view('pages.sales.index', compact('customers', 'rates', 'formulas'));
+        return view('pages.sales.index', compact('customers', 'rates', 'formulas', 'shops')); // 🟢 Pass 'shops'
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'customer_id'    => 'required|exists:customers,id',
+            'shop_id'        => 'required|exists:shops,id', // 🟢 Validate Shop ID
             'rate_channel'   => 'required|in:wholesale,retail',
             'cart_items'     => 'required|array|min:1',
             'cart_items.*.category' => 'required|string',
@@ -68,22 +65,24 @@ class SalesController extends Controller
         DB::beginTransaction();
 
         try {
-            // 1. Stock Check
+            // 1. Stock Check (Shop-Specific)
+            $shopId = $validated['shop_id'];
+            $shop = Shop::find($shopId);
+
             $total_weight_to_sell = 0.00;
             foreach ($validated['cart_items'] as $item) {
                 $total_weight_to_sell += (float) $item['weight'];
             }
 
-            $total_purchased = Purchase::sum('net_live_weight');
-            $total_sold_past = DB::table('sale_items')->sum('weight_kg');
-            $current_net_stock = $total_purchased - $total_sold_past;
+            // Using the Shop model's helper to get live stock
+            $current_net_stock = $shop->current_stock;
 
             if ($total_weight_to_sell > $current_net_stock) {
                 DB::rollBack();
                 $available_display = number_format(max(0, $current_net_stock), 2);
                 $selling_display = number_format($total_weight_to_sell, 2);
                 return response()->json([
-                    'message' => "Error: Insufficient stock. Selling $selling_display KG, but only $available_display KG available.",
+                    'message' => "Error: Insufficient stock in {$shop->name}. Selling $selling_display KG, but only $available_display KG available.",
                 ], 400);
             }
 
@@ -99,13 +98,15 @@ class SalesController extends Controller
                 $paymentStatus = 'partial';
             }
 
-            // 3. Create Sale Record
+            // 3. Create Sale Record (Linked to Shop)
             $sale = Sale::create([
+                'shop_id'        => $shopId, // 🟢 Save Shop ID
                 'customer_id'    => $customer->id,
                 'total_amount'   => $totalAmount,
                 'paid_amount'    => $cashReceived,
                 'payment_status' => $paymentStatus,
                 'sale_channel'   => $validated['rate_channel'],
+                'note'           => $validated['note'],
             ]);
 
             // 4. Save Sale Items
@@ -126,6 +127,7 @@ class SalesController extends Controller
             $customer->save();
 
             DB::table('transactions')->insert([
+                'shop_id'     => $shopId, // 🟢 Record Shop in Transaction
                 'customer_id' => $customer->id,
                 'date'        => now(),
                 'type'        => 'sale',
@@ -142,6 +144,7 @@ class SalesController extends Controller
                 $customer->save();
 
                 DB::table('transactions')->insert([
+                    'shop_id'     => $shopId, // 🟢 Record Shop in Payment
                     'customer_id' => $customer->id,
                     'date'        => now(),
                     'type'        => 'payment',

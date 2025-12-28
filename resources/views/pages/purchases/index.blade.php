@@ -76,6 +76,18 @@
                             </select>
                         </div>
                         <div class="flex flex-col w-full">
+                            <label for="shop_id" class="text-[var(--text-gray)] text-sm font-medium mb-1">Select shop</label>
+                            <select name="shop_id" id="shop_id" required class="min-w-0 w-full border border-[var(--border-light)] bg-white rounded-lg p-2 text-sm text-[var(--text-dark)] focus:ring-2 focus:ring-[var(--blue-primary)] transition-all h-[42px]">
+                                <option value="1"  selected>Rana Chiken Wholesale </option>
+                                <option value="2"  >Rana Chicken Retail</option>
+                                @if(isset($shops))
+                                    @foreach($shops as $shop)
+                                        <option value="{{ $shop->id }}">{{ number_format($shop->name) }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+                        <div class="flex flex-col w-full">
                             <label for="driver_no" class="text-[var(--text-gray)] text-sm font-medium mb-1">Note</label>
                             <input type="text" name="driver_no" id="driver_no" class="min-w-0 w-full border border-[var(--border-light)] rounded-lg p-2 text-sm transition-all h-[42px]" placeholder="Add Note">
                         </div>
