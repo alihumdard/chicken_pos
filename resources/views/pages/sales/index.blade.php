@@ -226,7 +226,7 @@
                 <div>
                     <h3 class="text-2xl font-black text-slate-800 flex items-center gap-2">
                         <i class="fas fa-chart-line text-blue-600"></i> 
-                        Today's Market Rates
+                        Today's Rate List
                     </h3>
                     <p class="text-sm text-slate-500 font-medium">Live prices based on configured formulas</p>
                 </div>
