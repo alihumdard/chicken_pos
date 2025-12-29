@@ -107,7 +107,7 @@
                             <label for="gross_weight" class="text-[var(--text-gray)] text-md mb-2">Gross Weight</label>
                             <div class="flex items-end gap-2 lg:gap-3 h-full">
                                 <div class="relative w-full">
-                                    <input type="number" name="gross_weight" id="gross_weight" placeholder="0" min="0" required 
+                                    <input type="number" name="gross_weight" id="gross_weight" placeholder="0" min="0.000" step="0.01" required 
                                         class="text-3xl lg:text-4xl font-bold w-full p-3 lg:p-4 pr-10 lg:pr-12 border border-[var(--border-light)] rounded-lg text-[var(--text-dark)] focus:border-[var(--blue-primary)] transition-all min-w-0">
                                     <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-gray)] font-semibold">KG</span>
                                 </div>
@@ -124,15 +124,15 @@
                                 <div class="grid grid-cols-3 gap-2 w-full">
                                     <div class="flex flex-col min-w-0">
                                         <label for="dead_qty" class="text-[10px] lg:text-xs text-[var(--red-primary)] mb-1 block text-center lg:text-left">Dead Qty</label>
-                                        <div class="relative w-full">
-                                            <input type="number" name="dead_qty" id="dead_qty" placeholder="0" min="0" 
+                                        <div class="relative w-full"> 
+                                            <input type="number" name="dead_qty" id="dead_qty" placeholder="0" min="0" step="0.01"
                                                 class="w-full bg-red-100 p-1 lg:p-2 h-9 lg:h-8 border border-[var(--border-light)] rounded-md text-sm lg:text-lg font-bold text-[var(--red-primary)] focus:border-[var(--red-primary)] transition-all text-center lg:text-left min-w-0">
                                         </div>
                                     </div>
                                     <div class="flex flex-col min-w-0">
                                         <label for="dead_weight" class="text-[10px] lg:text-xs text-[var(--red-primary)] mb-1 block text-center lg:text-left">Dead Wgt</label>
                                         <div class="relative w-full">
-                                            <input type="number" name="dead_weight" id="dead_weight" placeholder="0" min="0" 
+                                            <input type="number" name="dead_weight" id="dead_weight" placeholder="0" min="0" step="0.01"
                                                 class="w-full bg-red-100 p-1 lg:p-2 h-9 lg:h-8 border border-[var(--border-light)] rounded-md text-sm lg:text-lg font-bold text-[var(--red-primary)] focus:border-[var(--red-primary)] transition-all text-center lg:text-left min-w-0">
                                         </div>
                                     </div>
@@ -184,7 +184,7 @@
                         <div class="bg-gray-700 p-3 rounded-xl flex flex-col justify-center w-full">
                             <label for="buying_rate" class="text-gray-300 text-xs mb-1 font-medium">Buying Rate (Per Kg)</label>
                             <div class="relative w-full">
-                                <input type="number" name="buying_rate" id="buying_rate" placeholder="0" min="0" required class="min-w-0 w-full p-2.5 pr-10 text-black font-bold rounded-lg focus:outline-none text-sm focus:ring-2 focus:ring-yellow-400 transition-all">
+                                <input type="number" name="buying_rate" id="buying_rate" placeholder="0" min="0" step="0.01" required class="min-w-0 w-full p-2.5 pr-10 text-black font-bold rounded-lg focus:outline-none text-sm focus:ring-2 focus:ring-yellow-400 transition-all">
                                 <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 text-xs font-bold">Rs</span>
                             </div>
                         </div>
@@ -192,7 +192,7 @@
                         <div class="bg-gray-700 p-3 rounded-xl flex flex-col justify-center border border-gray-600 w-full">
                             <label for="total_kharch" class="text-green-300 text-xs mb-1 font-bold">Total Kharch</label>
                             <div class="relative w-full">
-                                <input type="number" name="total_kharch" id="total_kharch" placeholder="0" min="0" 
+                                <input type="number" name="total_kharch" id="total_kharch" placeholder="0" min="0" step="0.01"
                                     class="min-w-0 w-full p-2.5 pr-10 text-black font-bold rounded-lg focus:outline-none text-sm focus:ring-2 focus:ring-green-400 transition-all">
                                 <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 text-xs font-bold">Rs</span>
                             </div>
