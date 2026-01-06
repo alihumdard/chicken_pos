@@ -2,16 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Customer;
 use App\Models\DailyRate;
 use App\Models\Purchase;
 use App\Models\Supplier;
 use App\Models\SaleItem;
 use App\Models\RateFormula;
+use App\Models\Sale;
 use App\Models\Shop;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Exception;
+use Illuminate\Support\Facades\DB;
 
 class RateController extends Controller
 {
@@ -192,7 +195,6 @@ class RateController extends Controller
             return back()->withInput()->with('error', $errorMessage);
         }
     }
-    // --- API Endpoints ---
 
     public function getRateFormulas()
     {
@@ -319,8 +321,6 @@ class RateController extends Controller
         }
     }
 
-    // --- Calculation Helpers ---
-
     private function calculateCombinedRatesAndStock(): array
     {
         try {
@@ -345,24 +345,25 @@ class RateController extends Controller
 
     private function calculateCombinedStock(): array
     {
-        $purchasedTotal =  Purchase::sum('net_live_weight');
-        $soldTotal = SaleItem::sum('weight_kg'); // Assuming SaleItem links to Sale -> links to Shop
-
-        $netStockTotal = (float) max(0, $purchasedTotal - $soldTotal);
-
         $shops = Shop::all();
+        
         $shopStocks = [];
+        $netStockTotal = 0.00;
 
         foreach ($shops as $shop) {
+            $currentStock = $shop->current_stock; 
+
             $shopStocks[] = [
-                'id' => $shop->id,
-                'name' => $shop->name,
-                'stock' => $shop->current_stock // This attribute handles purchase + transfer_in - sale - transfer_out
+                'id'    => $shop->id,
+                'name'  => $shop->name,
+                'stock' => $currentStock
             ];
+
+            $netStockTotal += $currentStock;
         }
 
         return [
-            'net_stock' => $netStockTotal,
+            'net_stock'      => (float) max(0, $netStockTotal),
             'shop_breakdown' => $shopStocks
         ];
     }
@@ -380,5 +381,63 @@ class RateController extends Controller
     public function getSupplierData(Request $request)
     {
         return response()->json(['base_effective_cost' => 0.00, 'net_stock_available' => 0.00]);
+    }
+
+
+    public function shrink(Request $request)
+    {
+        $request->validate([
+            'shop_id' => 'required|exists:shops,id',
+            'weight'  => 'required|numeric|min:0.01',
+            'note'    => 'nullable|string|max:255'
+        ]);
+
+        try {
+            
+            DB::beginTransaction();
+
+            $shop = Shop::findOrFail($request->shop_id);
+            if ($shop->current_stock < $request->weight) {
+                return response()->json(['success' => false, 'message' => "Insufficient stock in {$shop->name}. Available: {$shop->current_stock}"], 400);
+            }
+
+            $customer = Customer::firstOrCreate(
+                ['name' => 'Stock Shrinkage ('.$shop->name.')'],
+                ['phone' => rand('00000000000','9999999999'), 'type'=> 'shop_retail','address' => 'Internal System']
+            );
+
+            $sale = Sale::create([
+                'shop_id'        => $shop->id,
+                'customer_id'    => $customer->id,
+                'total_amount'   => 0, 
+                'paid_amount'    => 0,
+                'payment_status' => 'paid', 
+                'sale_channel'   => 'retail',
+                'note'           => $request->note ?? 'Manual Stock Shrinkage',
+            ]);
+
+            // 4. Create Sale Item
+            SaleItem::create([
+                'sale_id'          => $sale->id,
+                'product_category' => 'shrinkage',
+                'weight_kg'        => $request->weight,
+                'rate_pkr'         => 0,
+                'line_total'       => 0,
+            ]);
+
+            DB::commit();
+
+            // Return new stock value
+            return response()->json([
+                'success' => true,
+                'message' => "Stock reduced by {$request->weight} KG from {$shop->name}.",
+                'new_stock' => $shop->current_stock
+            ]);
+
+        } catch (Exception $e) {
+            
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
     }
 }

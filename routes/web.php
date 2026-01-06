@@ -78,6 +78,7 @@ Route::middleware('auth')->group(function () {
         Route::get('rates/create', [RateController::class, 'create'])->name('rates.create');
         Route::post('rates', [RateController::class, 'store'])->name('rates.store');
         Route::delete('rates/{rate}', [RateController::class, 'destroy'])->name('rates.destroy');
+        Route::post('/rates/shrink', [App\Http\Controllers\RateController::class, 'shrink'])->name('rates.shrink');
 
         // NEW AJAX ROUTE FOR DYNAMIC SUPPLIER DATA
         Route::post('rates/supplier-data', [RateController::class, 'getSupplierData'])->name('rates.supplier.data');
