@@ -13,7 +13,8 @@ class Sale extends Model
         'shop_id',
         'customer_id',
         'total_amount',
-        'payment_status', // e.g., 'credit', 'paid', 'partial'
+        'payment_status', 
+        'stock_transfer_id',
     ];
 
     protected $casts = [
@@ -34,5 +35,10 @@ class Sale extends Model
     public function items()
     {
         return $this->hasMany(SaleItem::class);
+    }
+
+    public function stockTransfer()
+    {
+        return $this->belongsTo(StockTransfer::class);
     }
 }

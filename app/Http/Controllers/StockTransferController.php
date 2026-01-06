@@ -36,69 +36,77 @@ class StockTransferController extends Controller
     public function destroy(Request $request) {}
 
 public function storeAdjustment(Request $request)
-{
-    // 1. Validation (Cleaned up to allow simultaneous Transfer + Sale)
-    $request->validate([
-        'shop_id'      => 'required|exists:shops,id', // Source (From)
-        'to_shop_id'   => 'required|exists:shops,id|different:shop_id', // Destination (To)
-        'weight'       => 'required|numeric|min:0.01',
-        'rate'         => 'required|numeric|min:0',
-        'customer_id'  => 'nullable|exists:customers,id', // Optional Customer
-        'formula_key'  => 'nullable|string',
-        'reason'       => 'nullable|string'
-    ]);
+    {
+        // 1. Validation
+        $request->validate([
+            'shop_id'      => 'required|exists:shops,id', // Source (From)
+            'to_shop_id'   => 'required|exists:shops,id|different:shop_id', // 🟢 CHECK 1: Prevent same shop
+            'weight'       => 'required|numeric|min:0.01',
+            'rate'         => 'required|numeric|min:0',
+            'customer_id'  => 'nullable|exists:customers,id',
+            'formula_key'  => 'nullable|string',
+            'reason'       => 'nullable|string'
+        ]);
 
-    DB::transaction(function () use ($request) {
+        // 🟢 CHECK 2: Validate Stock Availability
+        $sourceShop = \App\Models\Shop::findOrFail($request->shop_id);
         
+        // Ensure we don't transfer more than what is available
+        if ($sourceShop->current_stock < $request->weight) {
+            return back()
+                ->withInput()
+                ->withErrors(['weight' => "Error: Insufficient stock in {$sourceShop->name}. Available: " . number_format($sourceShop->current_stock, 2) . " KG"]);
+        }
 
-        // 🟢 STEP 2: GENERATE SALE (Deduct from Destination)
-        // This ensures the stock is recorded as 'Sold' from the destination shop.
-        $totalAmount = $request->weight * $request->rate;
+        DB::transaction(function () use ($request) {
 
-        $sale = \App\Models\Sale::create([
-            'shop_id'      => $request->to_shop_id, // Sale happens at the DESTINATION shop
-            'customer_id'  => $request->customer_id, 
-            'total_amount' => $totalAmount,
-            'note'         => $request->reason ?? 'Stock Issue via Transfer',
-        ]);
-
-        // 🟢 STEP 3: GENERATE SALE ITEMS
-        \App\Models\SaleItem::create([
-            'sale_id'          => $sale->id,
-            'product_category' => $request->formula_key ?? 'Issue',
-            'weight_kg'        => $request->weight,
-            'rate_pkr'         => $request->rate,
-            'line_total'       => $totalAmount
-        ]);
-
-        // 🟢 STEP 4: GENERATE LEDGER TRANSACTION (If Customer Selected)
-        if ($request->customer_id) {
-            DB::table('transactions')->insert([
-                'shop_id'     => $request->to_shop_id,
-                'customer_id' => $request->customer_id,
-                'date'        => now(),
-                'type'        => 'sale',
-                'description' => "Stock Issue #{$sale->id}",
-                'debit'       => $totalAmount,
-                'credit'      => 0,
-                'balance'     => 0, // Helper recalculates this later
-                'created_at'  => now(),
-                'updated_at'  => now()
-            ]);
-            
-            \App\Models\StockTransfer::create([
+            // 1. Create the Stock Transfer FIRST
+            $transfer = \App\Models\StockTransfer::create([
                 'from_shop_id' => $request->shop_id,
                 'to_shop_id'   => $request->to_shop_id,
                 'weight'       => $request->weight,
                 'date'         => now(),
                 'description'  => "Transfer for Issue: " . ($request->reason ?? 'Manual'),
             ]);
-            // Optional: Call your recalculateBalance helper here if available
-            // $this->recalculateBalance($request->customer_id, null);
-        }
-    });
 
-    return back()->with('success', 'Stock Transfer and Sale generated successfully.');
-}
+            // 2. Create the Sale and link it to the Transfer
+            $totalAmount = $request->weight * $request->rate;
 
+            $sale = \App\Models\Sale::create([
+                'shop_id'           => $request->to_shop_id,
+                'customer_id'       => $request->customer_id,
+                'stock_transfer_id' => $transfer->id, // Linked
+                'total_amount'      => $totalAmount,
+                'note'              => $request->reason ?? 'Stock Issue via Transfer',
+            ]);
+
+            // 3. Create Sale Items
+            \App\Models\SaleItem::create([
+                'sale_id'          => $sale->id,
+                'product_category' => $request->formula_key ?? 'Issue',
+                'weight_kg'        => $request->weight,
+                'rate_pkr'         => $request->rate,
+                'line_total'       => $totalAmount
+            ]);
+
+            // 4. Ledger Transaction
+            if ($request->customer_id) {
+                DB::table('transactions')->insert([
+                    'shop_id'     => $request->to_shop_id,
+                    'customer_id' => $request->customer_id,
+                    'date'        => now(),
+                    'type'        => 'sale',
+                    'description' => "Stock Issue #{$sale->id}",
+                    'debit'       => $totalAmount,
+                    'credit'      => 0,
+                    'balance'     => 0, // Recalculated by helpers usually
+                    'created_at'  => now(),
+                    'updated_at'  => now()
+                ]);
+            }
+        });
+
+        return back()->with('success', 'Stock Adjustment Created Successfully.');
+    }
+    
 }

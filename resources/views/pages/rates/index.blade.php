@@ -281,174 +281,7 @@
         </div>
     </div>
 
-{{-- 🟢 STOCK ADJUSTMENT / ISSUE MODAL --}}
-<div id="adjustmentModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-50 flex items-center justify-center backdrop-blur-sm">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 border border-gray-200 overflow-y-auto max-h-[90vh]">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold text-gray-800">Stock Transfer / Issue</h3>
-            <button onclick="document.getElementById('adjustmentModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
-        </div>
-        
-        <form action="{{ route('admin.stock.adjustment.store') }}" method="POST" id="adjustmentForm">
-            @csrf
-            
-            {{-- 1. Source Shop (Where stock comes FROM) --}}
-            <div class="mb-4">
-                <label class="block text-sm font-bold text-gray-700 mb-1">From Shop (Source)</label>
-                <select name="shop_id" id="source_shop_select" onchange="validateStockAvailability()" class="w-full border p-2.5 rounded-lg bg-gray-50 focus:ring-2 focus:ring-red-500 outline-none" required>
-                    @foreach($shops as $shop)
-                        <option value="{{ $shop->id }}" data-stock="{{ $shop->current_stock }}">
-                            {{ $shop->name }} (Stock: {{ number_format($shop->current_stock, 2) }} kg)
-                        </option>
-                    @endforeach
-                </select>
-                <p id="stock_warning_msg" class="text-xs text-red-600 font-bold mt-1 hidden"></p>
-            </div>
-
-            {{-- 2. Destination Shop (Where stock goes TO) --}}
-            <div class="mb-4">
-                <label class="block text-sm font-bold text-gray-700 mb-1">To Shop (Destination)</label>
-                <select name="to_shop_id" id="to_shop_select" onchange="filterCustomersByShop()" class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required>
-                    @foreach($shops as $shop)
-                        <option value="{{ $shop->id }}">{{ $shop->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            {{-- 3. Customer Selection (Optional) --}}
-            <div class="mb-4">
-                <label class="block text-sm font-bold text-gray-700 mb-1">Issue to Customer (Optional)</label>
-                <select name="customer_id" id="adj_customer_select" class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                    @php
-                        $retailCustomers = \App\Models\Customer::where('type', 'shop_retail')->get();
-                    @endphp
-                    @foreach($retailCustomers as $customer)
-                        <option value="{{ $customer->id }}" data-shop-id="{{ $customer->shop_id }}">
-                            {{ $customer->name }} ({{ $customer->shop->name ?? 'No Shop' }})
-                        </option>
-                    @endforeach
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Select a customer to record this as a sale/credit transaction.</p>
-            </div>
-
-            {{-- 4. Meat Type --}}
-            <div class="mb-4">
-                <label class="block text-sm font-bold text-gray-700 mb-1">Meat Type (Formula)</label>
-                <select id="adj_formula_select" name="formula_key" class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" onchange="updateAdjustmentRate()">
-                    @foreach($rateFormulas as $formula)
-                        @php
-                            $base = $defaultData['base_effective_cost'] ?? 0;
-                            $rate = $base * ($formula->multiply ?: 1);
-                            if($formula->divide > 0) $rate = $rate / $formula->divide;
-                            $rate = $rate + $formula->plus - $formula->minus;
-                        @endphp
-                        <option value="{{ $formula->rate_key }}" data-rate="{{ number_format($rate, 2, '.', '') }}">
-                            {{ $formula->title }} (Rate: {{ number_format($rate, 2) }})
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                {{-- 5. Weight --}}
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Weight (KG)</label>
-                    <input type="number" id="adj_weight" name="weight" step="0.01" 
-                        class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-bold" 
-                        placeholder="0.00" required oninput="calculateAdjTotal(); validateStockAvailability()">
-                </div>
-                {{-- 6. Rate --}}
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Rate (PKR)</label>
-                    <input type="number" id="adj_rate" name="rate" step="0.01" 
-                        class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
-                        placeholder="0.00" required oninput="calculateAdjTotal()">
-                </div>
-            </div>
-
-            {{-- 7. Total Amount --}}
-            <div class="mb-4 bg-gray-50 p-3 rounded-lg flex justify-between items-center border">
-                <span class="text-gray-600 font-bold text-sm">Total Value:</span>
-                <span id="adj_total_display" class="text-xl font-black text-blue-700">0.00</span>
-                <input type="hidden" name="total_amount" id="adj_total_input">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-sm font-bold text-gray-700 mb-1">Reason / Note</label>
-                <input type="text" name="reason" class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-gray-200 outline-none" placeholder="e.g. Daily supply">
-            </div>
-
-            <button type="submit" id="adj_submit_btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed">
-                Process Transaction
-            </button>
-        </form>
-    </div>
-</div>
-
-<script>
-    function validateStockAvailability() {
-        const sourceSelect = document.getElementById('source_shop_select');
-        const weightInput = document.getElementById('adj_weight');
-        const submitBtn = document.getElementById('adj_submit_btn');
-        const warningMsg = document.getElementById('stock_warning_msg');
-
-        // Get available stock from the selected option's data attribute
-        const selectedOption = sourceSelect.options[sourceSelect.selectedIndex];
-        const availableStock = parseFloat(selectedOption.getAttribute('data-stock')) || 0;
-        const enteredWeight = parseFloat(weightInput.value) || 0;
-
-        if (enteredWeight > availableStock) {
-            warningMsg.textContent = `Error: Cannot transfer ${enteredWeight}kg. Only ${availableStock.toFixed(2)}kg available.`;
-            warningMsg.classList.remove('hidden');
-            submitBtn.disabled = true; // Disable submit button
-            weightInput.classList.add('border-red-500', 'bg-red-50');
-        } else {
-            warningMsg.classList.add('hidden');
-            submitBtn.disabled = false; // Enable submit button
-            weightInput.classList.remove('border-red-500', 'bg-red-50');
-        }
-    }
-
-    function filterCustomersByShop() {
-        const selectedShopId = document.getElementById('to_shop_select').value;
-        const customerSelect = document.getElementById('adj_customer_select');
-        const options = customerSelect.querySelectorAll('option');
-
-        customerSelect.value = ""; // Reset selection
-
-        options.forEach(option => {
-            if (option.value === "") return;
-            const customerShopId = option.getAttribute('data-shop-id');
-            // Show only customers matching the selected shop
-            if (customerShopId === selectedShopId || !customerShopId) {
-                option.style.display = '';
-            } else {
-                option.style.display = 'none';
-            }
-        });
-    }
-
-    function updateAdjustmentRate() {
-        const select = document.getElementById('adj_formula_select');
-        const rateInput = document.getElementById('adj_rate');
-        const selectedOption = select.options[select.selectedIndex];
-        const rate = selectedOption.getAttribute('data-rate') || 0;
-        
-        rateInput.value = rate;
-        calculateAdjTotal();
-    }
-
-    function calculateAdjTotal() {
-        const weight = parseFloat(document.getElementById('adj_weight').value) || 0;
-        const rate = parseFloat(document.getElementById('adj_rate').value) || 0;
-        const total = weight * rate;
-
-        document.getElementById('adj_total_display').innerText = total.toFixed(2);
-        document.getElementById('adj_total_input').value = total.toFixed(2);
-    }
-</script>
-
-    {{-- 🟢 STOCK TRANSFER MODAL --}}
+        {{-- 🟢 STOCK TRANSFER MODAL --}}
     <div id="transferModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-50 flex items-center justify-center backdrop-blur-sm">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border border-gray-200">
             <div class="flex justify-between items-center mb-4">
@@ -498,194 +331,482 @@
     </div>
 
 
-    {{-- Keep existing scripts exactly as they were --}}
-    <script>
-        function applyFormulaJS(baseRate, formula) {
-            if (!formula) return baseRate;
-            const multiply = parseFloat(formula.multiply) || 1.0;
-            const divide = parseFloat(formula.divide) || 1.0;
-            const plus = parseFloat(formula.plus) || 0.0;
-            const minus = parseFloat(formula.minus) || 0.0;
-            let finalRate = baseRate;
-            finalRate += plus;
-            finalRate *= multiply;
-            if (divide !== 0 && divide !== 1) { finalRate /= divide; }
-            finalRate -= minus;
-            return Math.max(0.00, finalRate);
+    {{-- 🟢 STOCK ADJUSTMENT / ISSUE MODAL --}}
+    <div id="adjustmentModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-50 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 border border-gray-200 overflow-y-auto max-h-[90vh]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Stock Transfer / Issue</h3>
+                <button onclick="document.getElementById('adjustmentModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <form action="{{ route('admin.stock.adjustment.store') }}" method="POST" id="adjustmentForm">
+                @csrf
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">From Shop (Source)</label>
+                    {{-- 🟢 UPDATED onchange: added autoToggleShops('source') --}}
+                    <select name="shop_id" id="source_shop_select" 
+                        onchange="validateStockAvailability(); autoToggleShops('source')" 
+                        class="w-full border p-2.5 rounded-lg bg-gray-50 focus:ring-2 focus:ring-red-500 outline-none" required>
+                        @foreach($shops as $shop)
+                            <option value="{{ $shop->id }}" data-stock="{{ $shop->current_stock }}">
+                                {{ $shop->name }} (Stock: {{ number_format($shop->current_stock, 2) }} kg)
+                            </option>
+                        @endforeach
+                    </select>
+                    <p id="stock_warning_msg" class="text-xs text-red-600 font-bold mt-1 hidden"></p>
+                </div>
+
+                {{-- 2. Destination Shop (Where stock goes TO) --}}
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">To Shop (Destination)</label>
+                    {{-- 🟢 UPDATED onchange: added autoToggleShops('destination') --}}
+                    <select name="to_shop_id" id="to_shop_select" 
+                        onchange="filterCustomersByShop(); autoToggleShops('destination')" 
+                        class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required>
+                        @foreach($shops as $shop)
+                            <option value="{{ $shop->id }}">{{ $shop->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- 3. Customer Selection (Optional) --}}
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Issue to Customer (Optional)</label>
+                    <select name="customer_id" id="adj_customer_select" class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        @php
+                            $retailCustomers = \App\Models\Customer::where('type', 'shop_retail')->get();
+                        @endphp
+                        @foreach($retailCustomers as $customer)
+                            <option value="{{ $customer->id }}" data-shop-id="{{ $customer->shop_id }}" @selected($customer->id == 1)  >
+                                {{ $customer->name }} ({{ $customer->shop->name ?? 'No Shop' }})
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Select a customer to record this as a sale/credit transaction.</p>
+                </div>
+
+          
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Meat Type (Formula)</label>
+                    <select id="adj_formula_select" name="formula_key" class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" onchange="updateAdjustmentRate()">
+                        @foreach($rateFormulas as $formula)
+                            @php
+                                $base = $defaultData['base_effective_cost'] ?? 0;
+                                $rate = $base + $formula->plus * ($formula->multiply ?: 1);
+                                $rate = $rate - $formula->minus;
+                                if($formula->multiply > 0)$rate = $rate * ($formula->multiply ?: 1);  
+                                if($formula->divide > 0) $rate = $rate / $formula->divide;
+                            @endphp
+                            <option value="{{ $formula->rate_key }}" data-rate="{{ number_format($rate, 2, '.', '') }}">
+                                {{ $formula->title }} (Rate: {{ number_format($rate, 2) }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    {{-- 5. Weight --}}
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Weight (KG)</label>
+                        <input type="number" id="adj_weight" name="weight" step="0.01" 
+                            class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-bold" 
+                            placeholder="0.00" required oninput="calculateAdjTotal(); validateStockAvailability()" value="">
+                    </div>
+                    {{-- 6. Rate --}}
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Rate (PKR)</label>
+                        <input type="number" id="adj_rate" name="rate" step="0.01" 
+                            class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                            placeholder="0.00" required oninput="calculateAdjTotal()">
+                    </div>
+                </div>
+
+                {{-- 7. Total Amount --}}
+                <div class="mb-4 bg-gray-50 p-3 rounded-lg flex justify-between items-center border">
+                    <span class="text-gray-600 font-bold text-sm">Total Value:</span>
+                    <span id="adj_total_display" class="text-xl font-black text-blue-700">0.00</span>
+                    <input type="hidden" name="total_amount" id="adj_total_input">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Reason / Note</label>
+                    <input type="text" name="reason" class="w-full border p-2.5 rounded-lg focus:ring-2 focus:ring-gray-200 outline-none" placeholder="e.g. Daily supply">
+                </div>
+
+                <button type="submit" id="adj_submit_btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    Process Transaction
+                </button>
+            </form>
+        </div>
+    </div>
+
+<script>
+    document.getElementById('adj_weight').value = ''; 
+    document.getElementById('adj_total_display').innerText = '0.00';
+    autoToggleShops('source');
+    updateAdjustmentRate();
+    function autoToggleShops(trigger) {
+        const sourceSelect = document.getElementById('source_shop_select');
+        const destSelect = document.getElementById('to_shop_select');
+        
+        const sourceVal = sourceSelect.value;
+        const destVal = destSelect.value;
+
+        if (trigger === 'source') {
+            if (sourceVal == 1) {
+                destSelect.value = 2;
+            } else if (sourceVal == 2) {
+                destSelect.value = 1;
+            }
+            filterCustomersByShop();
+        } 
+        else if (trigger === 'destination') {
+            if (destVal == 1) {
+                sourceSelect.value = 2;
+            } else if (destVal == 2) {
+                sourceSelect.value = 1;
+            }
+            validateStockAvailability();
         }
-        function openStockAdjustmentModal() {
-                document.getElementById('adjustmentModal').classList.remove('hidden');
+    }
+
+    function validateStockAvailability() {
+        const sourceSelect = document.getElementById('source_shop_select');
+        const weightInput = document.getElementById('adj_weight');
+        const submitBtn = document.getElementById('adj_submit_btn');
+        const warningMsg = document.getElementById('stock_warning_msg');
+
+        // Get available stock from the selected option's data attribute
+        const selectedOption = sourceSelect.options[sourceSelect.selectedIndex];
+        const availableStock = parseFloat(selectedOption.getAttribute('data-stock')) || 0;
+        const enteredWeight = parseFloat(weightInput.value) || 0;
+
+        if (enteredWeight > availableStock) {
+            warningMsg.textContent = `Error: Cannot transfer ${enteredWeight}kg. Only ${availableStock.toFixed(2)}kg available.`;
+            warningMsg.classList.remove('hidden');
+            submitBtn.disabled = true; // Disable submit button
+            weightInput.classList.add('border-red-500', 'bg-red-50');
+        } else {
+            warningMsg.classList.add('hidden');
+            submitBtn.disabled = false; // Enable submit button
+            weightInput.classList.remove('border-red-500', 'bg-red-50');
         }
+    }
 
-        function openTransferModal() {
-            document.getElementById('transferModal').classList.remove('hidden');
-        }
-        document.addEventListener('DOMContentLoaded', function () {
-            try {
-                const colors = { yellowDark: '#EAB308', bluePrimary: '#2563EB', yellowLight: '#FFFBEB' };
-                const isHistorical = {{ json_encode($defaultData['is_historical'] ?? false) }};
-                if (isHistorical) return;
+    function filterCustomersByShop() {
+        const selectedShopId = document.getElementById('to_shop_select').value;
+        const customerSelect = document.getElementById('adj_customer_select');
+        const options = customerSelect.querySelectorAll('option');
 
-                const formulaMapBase64 = '{{ base64_encode(json_encode($rateFormulas->map(function ($f) {
-                    return ["multiply" => $f->multiply, "divide" => $f->divide, "plus" => $f->plus, "minus" => $f->minus]; }))) }}';
-                const rateFormulas = JSON.parse(atob(formulaMapBase64));
+        let firstVisibleValue = null;
+        let currentSelectionValid = false;
 
-                const form = document.getElementById('daily-rates-form');
-                const hiddenBaseCost = document.getElementById('hidden-base-cost');
-                const baseCostDisplay = document.getElementById('base-cost-display');
-                const baseCostBox = document.getElementById('base-cost-box');
-                const manualBaseCostInput = document.getElementById('manual_base_cost');
-                const applyOverrideButton = document.getElementById('apply-rate-override');
-
-                // STOCK ELEMENTS
-                const adjustStockBtn = document.getElementById('adjust-stock-btn');
-                const netStockValueEl = document.getElementById('net-stock-value');
-                const netStockInput = document.getElementById('net_stock_input');
-
-                function formatNumber(number) { return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number); }
-
-                const rateInputs = document.querySelectorAll('input[type="number"]:not(#manual_base_cost):not(#net_stock_input)');
-                const rateInputElements = {};
-                const userEditedInputs = {};
-
-                rateInputs.forEach(inputElement => {
-                    const inputName = inputElement.name;
-                    rateInputElements[inputName] = inputElement;
-                    inputElement.addEventListener('input', () => {
-                        userEditedInputs[inputName] = true;
-                        inputElement.style.backgroundColor = colors.yellowLight;
-                    });
-                });
-
-                function calculateAndApplyRatesClient(event) {
-                    const initialBaseCost = parseFloat(hiddenBaseCost.value) || 0.00;
-                    const manualBaseOverride = parseFloat(manualBaseCostInput.value) || 0.00;
-                    let activeBaseCost;
-                    let isOverrideActive = manualBaseOverride > 0;
-
-                    if (isOverrideActive) {
-                        activeBaseCost = manualBaseOverride;
-                        baseCostBox.style.backgroundColor = colors.yellowDark;
-                        baseCostBox.style.color = 'black';
-                    } else {
-                        activeBaseCost = initialBaseCost;
-                        baseCostBox.style.backgroundColor = colors.bluePrimary;
-                        baseCostBox.style.color = 'white';
-                    }
-
-                    baseCostDisplay.textContent = formatNumber(activeBaseCost) + ' PKR/kg';
-
-                    for (const name in rateInputElements) {
-                        if (!userEditedInputs[name]) {
-                            const baseRateWithMargin = activeBaseCost;
-                            const finalRate = applyFormulaJS(baseRateWithMargin, rateFormulas[name]);
-                            rateInputElements[name].value = finalRate.toFixed(2);
-                            rateInputElements[name].style.backgroundColor = '';
-                        }
-                    }
+        options.forEach(option => {
+            const customerShopId = option.getAttribute('data-shop-id');
+            
+            if (customerShopId == selectedShopId || !customerShopId) {
+                option.style.display = ''; 
+                
+                if (firstVisibleValue === null) {
+                    firstVisibleValue = option.value;
                 }
-
-                manualBaseCostInput.addEventListener('input', calculateAndApplyRatesClient);
-                manualBaseCostInput.addEventListener('blur', () => {
-                    const currentValue = manualBaseCostInput.value.trim();
-                    if (currentValue === '0.00' || currentValue === '0' || currentValue === '') {
-                        manualBaseCostInput.value = '';
-                    }
-                    calculateAndApplyRatesClient({});
-                });
-
-                calculateAndApplyRatesClient({});
-
-                // STOCK DEDUCTION LOGIC
-                if (adjustStockBtn) {
-                    adjustStockBtn.addEventListener('click', async () => {
-                        const { value: weightToRemove } = await Swal.fire({
-                            title: 'Add Shrink Stock',
-                            input: 'number',
-                            inputLabel: 'Enter weight to remove (KG)',
-                            inputPlaceholder: 'e.g. 50',
-                            showCancelButton: true,
-                            confirmButtonText: 'Save',
-                            confirmButtonColor: '#DC2626',
-                            inputValidator: (value) => {
-                                if (!value || value <= 0) {
-                                    return 'Please enter a valid weight!';
-                                }
-                            }
-                        });
-
-                        if (weightToRemove) {
-                            let currentStock = parseFloat(netStockValueEl.innerText.replace(/,/g, '')) || 0;
-                            let removeAmount = parseFloat(weightToRemove);
-                            let newStock = currentStock - removeAmount;
-                            if (newStock < 0) newStock = 0;
-                            netStockValueEl.innerText = formatNumber(newStock);
-                            netStockInput.value = newStock;
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Stock Updated',
-                                text: `${removeAmount} KG deducted. New Stock: ${formatNumber(newStock)} KG`,
-                                timer: 2000,
-                                showConfirmButton: false
-                            });
-                        }
-                    });
+                
+                if (option.value === customerSelect.value) {
+                    currentSelectionValid = true;
                 }
-
-                // AJAX SAVE OVERRIDE
-                applyOverrideButton.addEventListener('click', async function (e) {
-                    e.preventDefault();
-                    const overrideValue = parseFloat(manualBaseCostInput.value) || 0.00;
-                    const activeBaseCostForSubmit = overrideValue > 0 ? overrideValue : (parseFloat(hiddenBaseCost.value) || 0.00);
-                    hiddenBaseCost.value = activeBaseCostForSubmit.toFixed(2);
-                    const formData = new FormData(form);
-
-                    try {
-                        const response = await fetch(form.action, {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                                'Accept': 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            },
-                            body: formData
-                        });
-                        const result = await response.json();
-
-                        if (response.ok && result.success) {
-                            baseCostDisplay.textContent = formatNumber(result.base_effective_cost) + ' PKR/kg';
-                            hiddenBaseCost.value = result.base_effective_cost;
-                            manualBaseCostInput.value = overrideValue > 0 ? result.base_effective_cost : '';
-                            baseCostBox.style.backgroundColor = colors.yellowDark;
-                            baseCostBox.style.color = 'black';
-
-                            for (const [name, value] of Object.entries(result.rates)) {
-                                if (rateInputElements[name]) {
-                                    if (!userEditedInputs[name]) {
-                                        rateInputElements[name].value = value;
-                                        rateInputElements[name].style.backgroundColor = '';
-                                    }
-                                }
-                            }
-                            Swal.fire({ icon: 'success', title: 'Updated!', text: result.message, timer: 1500, showConfirmButton: false });
-                        } else {
-                            Swal.fire({ icon: 'error', title: 'Error', text: result.message || "An error occurred." });
-                        }
-                    } catch (fetchError) {
-                        console.error('Fetch Error:', fetchError);
-                        Swal.fire({ icon: 'error', title: 'Network Error', text: "Check your connection." });
-                    }
-                });
-
-                form.addEventListener('submit', function () {
-                    const overrideValue = parseFloat(manualBaseCostInput.value) || 0.00;
-                    const initialBaseCost = parseFloat(hiddenBaseCost.value) || 0.00;
-                    hiddenBaseCost.value = (overrideValue > 0 ? overrideValue : initialBaseCost).toFixed(2);
-                });
-
-            } catch (error) {
-                console.error("JavaScript Error:", error);
+            } else {
+                option.style.display = 'none'; 
             }
         });
-    </script>
+
+        if (!currentSelectionValid && firstVisibleValue !== null) {
+            customerSelect.value = firstVisibleValue;
+        }
+    }
+
+    function updateAdjustmentRate() {
+        const select = document.getElementById('adj_formula_select');
+        const rateInput = document.getElementById('adj_rate');
+        if (select && rateInput) {
+            const selectedOption = select.options[select.selectedIndex];
+            const rate = selectedOption ? (selectedOption.getAttribute('data-rate') || 0) : 0;
+            rateInput.value = rate;
+            calculateAdjTotal();
+        }
+    }
+
+    function calculateAdjTotal() {
+        const weight = parseFloat(document.getElementById('adj_weight').value) || 0;
+        const rate = parseFloat(document.getElementById('adj_rate').value) || 0;
+        const total = weight * rate;
+
+        document.getElementById('adj_total_display').innerText = total.toFixed(2);
+        document.getElementById('adj_total_input').value = total.toFixed(2);
+    }
+    
+    function openStockAdjustmentModal() {
+        const modal = document.getElementById('adjustmentModal');
+        const weightInput = document.getElementById('adj_weight');
+        const totalDisplay = document.getElementById('adj_total_display');
+        const totalInput = document.getElementById('adj_total_input');
+
+        if (weightInput) weightInput.value = ''; 
+        if (totalDisplay) totalDisplay.innerText = '0.00';
+        if (totalInput) totalInput.value = '0.00';
+
+        modal.classList.remove('hidden');
+
+        autoToggleShops('source');
+        updateAdjustmentRate();
+    }
+</script>
+
+<script>
+    function applyFormulaJS(baseRate, formula) {
+        if (!formula) return baseRate;
+        const multiply = parseFloat(formula.multiply) || 1.0;
+        const divide = parseFloat(formula.divide) || 1.0;
+        const plus = parseFloat(formula.plus) || 0.0;
+        const minus = parseFloat(formula.minus) || 0.0;
+        let finalRate = baseRate;
+        finalRate += plus;
+        finalRate *= multiply;
+        if (divide !== 0 && divide !== 1) { finalRate /= divide; }
+        finalRate -= minus;
+        return Math.max(0.00, finalRate);
+    }
+
+
+    function openTransferModal() {
+        document.getElementById('transferModal').classList.remove('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        try {
+            // 🟢 1. PREPARE SHOP DATA FOR DROPDOWN
+            const availableShops = @json($shops->map(function($shop){ 
+                return ['id' => $shop->id, 'name' => $shop->name, 'stock' => $shop->current_stock]; 
+            }));
+
+            const colors = { yellowDark: '#EAB308', bluePrimary: '#2563EB', yellowLight: '#FFFBEB' };
+            const isHistorical = {{ json_encode($defaultData['is_historical'] ?? false) }};
+            if (isHistorical) return;
+
+            const formulaMapBase64 = '{{ base64_encode(json_encode($rateFormulas->map(function ($f) {
+                return ["multiply" => $f->multiply, "divide" => $f->divide, "plus" => $f->plus, "minus" => $f->minus]; }))) }}';
+            const rateFormulas = JSON.parse(atob(formulaMapBase64));
+
+            const form = document.getElementById('daily-rates-form');
+            const hiddenBaseCost = document.getElementById('hidden-base-cost');
+            const baseCostDisplay = document.getElementById('base-cost-display');
+            const baseCostBox = document.getElementById('base-cost-box');
+            const manualBaseCostInput = document.getElementById('manual_base_cost');
+            const applyOverrideButton = document.getElementById('apply-rate-override');
+
+            // STOCK ELEMENTS
+            const adjustStockBtn = document.getElementById('adjust-stock-btn');
+            const netStockValueEl = document.getElementById('net-stock-value');
+            const netStockInput = document.getElementById('net_stock_input');
+
+            function formatNumber(number) { return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number); }
+
+            const rateInputs = document.querySelectorAll('input[type="number"]:not(#manual_base_cost):not(#net_stock_input)');
+            const rateInputElements = {};
+            const userEditedInputs = {};
+
+            rateInputs.forEach(inputElement => {
+                const inputName = inputElement.name;
+                rateInputElements[inputName] = inputElement;
+                inputElement.addEventListener('input', () => {
+                    userEditedInputs[inputName] = true;
+                    inputElement.style.backgroundColor = colors.yellowLight;
+                });
+            });
+
+            function calculateAndApplyRatesClient(event) {
+                const initialBaseCost = parseFloat(hiddenBaseCost.value) || 0.00;
+                const manualBaseOverride = parseFloat(manualBaseCostInput.value) || 0.00;
+                let activeBaseCost;
+                let isOverrideActive = manualBaseOverride > 0;
+
+                if (isOverrideActive) {
+                    activeBaseCost = manualBaseOverride;
+                    baseCostBox.style.backgroundColor = colors.yellowDark;
+                    baseCostBox.style.color = 'black';
+                } else {
+                    activeBaseCost = initialBaseCost;
+                    baseCostBox.style.backgroundColor = colors.bluePrimary;
+                    baseCostBox.style.color = 'white';
+                }
+
+                baseCostDisplay.textContent = formatNumber(activeBaseCost) + ' PKR/kg';
+
+                for (const name in rateInputElements) {
+                    if (!userEditedInputs[name]) {
+                        const baseRateWithMargin = activeBaseCost;
+                        const finalRate = applyFormulaJS(baseRateWithMargin, rateFormulas[name]);
+                        rateInputElements[name].value = finalRate.toFixed(2);
+                        rateInputElements[name].style.backgroundColor = '';
+                    }
+                }
+            }
+
+            manualBaseCostInput.addEventListener('input', calculateAndApplyRatesClient);
+            manualBaseCostInput.addEventListener('blur', () => {
+                const currentValue = manualBaseCostInput.value.trim();
+                if (currentValue === '0.00' || currentValue === '0' || currentValue === '') {
+                    manualBaseCostInput.value = '';
+                }
+                calculateAndApplyRatesClient({});
+            });
+
+            calculateAndApplyRatesClient({});
+
+            // 🟢 UPDATED STOCK SHRINK LOGIC WITH SHOP SELECTION
+            if (adjustStockBtn) {
+                adjustStockBtn.addEventListener('click', async () => {
+                    
+                    // Build Shop Options
+                    let shopOptions = '';
+                    availableShops.forEach(shop => {
+                        shopOptions += `<option value="${shop.id}">${shop.name} (Avail: ${parseFloat(shop.stock).toFixed(2)} kg)</option>`;
+                    });
+
+                    const { value: formValues } = await Swal.fire({
+                        title: 'Stock Shrinkage / Loss',
+                        html:
+                            `<div class="text-left">
+                                <label class="block text-sm font-bold text-gray-700 mb-1">Select Shop</label>
+                                <select id="swal-shop-id" class="swal2-input w-full m-0 mb-4 h-10 text-base" style="display:block;">
+                                    ${shopOptions}
+                                </select>
+
+                                <label class="block text-sm font-bold text-gray-700 mb-1">Weight to Remove (KG)</label>
+                                <input id="swal-weight" type="number" step="0.01" class="swal2-input w-full m-0 mb-4 h-10" placeholder="0.00">
+
+                                <label class="block text-sm font-bold text-gray-700 mb-1">Reason (Optional)</label>
+                                <input id="swal-note" class="swal2-input w-full m-0 h-10" placeholder="e.g. Died, Error, Waste">
+                            </div>`,
+                        focusConfirm: false,
+                        showCancelButton: true,
+                        confirmButtonText: 'Confirm Shrinkage',
+                        confirmButtonColor: '#DC2626',
+                        preConfirm: () => {
+                            const shopId = document.getElementById('swal-shop-id').value;
+                            const weight = document.getElementById('swal-weight').value;
+                            const note = document.getElementById('swal-note').value;
+
+                            if (!weight || weight <= 0) {
+                                Swal.showValidationMessage('Please enter a valid weight');
+                                return false;
+                            }
+                            return { shop_id: shopId, weight: weight, note: note };
+                        }
+                    });
+
+                    if (formValues) {
+                        Swal.fire({ title: 'Processing...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+
+                        try {
+                            const response = await fetch("{{ route('admin.rates.shrink') }}", {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                },
+                                body: JSON.stringify(formValues)
+                            });
+
+                            const result = await response.json();
+
+                            if (response.ok && result.success) {
+                                // Update Global UI visually
+                                let currentTotal = parseFloat(netStockValueEl.innerText.replace(/,/g, '')) || 0;
+                                let newTotal = currentTotal - parseFloat(formValues.weight);
+                                netStockValueEl.innerText = formatNumber(newTotal);
+
+                                // Update Local Shop Data Array (to prevent error on next click)
+                                const shopIdx = availableShops.findIndex(s => s.id == formValues.shop_id);
+                                if(shopIdx !== -1) {
+                                    availableShops[shopIdx].stock = parseFloat(availableShops[shopIdx].stock) - parseFloat(formValues.weight);
+                                }
+
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Stock Updated',
+                                    text: result.message,
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                throw new Error(result.message || 'Unknown error');
+                            }
+                        } catch (error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Failed',
+                                text: error.message
+                            });
+                        }
+                    }
+                });
+            }
+
+            // AJAX SAVE OVERRIDE
+            applyOverrideButton.addEventListener('click', async function (e) {
+                e.preventDefault();
+                const overrideValue = parseFloat(manualBaseCostInput.value) || 0.00;
+                const activeBaseCostForSubmit = overrideValue > 0 ? overrideValue : (parseFloat(hiddenBaseCost.value) || 0.00);
+                hiddenBaseCost.value = activeBaseCostForSubmit.toFixed(2);
+                const formData = new FormData(form);
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: formData
+                    });
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        baseCostDisplay.textContent = formatNumber(result.base_effective_cost) + ' PKR/kg';
+                        hiddenBaseCost.value = result.base_effective_cost;
+                        manualBaseCostInput.value = overrideValue > 0 ? result.base_effective_cost : '';
+                        baseCostBox.style.backgroundColor = colors.yellowDark;
+                        baseCostBox.style.color = 'black';
+
+                        for (const [name, value] of Object.entries(result.rates)) {
+                            if (rateInputElements[name]) {
+                                if (!userEditedInputs[name]) {
+                                    rateInputElements[name].value = value;
+                                    rateInputElements[name].style.backgroundColor = '';
+                                }
+                            }
+                        }
+                        Swal.fire({ icon: 'success', title: 'Updated!', text: result.message, timer: 1500, showConfirmButton: false });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Error', text: result.message || "An error occurred." });
+                    }
+                } catch (fetchError) {
+                    console.error('Fetch Error:', fetchError);
+                    Swal.fire({ icon: 'error', title: 'Network Error', text: "Check your connection." });
+                }
+            });
+
+            form.addEventListener('submit', function () {
+                const overrideValue = parseFloat(manualBaseCostInput.value) || 0.00;
+                const initialBaseCost = parseFloat(hiddenBaseCost.value) || 0.00;
+                hiddenBaseCost.value = (overrideValue > 0 ? overrideValue : initialBaseCost).toFixed(2);
+            });
+
+        } catch (error) {
+            console.error("JavaScript Error:", error);
+        }
+    });
+</script>
 @endsection
